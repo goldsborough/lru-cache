@@ -1,6 +1,7 @@
 #ifndef LRU_CACHE_HPP
 #define LRU_CACHE_HPP
 
+#include <cassert>
 #include <chrono>
 #include <cstddef>
 #include <iterator>
@@ -51,7 +52,7 @@ class LastAccessed {
     return _iterator;
   }
 
-  void is_valid() const noexcept {
+  auto is_valid() const noexcept {
     return _is_valid;
   }
 
@@ -76,7 +77,7 @@ class LRUCache {
                       size_t time_to_live,
                       size_t capacity = DEFAULT_CAPACITY) {
     LRUCache cache(time_to_live, capacity);
-    return [cache, function](const Key &key) mutable -> Value {
+    return [cache, &function](const Key &key) mutable -> Value {
       auto iterator = cache._cache.find(key);
       if (iterator != cache._cache.end()) {
         return iterator->second.value;
