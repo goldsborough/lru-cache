@@ -112,7 +112,7 @@ class LRUCache {
         return 1.0f * _overall_hits / _accesses;
     }
     
-    auto cache_hits_for(const Key &key) const noexcept {
+    auto cache_hits_for(const Key &key) const {
         if (_element_hits.count(key) == 0) {
             throw std::out_of_range{"Requested key not monitored."};
         }
