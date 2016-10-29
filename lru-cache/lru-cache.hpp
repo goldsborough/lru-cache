@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <iterator>
 #include <list>
+#include <map>
+#include <stdexcept>
 #include <unordered_map>
 #include <utility>
 
@@ -21,10 +23,15 @@ class LastAccessed {
 
   void operator=(const Iterator &iterator) {
     _iterator = iterator;
+    _is_valid = true;
   }
-
-  bool operator==(const Key &key) const noexcept {
-    return _is_valid && key == _iterator->first;
+  
+  friend bool operator==(const LastAccessed<Iterator>& iterator, const Key &key) noexcept {
+      return iterator._is_valid && key == iterator._iterator->first;
+  }
+  
+  friend bool operator==(const LastAccessed<Iterator>& iterator, const Iterator &other) noexcept {
+    return iterator._is_valid && other->first == iterator._iterator->first;
   }
 
   bool operator!=(const Key &key) const noexcept {
@@ -56,8 +63,8 @@ class LastAccessed {
     return _is_valid;
   }
 
-  void invalidate() const noexcept {
-    _is_valid = true;
+  void invalidate() noexcept {
+    _is_valid = false;
   }
 
  private:
@@ -72,22 +79,65 @@ class LRUCache {
 
   static const size_t DEFAULT_CAPACITY = 128;
 
+  
+  template <typename Function>
+  class FunctionObject {
+  public:
+    FunctionObject(const Function &function, size_t time_to_live, size_t capacity = DEFAULT_CAPACITY)
+    : _function {function}, _cache {time_to_live, capacity}, _overall_hits {0}, _accesses {0} {
+    }
+      
+    auto operator()(const Key &key) {
+      ++_accesses;
+      
+      auto iterator = _cache._cache.find(key);
+      if (iterator != _cache._cache.end()) {
+        ++_overall_hits;
+        ++_element_hits[key];
+        
+        return iterator->second.value;
+      }
+
+      auto value = _function(key);
+      _cache.insert(key, value);
+
+      // TODO: How to wipe evicted items out of the statistics map?
+      if (_element_hits.size() > 2 * _cache.capacity()) {
+          for (auto& elem : _element_hits) {
+              if (!_cache.contains(elem.first)) {
+                  _element_hits.erase(elem.first);
+              }
+          }
+      }
+      
+      return value;
+    }
+    
+    auto hit_rate() const noexcept {
+        return 1.0f * _overall_hits / _accesses;
+    }
+    
+    auto cache_hits_for(const Key &key) const noexcept {
+        return _element_hits[key];
+    }
+      
+  private:
+    const Function& _function;
+    LRUCache _cache;
+    
+    size_t _overall_hits;
+    size_t _accesses;
+    
+    std::map<Key, size_t> _element_hits;
+  };
+  
+  
   template <typename Function>
   static auto memoize(const Function &function,
                       size_t time_to_live,
                       size_t capacity = DEFAULT_CAPACITY) {
-    LRUCache cache(time_to_live, capacity);
-    return [cache, &function](const Key &key) mutable -> Value {
-      auto iterator = cache._cache.find(key);
-      if (iterator != cache._cache.end()) {
-        return iterator->second.value;
-      }
-
-      auto value = function(key);
-      cache.insert(key, value);
-
-      return value;
-    };
+    
+    return FunctionObject<Function>{function, time_to_live, capacity};
   }
 
   explicit LRUCache(size_t time_to_live, size_t capacity = DEFAULT_CAPACITY)
@@ -95,7 +145,7 @@ class LRUCache {
   }
 
   bool contains(const Key &key) {
-    if (key == _last_accessed) return true;
+    if (_last_accessed == key) return true;
 
     auto iterator = _cache.find(key);
     if (iterator != _cache.end()) {
@@ -103,7 +153,7 @@ class LRUCache {
         _last_accessed = iterator;
         return true;
       } else {
-        _erase(key);
+        erase(key);
       }
     }
 
@@ -116,7 +166,8 @@ class LRUCache {
         return _last_accessed->value;
       } else {
         _erase(_last_accessed);
-        // throw
+        
+        throw std::out_of_range{"Element has expired."};
       }
     }
 
@@ -125,7 +176,8 @@ class LRUCache {
 
     if (!_has_time_to_live(*iterator)) {
       _erase(key);
-      // throw
+      
+      throw std::out_of_range{"Element has expired."};
     }
 
     _last_accessed = iterator;
@@ -159,15 +211,15 @@ class LRUCache {
   }
 
   void erase(const Key &key) {
-    assert(!is_empty());
-
-    if (key == _last_accessed) {
+    if (_last_accessed == key) {
       _erase(_last_accessed.iterator());
     }
 
     auto iterator = _cache.find(key);
-    assert(iterator != _cache.end());
-    _erase(iterator);
+    
+    if (iterator != _cache.end()) {
+      _erase(iterator);
+    }
   }
 
   size_t size() const noexcept {
@@ -222,17 +274,17 @@ class LRUCache {
   }
 
   void _erase(CacheIterator iterator) {
-    if (iterator == _last_accessed) {
+    if (_last_accessed == iterator) {
       _last_accessed.invalidate();
     }
 
-    _order.erase(iterator->order);
+    _order.erase(iterator->second.order);
     _cache.erase(iterator);
   }
 
   bool _has_time_to_live(const Information &information) const noexcept {
     auto elapsed = Clock::now() - information.insertion_time;
-    return elapsed < _time_to_live;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() < _time_to_live;
   }
 
   Cache _cache;

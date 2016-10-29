@@ -10,4 +10,5 @@ int fibonacci(int n) {
 auto main() -> int {
   auto fib = LRUCache<int, int>::memoize(fibonacci, 100, 128);
   std::cout << fib(10) << std::endl;
+  std::cout << fib.hit_rate() << std::endl;
 }
