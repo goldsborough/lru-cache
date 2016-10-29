@@ -6,7 +6,6 @@
 #include <cstddef>
 #include <iterator>
 #include <list>
-#include <map>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -80,11 +79,12 @@ class LRUCache {
   static const size_t DEFAULT_CAPACITY = 128;
 
   
-  template <typename Function>
+  template <typename Function, typename... MonitoredKeys>
   class FunctionObject {
   public:
-    FunctionObject(const Function &function, size_t time_to_live, size_t capacity = DEFAULT_CAPACITY)
-    : _function {function}, _cache {time_to_live, capacity}, _overall_hits {0}, _accesses {0} {
+    FunctionObject(const Function &function, size_t time_to_live, size_t capacity = DEFAULT_CAPACITY, MonitoredKeys&&... monitoredKeys)
+    : _function {function}, _cache {time_to_live, capacity}, _overall_hits {0}, _accesses {0}, _element_hits {{monitoredKeys, 0}...}    
+    {        
     }
       
     auto operator()(const Key &key) {
@@ -93,23 +93,18 @@ class LRUCache {
       auto iterator = _cache._cache.find(key);
       if (iterator != _cache._cache.end()) {
         ++_overall_hits;
-        ++_element_hits[key];
+        
+        auto stat_it = _element_hits.find(key);
+        if (stat_it != _element_hits.end()) {
+          ++(stat_it->second);
+        }
         
         return iterator->second.value;
       }
 
       auto value = _function(key);
       _cache.insert(key, value);
-
-      // TODO: How to wipe evicted items out of the statistics map?
-      if (_element_hits.size() > 2 * _cache.capacity()) {
-          for (auto& elem : _element_hits) {
-              if (!_cache.contains(elem.first)) {
-                  _element_hits.erase(elem.first);
-              }
-          }
-      }
-      
+     
       return value;
     }
     
@@ -118,7 +113,11 @@ class LRUCache {
     }
     
     auto cache_hits_for(const Key &key) const noexcept {
-        return _element_hits[key];
+        if (_element_hits.count(key) == 0) {
+            throw std::out_of_range{"Requested key not monitored."};
+        }
+        
+        return _element_hits.at(key);
     }
       
   private:
@@ -128,16 +127,16 @@ class LRUCache {
     size_t _overall_hits;
     size_t _accesses;
     
-    std::map<Key, size_t> _element_hits;
+    std::unordered_map<Key, size_t> _element_hits;
   };
   
   
-  template <typename Function>
+  template <typename Function, typename... MonitoredKeys>
   static auto memoize(const Function &function,
                       size_t time_to_live,
-                      size_t capacity = DEFAULT_CAPACITY) {
+                      size_t capacity = DEFAULT_CAPACITY, MonitoredKeys&&... monitoredKeys) {
     
-    return FunctionObject<Function>{function, time_to_live, capacity};
+    return FunctionObject<Function, MonitoredKeys...>{function, time_to_live, capacity, std::forward<MonitoredKeys>(monitoredKeys)...};
   }
 
   explicit LRUCache(size_t time_to_live, size_t capacity = DEFAULT_CAPACITY)
