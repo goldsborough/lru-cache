@@ -17,7 +17,7 @@ class MemoizedFunction {
  public:
   using size_t = std::size_t;
   using Key = std::tuple<Keys...>;
-  using Value = decltype((Function *){}(Keys{}...));
+  using Value = decltype((Function *){}(Keys{}...));// NOLINT
   using InitializerList = std::initializer_list<Key>;
 
   MemoizedFunction(const Function &function,
@@ -44,31 +44,28 @@ class MemoizedFunction {
 
     auto iterator = _cache._cache.find(key_tuple);
     if (iterator != _cache._cache.end()) {
-      ++_overall_hits;
-      _monitor_key(key_tuple);
-
-      return iterator->second.value;
+      return _hit(key_tuple iterator);
     }
 
     // clang-format off
-    auto value = _function(
+    auto result = _function(
           std::forward<Keys>(keys)...,
           std::forward<Rest>(rest)...
-    );  // NOLINT(whitespace/parens)
+    );
     // clang-format on
 
-    _cache.insert(key_tuple, value);
+    _cache.insert(key_tuple, result);
 
     return value;
   }
 
   auto hit_rate() const noexcept {
-    return 1.0f * _overall_hits / _accesses;
+    return static_cast<double>(_overall_hits) / _accesses;
   }
 
-  auto cache_hits_for(const Key &key) const {
+  auto hits_for(const Key &key) const {
     if (_element_hits.count(key) == 0) {
-      throw std::out_of_range{"Requested key not monitored."};
+      throw NotMonitoredError();
     }
 
     return _element_hits.at(key);
@@ -76,6 +73,14 @@ class MemoizedFunction {
 
  private:
   using HitMap = std::unordered_map<Key, size_t>;
+  using Cache = LRU::Cache<Key, Value>;
+
+  void _hit(const Key &key, Cache::iterator iterator) {
+    ++_overall_hits;
+    _monitor_key(key);
+
+    return iterator->second.value;
+  }
 
   void _monitor_key(const Key &key) {
     auto element_iterator = _element_hits.find(key);
@@ -85,7 +90,7 @@ class MemoizedFunction {
   }
 
   const Function &_function;
-  LRU::Cache<Key, Value> _cache;
+  Cache _cache;
   HitMap _element_hits;
 
   size_t _overall_hits;

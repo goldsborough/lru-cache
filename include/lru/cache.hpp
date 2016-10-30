@@ -19,9 +19,8 @@ class Cache {
  public:
   using size_t = std::size_t;
 
-  static const size_t DEFAULT_CAPACITY = 128;
-
-  explicit Cache(size_t time_to_live, size_t capacity = DEFAULT_CAPACITY)
+  explicit Cache(size_t time_to_live,
+                 size_t capacity = Internal::Globals::DEFAULT_CAPACITY)
   : _capacity(capacity), _time_to_live(time_to_live) {
   }
 

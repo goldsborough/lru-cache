@@ -5,6 +5,13 @@
 #include <functional>
 #include <tuple>
 
+/**
+ * `std::hash` specialization to allow storing tuples as keys
+ * in `std::unordered_map`.
+ *
+ * Essentially hashes all tuple elements and jumbles the
+ * individual hashes together.
+ */
 namespace std {
 template <typename... Ts>
 struct hash<std::tuple<Ts...>> {
