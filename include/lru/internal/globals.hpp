@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstddef>
 #include <list>
+#include <tuple>
 
 namespace LRU {
 namespace Internal {

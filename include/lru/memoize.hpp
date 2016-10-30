@@ -10,6 +10,7 @@
 #include "lru/errors.hpp"
 #include "lru/internal/globals.hpp"
 #include "lru/internal/hash.hpp"
+#include "lru/statistics.hpp"
 
 namespace LRU {
 
@@ -21,12 +22,16 @@ class MemoizedFunction {
   using Value = decltype((Function *){}(Keys{}...));// NOLINT
   using InitializerList = std::initializer_list<Key>;
 
+ private:
+  using HitMap = std::unordered_map<Key, size_t>;
+
+ public:
   MemoizedFunction(const Function &function,
                    size_t capacity,
                    InitializerList list)
-  : _function(function), _cache(capacity), _overall_hits(0), _accesses(0) {
+  : _function(function), _cache(capacity), _total_hits(0), _accesses(0) {
     for (const auto &key : list) {
-      _element_hits.emplace(key);
+      _element_hits.emplace(key, 0);
     }
   }
 
@@ -34,7 +39,7 @@ class MemoizedFunction {
   MemoizedFunction(const Function &function,
                    size_t capacity,
                    InitializerKeys &&... keys)
-  : _function(function), _cache(capacity), _overall_hits(0), _accesses(0) {
+  : _function(function), _cache(capacity), _total_hits(0), _accesses(0) {
   }
 
   template <typename... Rest>
@@ -44,7 +49,7 @@ class MemoizedFunction {
     auto key_tuple = std::make_tuple(std::forward<Keys>(keys)...);
 
     if (_cache.contains(key_tuple)) {
-      ++_overall_hits;
+      ++_total_hits;
       _monitor_key(key_tuple);
 
       return _cache[key_tuple];
@@ -60,20 +65,44 @@ class MemoizedFunction {
     return _cache.insert(key_tuple, result);
   }
 
-  auto hit_rate() const noexcept {
-    return static_cast<double>(_overall_hits) / _accesses;
+  size_t hit_rate() const noexcept {
+    return static_cast<double>(_total_hits) / _accesses;
   }
 
-  auto hits_for(const Key &key) const {
-    if (_element_hits.count(key) == 0) {
+  size_t hits_for(const Key &key) const {
+    auto iterator = _element_hits.find(key);
+    if (iterator == _element_hits.end()) {
       throw NotMonitoredError();
     }
-
     return _element_hits.at(key);
   }
 
+  size_t total_accesses() const noexcept {
+    return _accesses;
+  }
+
+  size_t total_hits() const noexcept {
+    return _total_hits;
+  }
+
+  size_t total_misses() const noexcept {
+    return total_accesses() - total_hits();
+  }
+
+  Statistics<HitMap> statistics() const noexcept {
+    // clang-format off
+    return {
+        total_hits(),
+        _element_hits,
+        total_accesses(),
+        total_hits(),
+        total_misses()
+    };
+    // clang-format on
+  }
+
+
  private:
-  using HitMap = std::unordered_map<Key, size_t>;
   using Cache = LRU::Cache<Key, Value>;
 
   void _monitor_key(const Key &key) {
@@ -87,7 +116,7 @@ class MemoizedFunction {
   Cache _cache;
   HitMap _element_hits;
 
-  size_t _overall_hits;
+  size_t _total_hits;
   size_t _accesses;
 };
 
