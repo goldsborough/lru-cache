@@ -27,4 +27,4 @@ add_executable(lru-cache ${_SOURCES})
 ## COMPILER FLAGS
 ###########################################################
 
-target_compile_options(lru-cache PUBLIC -Os -O2 -g -std=c++14)
+target_compile_options(lru-cache PUBLIC -Os -O2 -g -std=c++14 -Werror)

@@ -4,11 +4,12 @@
 #include <cstddef>
 #include <tuple>
 #include <unordered_map>
+#include <utility>
 
 #include "lru/cache.hpp"
+#include "lru/errors.hpp"
 #include "lru/internal/globals.hpp"
 #include "lru/internal/hash.hpp"
-
 
 namespace LRU {
 
@@ -37,14 +38,16 @@ class MemoizedFunction {
   }
 
   template <typename... Rest>
-  auto operator()(Keys &&... keys, Rest &&... rest) {
+  const Value &operator()(Keys &&... keys, Rest &&... rest) {
     ++_accesses;
 
     auto key_tuple = std::make_tuple(std::forward<Keys>(keys)...);
 
-    auto iterator = _cache._cache.find(key_tuple);
-    if (iterator != _cache._cache.end()) {
-      return _hit(key_tuple iterator);
+    if (_cache.contains(key_tuple)) {
+      ++_overall_hits;
+      _monitor_key(key_tuple);
+
+      return _cache[key_tuple];
     }
 
     // clang-format off
@@ -54,9 +57,7 @@ class MemoizedFunction {
     );
     // clang-format on
 
-    _cache.insert(key_tuple, result);
-
-    return value;
+    return _cache.insert(key_tuple, result);
   }
 
   auto hit_rate() const noexcept {
@@ -74,13 +75,6 @@ class MemoizedFunction {
  private:
   using HitMap = std::unordered_map<Key, size_t>;
   using Cache = LRU::Cache<Key, Value>;
-
-  void _hit(const Key &key, Cache::iterator iterator) {
-    ++_overall_hits;
-    _monitor_key(key);
-
-    return iterator->second.value;
-  }
 
   void _monitor_key(const Key &key) {
     auto element_iterator = _element_hits.find(key);
@@ -116,7 +110,7 @@ using MonitorList = std::initializer_list<std::tuple<Keys...>>;
 template <typename... Keys, typename Function>
 static auto
 memoize(const Function &function,
-        size_t capacity = Internal::Globals::DEFAULT_CAPACITY,
+        size_t capacity = Internal::DEFAULT_CAPACITY,
         MonitorList<Keys...> keys_to_monitor = MonitorList<Keys...>()) {
   // clang-format off
   return MemoizedFunction<Function, Keys...>(
