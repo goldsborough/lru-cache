@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "lru-cache.hpp"
+#include "lru/lru.hpp"
 
 int fibonacci(int n) {
   if (n < 2) return 1;
@@ -8,12 +8,12 @@ int fibonacci(int n) {
 }
 
 auto main() -> int {
-  auto fib = LRUCache<int, int>::memoize(fibonacci, 100, 128, 10);
-  std::cout << fib(10) << std::endl;
-  std::cout << fib.hit_rate() << std::endl;
-  std::cout << fib.cache_hits_for(10) << std::endl;
-  
-  std::cout << fib(10) << std::endl;
-  std::cout << fib.hit_rate() << std::endl;
-  std::cout << fib.cache_hits_for(10) << std::endl;
+  auto fib = LRU::memoize<int>(fibonacci, 1, 2);
+  std::cout << fib(5) << std::endl;
+  // std::cout << fib.hit_rate() << std::endl;
+  // std::cout << fib.cache_hits_for(10) << std::endl;
+  //
+  // std::cout << fib(10) << std::endl;
+  // std::cout << fib.hit_rate() << std::endl;
+  // std::cout << fib.cache_hits_for(10) << std::endl;
 }

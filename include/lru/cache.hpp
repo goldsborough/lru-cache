@@ -10,136 +10,18 @@
 #include <unordered_map>
 #include <utility>
 
-template <typename Iterator>
-class LastAccessed {
- public:
-  using Pair = typename std::iterator_traits<Iterator>::value_type;
-  using Key = typename Pair::first_type;
-  using Value = typename Pair::second_type;
+#include "lru/internal/last-accessed.hpp"
 
-  LastAccessed() : _is_valid(false) {
-  }
-
-  void operator=(const Iterator &iterator) {
-    _iterator = iterator;
-    _is_valid = true;
-  }
-  
-  friend bool operator==(const LastAccessed<Iterator>& iterator, const Key &key) noexcept {
-      return iterator._is_valid && key == iterator._iterator->first;
-  }
-  
-  friend bool operator==(const LastAccessed<Iterator>& iterator, const Iterator &other) noexcept {
-    return iterator._is_valid && other->first == iterator._iterator->first;
-  }
-
-  bool operator!=(const Key &key) const noexcept {
-    return !(*this == key);
-  }
-
-  const Value &operator*() const noexcept {
-    assert(_is_valid);
-    return _iterator->second;
-  }
-
-  const Value *operator->() const noexcept {
-    return &(*this);
-  }
-
-  explicit operator bool() const noexcept {
-    return is_valid();
-  }
-
-  operator Iterator() noexcept {
-    return iterator();
-  }
-
-  Iterator iterator() const noexcept {
-    return _iterator;
-  }
-
-  auto is_valid() const noexcept {
-    return _is_valid;
-  }
-
-  void invalidate() noexcept {
-    _is_valid = false;
-  }
-
- private:
-  Iterator _iterator;
-  bool _is_valid;
-};
+namespace LRU {
 
 template <typename Key, typename Value>
-class LRUCache {
+class Cache {
  public:
   using size_t = std::size_t;
 
   static const size_t DEFAULT_CAPACITY = 128;
 
-  
-  template <typename Function, typename... MonitoredKeys>
-  class FunctionObject {
-  public:
-    FunctionObject(const Function &function, size_t time_to_live, size_t capacity = DEFAULT_CAPACITY, MonitoredKeys&&... monitoredKeys)
-    : _function {function}, _cache {time_to_live, capacity}, _overall_hits {0}, _accesses {0}, _element_hits {{monitoredKeys, 0}...}    
-    {        
-    }
-      
-    auto operator()(const Key &key) {
-      ++_accesses;
-      
-      auto iterator = _cache._cache.find(key);
-      if (iterator != _cache._cache.end()) {
-        ++_overall_hits;
-        
-        auto stat_it = _element_hits.find(key);
-        if (stat_it != _element_hits.end()) {
-          ++(stat_it->second);
-        }
-        
-        return iterator->second.value;
-      }
-
-      auto value = _function(key);
-      _cache.insert(key, value);
-     
-      return value;
-    }
-    
-    auto hit_rate() const noexcept {
-        return 1.0f * _overall_hits / _accesses;
-    }
-    
-    auto cache_hits_for(const Key &key) const {
-        if (_element_hits.count(key) == 0) {
-            throw std::out_of_range{"Requested key not monitored."};
-        }
-        
-        return _element_hits.at(key);
-    }
-      
-  private:
-    const Function& _function;
-    LRUCache _cache;
-    
-    size_t _overall_hits;
-    size_t _accesses;
-    
-    std::unordered_map<Key, size_t> _element_hits;
-  };
-  
-  
-  template <typename Function, typename... MonitoredKeys>
-  static auto memoize(const Function &function,
-                      size_t time_to_live,
-                      size_t capacity = DEFAULT_CAPACITY, MonitoredKeys&&... monitoredKeys) {
-    
-    return FunctionObject<Function, MonitoredKeys...>{function, time_to_live, capacity, std::forward<MonitoredKeys>(monitoredKeys)...};
-  }
-
-  explicit LRUCache(size_t time_to_live, size_t capacity = DEFAULT_CAPACITY)
+  explicit Cache(size_t time_to_live, size_t capacity = DEFAULT_CAPACITY)
   : _capacity(capacity), _time_to_live(time_to_live) {
   }
 
@@ -165,7 +47,7 @@ class LRUCache {
         return _last_accessed->value;
       } else {
         _erase(_last_accessed);
-        
+
         throw std::out_of_range{"Element has expired."};
       }
     }
@@ -175,7 +57,7 @@ class LRUCache {
 
     if (!_has_time_to_live(*iterator)) {
       _erase(key);
-      
+
       throw std::out_of_range{"Element has expired."};
     }
 
@@ -215,7 +97,7 @@ class LRUCache {
     }
 
     auto iterator = _cache.find(key);
-    
+
     if (iterator != _cache.end()) {
       _erase(iterator);
     }
@@ -247,6 +129,11 @@ class LRUCache {
   using Queue = std::list<Key>;
   using QueueIterator = typename Queue::const_iterator;
 
+  // Make it a friend class so it has access to the internals
+  // of the cache, for faster operations
+  template <typename Function, typename... Keys>
+  friend class MemoizedFunction;
+
   struct Information {
     using Arguments = std::pair<const Value &, QueueIterator>;
 
@@ -263,8 +150,8 @@ class LRUCache {
     QueueIterator order;
   };
 
-  using Cache = std::unordered_map<Key, Information>;
-  using CacheIterator = typename Cache::iterator;
+  using Map = std::unordered_map<Key, Information>;
+  using MapIterator = typename Map::iterator;
 
   void _erase_lru() {
     auto lru = _order.front();
@@ -272,7 +159,7 @@ class LRUCache {
     _cache.erase(lru);
   }
 
-  void _erase(CacheIterator iterator) {
+  void _erase(MapIterator iterator) {
     if (_last_accessed == iterator) {
       _last_accessed.invalidate();
     }
@@ -283,16 +170,17 @@ class LRUCache {
 
   bool _has_time_to_live(const Information &information) const noexcept {
     auto elapsed = Clock::now() - information.insertion_time;
-    return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() < _time_to_live;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed)
+               .count() < _time_to_live;
   }
 
-  Cache _cache;
+  Map _cache;
   Queue _order;
 
-  mutable LastAccessed<CacheIterator> _last_accessed;
+  mutable Internal::LastAccessed<MapIterator> _last_accessed;
 
   size_t _capacity;
   size_t _time_to_live;
 };
-
+}
 #endif /* LRU_CACHE_HPP*/

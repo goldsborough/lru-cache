@@ -9,7 +9,7 @@ project(lru-cache)
 ## INCLUDES
 ###########################################################
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lru-cache)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 ###########################################################
 ## SOURCES
