@@ -37,7 +37,6 @@ class AbstractCache {
     }
 
     auto iterator = _cache.find(key);
-
     if (iterator != _cache.end()) {
       _erase(iterator);
     }
