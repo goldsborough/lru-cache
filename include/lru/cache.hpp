@@ -53,14 +53,15 @@ class Cache : public CacheBase<Key, Value> {
   using super::_capacity;
   using super::is_full;
   using super::_erase_lru;
+  using super::is_empty;
+  using super::_move_to_front;
   using typename super::Information;
-  using typename super::InformationArguments;
 
   explicit Cache(size_t capacity = Internal::DEFAULT_CAPACITY)
   : super(capacity) {
   }
 
-  bool contains(const Key &key) override {
+  bool contains(const Key& key) override {
     if (_last_accessed == key) return true;
 
     auto iterator = _cache.find(key);
@@ -72,7 +73,7 @@ class Cache : public CacheBase<Key, Value> {
     return false;
   }
 
-  const Value &find(const Key &key) const override {
+  const Value& find(const Key& key) const override {
     if (key == _last_accessed) {
       return _last_accessed->value;
     }
@@ -87,7 +88,7 @@ class Cache : public CacheBase<Key, Value> {
     return iterator->second.value;
   }
 
-  const Value &insert(const Key &key, const Value &value) override {
+  const Value& insert(const Key& key, const Value& value) override {
     auto iterator = _cache.find(key);
 
     // To insert, we first check if the key is already present in the cache
@@ -96,25 +97,32 @@ class Cache : public CacheBase<Key, Value> {
     // possibly pop the front if the cache has reached its capacity.
 
     if (iterator != _cache.end()) {
-      _order.erase(iterator->second.order);
-
-      // Insert and get the iterator (push_back returns
-      // void and emplace_back returns a reference ...)
-      auto new_order = _order.insert(_order.end(), key);
-
-      iterator->second.order = new_order;
-      iterator->second.value = value;
+      _move_to_front(iterator, value);
     } else {
       if (is_full()) {
         super::_erase_lru();
       }
 
       auto order = _order.insert(_order.end(), key);
-      InformationArguments arguments(value, order);
-      auto result = _cache.emplace(key, arguments);
+      auto result = _cache.emplace(key, Information(value, order));
+      assert(result.second);
+
+      _last_accessed = result.first;
     }
 
     return value;
+  }
+
+  const Key& front() const noexcept {
+    // throw
+    assert(!is_empty());
+    return _order.front();
+  }
+
+  const Key& back() const noexcept {
+    // throw
+    assert(!is_empty());
+    return _order.back();
   }
 };
 }

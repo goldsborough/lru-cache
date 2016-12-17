@@ -38,23 +38,22 @@ class AbstractCache {
  public:
   using size_t = std::size_t;
   using Information = InformationType<Key, Value>;
-  using InformationArguments = typename Information::Arguments;
 
   explicit AbstractCache(size_t capacity) : _capacity(capacity) {
   }
 
   virtual ~AbstractCache() = default;
 
-  virtual bool contains(const Key &key) = 0;
-  virtual const Value &find(const Key &key) const = 0;
+  virtual bool contains(const Key& key) = 0;
+  virtual const Value& find(const Key& key) const = 0;
 
-  virtual const Value &operator[](const Key &key) const {
+  virtual const Value& operator[](const Key& key) const {
     return find(key);
   }
 
-  virtual const Value &insert(const Key &key, const Value &value) = 0;
+  virtual const Value& insert(const Key& key, const Value& value) = 0;
 
-  virtual void erase(const Key &key) {
+  virtual void erase(const Key& key) {
     if (_last_accessed == key) {
       _erase(_last_accessed.iterator());
     }
@@ -72,6 +71,14 @@ class AbstractCache {
 
   size_t size() const noexcept {
     return _cache.size();
+  }
+
+  void capacity(size_t new_capacity) {
+    // Pop the front of the cache if we have to resize
+    while (size() > new_capacity) {
+      _erase_lru();
+    }
+    _capacity = new_capacity;
   }
 
   size_t capacity() const noexcept {
@@ -95,15 +102,31 @@ class AbstractCache {
   using QueueIterator = typename Queue::const_iterator;
 
   using Map = std::unordered_map<Key, Information>;
-  using MapIterator = typename Map::const_iterator;
+  using MapIterator = typename Map::iterator;
+  using MapConstIterator = typename Map::const_iterator;
 
-  void _erase_lru() {
-    auto lru = _order.front();
-    _order.pop_front();
-    _cache.erase(lru);
+  using LastAccessed = Internal::LastAccessed<MapConstIterator>;
+
+  virtual void _move_to_front(MapIterator iterator, const Value& new_value) {
+    _order.erase(iterator->second.order);
+
+    // Insert and get the iterator (push_back returns
+    // void and emplace_back returns a reference ...)
+    auto new_order = _order.insert(_order.end(), iterator->first);
+
+    iterator->second.order = new_order;
+    iterator->second.value = new_value;
+
+    _last_accessed = iterator;
   }
 
-  void _erase(MapIterator iterator) {
+  virtual void _erase_lru() {
+    auto lru = _order.front();
+    _cache.erase(lru);
+    _order.pop_front();
+  }
+
+  virtual void _erase(MapConstIterator iterator) {
     if (_last_accessed == iterator) {
       _last_accessed.invalidate();
     }
@@ -115,7 +138,7 @@ class AbstractCache {
   Map _cache;
   Queue _order;
 
-  mutable Internal::LastAccessed<MapIterator> _last_accessed;
+  mutable LastAccessed _last_accessed;
 
   size_t _capacity;
 };

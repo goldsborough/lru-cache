@@ -41,7 +41,9 @@ namespace LRU {
 template <typename Key, typename Value>
 using TimedCacheBase = AbstractCache<Key, Value, Internal::TimedInformation>;
 
-template <typename Key, typename Value, typename Duration>
+template <typename Key,
+          typename Value,
+          typename Duration = std::chrono::milliseconds>
 class TimedCache : public TimedCacheBase<Key, Value> {
  public:
   using size_t = std::size_t;
@@ -52,46 +54,50 @@ class TimedCache : public TimedCacheBase<Key, Value> {
   using super::_capacity;
   using super::is_full;
   using super::_erase_lru;
+  using super::_move_to_front;
+  using super::is_empty;
   using typename super::Information;
 
-  explicit TimedCache(Duration time_to_live,
+  template <typename AnyDurationType>
+  explicit TimedCache(const AnyDurationType& time_to_live,
                       size_t capacity = Internal::DEFAULT_CAPACITY)
-  : super(capacity), _time_to_live(time_to_live) {
+  : super(capacity)
+  , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
-  bool contains(const Key &key) override {
+  bool contains(const Key& key) override {
     if (_last_accessed == key) return true;
 
     auto iterator = _cache.find(key);
     if (iterator != _cache.end()) {
-      if (_has_time_to_live(iterator->second)) {
+      if (_has_expired(iterator->second)) {
         _last_accessed = iterator;
         return true;
       } else {
-        erase(key);
+        _erase(iterator);
       }
     }
 
     return false;
   }
 
-  const Value &find(const Key &key) const override {
+  const Value& find(const Key& key) const override {
     if (key == _last_accessed) {
-      if (_has_time_to_live(*_last_accessed)) {
-        return _last_accessed->value;
-      } else {
+      if (_has_expired(*_last_accessed)) {
         _erase(_last_accessed);
-
         throw std::out_of_range{"Element has expired."};
+      } else {
+        return _last_accessed->value;
       }
     }
 
     auto iterator = _cache.find(key);
+
+    // Throw
     assert(iterator != _cache.end());
 
-    if (!_has_time_to_live(*iterator)) {
-      _erase(key);
-
+    if (_has_expired(*iterator)) {
+      _erase(iterator);
       throw std::out_of_range{"Element has expired."};
     }
 
@@ -100,39 +106,44 @@ class TimedCache : public TimedCacheBase<Key, Value> {
     return iterator->second.value;
   }
 
-  void insert(const Key &key, const Value &value) override {
+  void insert(const Key& key, const Value& value) override {
     auto iterator = _cache.find(key);
 
     if (iterator != _cache.end()) {
-      _order.erase(iterator->second.order);
-
-      // Insert and get the iterator (push_back returns
-      // void and emplace_back returns a reference ...)
-      auto new_order = _order.insert(_order.end(), key);
-      iterator->second.order = new_order;
+      _move_to_front(iterator, value);
     } else {
       if (is_full()) {
-        _erase_lru();
+        super::_erase_lru();
       }
 
       auto order = _order.insert(_order.end(), key);
-      auto arguments = typename Information::Arguments{value, order};
-      _cache.emplace(key, arguments);
+      auto result = _cache.emplace(key, Information(value, order));
+      assert(result.first);
+
+      _last_accessed = result.second;
     }
   }
 
+  // no front() because we may have to erase the entire cache if everything
+  // happens to be expired
+
+  bool all_expired() const noexcept {
+    if (is_empty()) return false;
+
+    auto latest = _cache.find(_order.back());
+    return has_expired(*latest);
+  }
 
  private:
   using Clock = typename Internal::Clock;
 
-  bool _has_time_to_live(const Information &information) const noexcept {
+  bool _has_expired(const Information& information) const noexcept {
     auto elapsed = Clock::now() - information.insertion_time;
-    return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed)
-               .count() < _time_to_live;
+    return std::chrono::duration_cast<Duration>(elapsed) > _time_to_live;
   }
 
-  size_t _time_to_live;
+  Duration _time_to_live;
 };
-}
+}  // namespace LRU
 
 #endif /* LRU_TIMED_CACHE_HPP*/

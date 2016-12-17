@@ -31,7 +31,7 @@
 
 #include "lru/cache.hpp"
 #include "lru/errors.hpp"
-#include "lru/internal/globals.hpp"
+#include "lru/internal/definitions.hpp"
 #include "lru/internal/hash.hpp"
 #include "lru/statistics.hpp"
 

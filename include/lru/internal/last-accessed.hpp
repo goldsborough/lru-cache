@@ -40,55 +40,57 @@ class LastAccessed {
   }
 
   friend bool
-  operator==(const LastAccessed &iterator, const Key &key) noexcept {
+  operator==(const LastAccessed& iterator, const Key& key) noexcept {
     return iterator._is_valid && key == iterator._iterator->first;
   }
 
   friend bool
-  operator==(const Key &key, const LastAccessed &iterator) noexcept {
+  operator==(const Key& key, const LastAccessed& iterator) noexcept {
     return iterator == key;
   }
 
   friend bool
-  operator==(const LastAccessed &iterator, const Iterator &other) noexcept {
+  operator==(const LastAccessed& iterator, const Iterator& other) noexcept {
     return iterator._is_valid && other->first == iterator._iterator->first;
   }
 
   friend bool
-  operator==(const Iterator &other, const LastAccessed &iterator) noexcept {
+  operator==(const Iterator& other, const LastAccessed& iterator) noexcept {
     return iterator == other;
   }
 
   friend bool
-  operator!=(const LastAccessed &iterator, const Key &key) noexcept {
+  operator!=(const LastAccessed& iterator, const Key& key) noexcept {
     return !(iterator == key);
   }
 
   friend bool
-  operator!=(const Key &key, const LastAccessed &iterator) noexcept {
+  operator!=(const Key& key, const LastAccessed& iterator) noexcept {
     return !(iterator == key);
   }
 
   friend bool
-  operator!=(const LastAccessed &iterator, const Iterator &other) noexcept {
+  operator!=(const LastAccessed& iterator, const Iterator& other) noexcept {
     return !(iterator == other);
   }
 
   friend bool
-  operator!=(const Iterator &other, const LastAccessed &iterator) noexcept {
+  operator!=(const Iterator& other, const LastAccessed& iterator) noexcept {
     return !(iterator == other);
   }
 
-  void operator=(const Iterator &iterator) {
+  LastAccessed& operator=(const Iterator& iterator) {
     _iterator = iterator;
     _is_valid = true;
+
+    return *this;
   }
 
-  const Value &operator*() const noexcept {
+  const Value& operator*() const noexcept {
     return value();
   }
 
-  const Value *operator->() const noexcept {
+  const Value* operator->() const noexcept {
     return &(value());
   }
 
@@ -100,11 +102,17 @@ class LastAccessed {
     return iterator();
   }
 
-  Iterator iterator() const noexcept {
+  const Iterator& iterator() const noexcept {
+    assert(_is_valid);
     return _iterator;
   }
 
-  const Value &value() const noexcept {
+  const Key& key() const noexcept {
+    assert(_is_valid);
+    return _iterator->first;
+  }
+
+  const Value& value() const noexcept {
     assert(_is_valid);
     return _iterator->second;
   }

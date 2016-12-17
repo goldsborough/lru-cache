@@ -26,7 +26,7 @@
 
 #include <cstddef>
 
-#include "lru/internal/globals.hpp"
+#include "lru/internal/definitions.hpp"
 
 namespace LRU {
 template <typename HitMap>

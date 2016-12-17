@@ -26,7 +26,7 @@
 
 #include <utility>
 
-#include "lru/internal/globals.hpp"
+#include "lru/internal/definitions.hpp"
 
 namespace LRU {
 namespace Internal {
@@ -34,14 +34,9 @@ namespace Internal {
 template <typename Key, typename Value>
 struct Information {
   using QueueIterator = typename Internal::QueueIterator<Key>;
-  using Arguments = std::pair<const Value &, QueueIterator>;
 
   Information(const Value &value_, const QueueIterator &order_)
   : value(value_), order(order_) {
-  }
-
-  Information(const Arguments &arguments)
-  : Information(arguments.first, arguments.second) {
   }
 
   Value value;
@@ -51,17 +46,20 @@ struct Information {
 template <typename Key, typename Value>
 struct TimedInformation : public Information<Key, Value> {
   using super = Information<Key, Value>;
-  using QueueIterator = typename super::QueueIterator;
-  using Arguments = typename super::Arguments;
+  using typename super::QueueIterator;
+  using Timestamp = Internal::Timestamp;
 
   TimedInformation(const Value &value_, const QueueIterator &order_)
-  : super(value_, order_) {
+  : TimedInformation(value_, order_, Internal::Clock::now()) {
   }
 
-  TimedInformation(const Arguments &arguments) : super(arguments) {
+  TimedInformation(const Value &value_,
+                   const QueueIterator &order_,
+                   const Timestamp &insertion_time_)
+  : super(value_, order_), insertion_time(insertion_time_) {
   }
 
-  const Internal::Timestamp insertion_time;
+  const Timestamp insertion_time;
 };
 }
 }
