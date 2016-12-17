@@ -33,20 +33,20 @@
 #include <unordered_map>
 #include <utility>
 
-#include "lru/internal/abstract-cache.hpp"
+#include "lru/internal/base-cache.hpp"
 #include "lru/internal/information.hpp"
 #include "lru/internal/last-accessed.hpp"
 
 namespace LRU {
+namespace Internal {
+template <typename Key, typename Value>
+using UntimedCacheBase = Internal::BaseCache<Key, Value, Internal::Information>;
+}
 
 template <typename Key, typename Value>
-using CacheBase = AbstractCache<Key, Value, Internal::Information>;
-
-template <typename Key, typename Value>
-class Cache : public CacheBase<Key, Value> {
- public:
-  using size_t = std::size_t;
-  using super = CacheBase<Key, Value>;
+class Cache : public Internal::UntimedCacheBase<Key, Value> {
+ private:
+  using super = Internal::UntimedCacheBase<Key, Value>;
   using super::_cache;
   using super::_order;
   using super::_last_accessed;
@@ -56,6 +56,9 @@ class Cache : public CacheBase<Key, Value> {
   using super::is_empty;
   using super::_move_to_front;
   using typename super::Information;
+
+ public:
+  using size_t = std::size_t;
 
   explicit Cache(size_t capacity = Internal::DEFAULT_CAPACITY)
   : super(capacity) {

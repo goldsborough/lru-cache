@@ -33,21 +33,21 @@
 #include <unordered_map>
 #include <utility>
 
-#include "lru/cache.hpp"
+#include "lru/internal/base-cache.hpp"
 #include "lru/internal/last-accessed.hpp"
 
 namespace LRU {
-
+namespace Internal {
 template <typename Key, typename Value>
-using TimedCacheBase = AbstractCache<Key, Value, Internal::TimedInformation>;
+using TimedCacheBase = BaseCache<Key, Value, Internal::TimedInformation>;
+}
 
 template <typename Key,
           typename Value,
           typename Duration = std::chrono::milliseconds>
-class TimedCache : public TimedCacheBase<Key, Value> {
- public:
-  using size_t = std::size_t;
-  using super = TimedCacheBase<Key, Value>;
+class TimedCache : public Internal::TimedCacheBase<Key, Value> {
+ private:
+  using super = Internal::TimedCacheBase<Key, Value>;
   using super::_cache;
   using super::_order;
   using super::_last_accessed;
@@ -57,6 +57,10 @@ class TimedCache : public TimedCacheBase<Key, Value> {
   using super::_move_to_front;
   using super::is_empty;
   using typename super::Information;
+
+ public:
+  using size_t = std::size_t;
+
 
   template <typename AnyDurationType>
   explicit TimedCache(const AnyDurationType& time_to_live,

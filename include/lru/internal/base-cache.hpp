@@ -31,18 +31,19 @@
 #include "lru/internal/last-accessed.hpp"
 
 namespace LRU {
+namespace Internal {
 template <typename Key,
           typename Value,
           template <typename, typename> class InformationType>
-class AbstractCache {
+class BaseCache {
  public:
   using size_t = std::size_t;
   using Information = InformationType<Key, Value>;
 
-  explicit AbstractCache(size_t capacity) : _capacity(capacity) {
+  explicit BaseCache(size_t capacity) : _capacity(capacity) {
   }
 
-  virtual ~AbstractCache() = default;
+  virtual ~BaseCache() = default;
 
   virtual bool contains(const Key& key) = 0;
   virtual const Value& find(const Key& key) const = 0;
@@ -142,6 +143,7 @@ class AbstractCache {
 
   size_t _capacity;
 };
+}
 }
 
 #endif /* LRU_INTERNAL_ABSTRACT_CACHE_HPP*/
