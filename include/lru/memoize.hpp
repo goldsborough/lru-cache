@@ -42,31 +42,31 @@ class MemoizedFunction {
  public:
   using size_t = std::size_t;
   using Key = std::tuple<Keys...>;
-  using Value = decltype((Function *){}(Keys{}...));// NOLINT
+  using Value = decltype((Function*){}(Keys{}...));  // NOLINT
   using InitializerList = std::initializer_list<Key>;
 
  private:
   using HitMap = std::unordered_map<Key, size_t>;
 
  public:
-  MemoizedFunction(const Function &function,
+  MemoizedFunction(const Function& function,
                    size_t capacity,
                    InitializerList list)
   : _function(function), _cache(capacity), _total_hits(0), _accesses(0) {
-    for (const auto &key : list) {
+    for (const auto& key : list) {
       _element_hits.emplace(key, 0);
     }
   }
 
   template <typename... InitializerKeys>
-  MemoizedFunction(const Function &function,
+  MemoizedFunction(const Function& function,
                    size_t capacity,
-                   InitializerKeys &&... keys)
+                   InitializerKeys&&... keys)
   : _function(function), _cache(capacity), _total_hits(0), _accesses(0) {
   }
 
   template <typename... Rest>
-  const Value &operator()(Keys &&... keys, Rest &&... rest) {
+  const Value& operator()(Keys&&... keys, Rest&&... rest) {
     ++_accesses;
 
     auto key_tuple = std::make_tuple(std::forward<Keys>(keys)...);
@@ -92,7 +92,7 @@ class MemoizedFunction {
     return static_cast<double>(_total_hits) / _accesses;
   }
 
-  size_t hits_for(const Key &key) const {
+  size_t hits_for(const Key& key) const {
     auto iterator = _element_hits.find(key);
     if (iterator == _element_hits.end()) {
       throw NotMonitoredError();
@@ -128,14 +128,14 @@ class MemoizedFunction {
  private:
   using Cache = LRU::Cache<Key, Value>;
 
-  void _monitor_key(const Key &key) {
+  void _monitor_key(const Key& key) {
     auto element_iterator = _element_hits.find(key);
     if (element_iterator != _element_hits.end()) {
       ++(element_iterator->second);
     }
   }
 
-  const Function &_function;
+  const Function& _function;
   Cache _cache;
   HitMap _element_hits;
 
@@ -145,8 +145,7 @@ class MemoizedFunction {
 
 
 template <typename... Keys, typename Function>
-static auto
-memoize(const Function &function, size_t capacity, Keys &&... keys) {
+static auto memoize(const Function& function, size_t capacity, Keys&&... keys) {
   // clang-format off
   return MemoizedFunction<Function, Keys...>(
       function,
@@ -161,7 +160,7 @@ using MonitorList = std::initializer_list<std::tuple<Keys...>>;
 
 template <typename... Keys, typename Function>
 static auto
-memoize(const Function &function,
+memoize(const Function& function,
         size_t capacity = Internal::DEFAULT_CAPACITY,
         MonitorList<Keys...> keys_to_monitor = MonitorList<Keys...>()) {
   // clang-format off

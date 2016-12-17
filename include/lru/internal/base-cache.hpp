@@ -28,10 +28,37 @@
 #include <list>
 #include <unordered_map>
 
+#include "lru/internal/definitions.hpp"
 #include "lru/internal/last-accessed.hpp"
 
 namespace LRU {
 namespace Internal {
+
+// Macros are bad, but also more readable sometimes:
+// Without this macro, it becomes a pain to have a `using` directive for every
+// new member we add to the `BaseCache` and rename or remove every such
+// directive when we make a change to the `BaseCache`.
+// With this macro, you can simply do:
+// using super = BaseCache<Key, Value, Information>;
+// using CACHE_BASE_MEMBERS;
+#define CACHE_BASE_MEMBERS                \
+  super::_cache;                          \
+  using super::_order;                    \
+  using super::_last_accessed;            \
+  using super::_capacity;                 \
+  using super::is_full;                   \
+  using super::_erase;                    \
+  using super::_erase_lru;                \
+  using super::is_empty;                  \
+  using super::_move_to_front;            \
+  using super::_value_from_result;        \
+  using typename super::Map;              \
+  using typename super::MapIterator;      \
+  using typename super::MapConstIterator; \
+  using typename super::Queue;            \
+  using typename super::QueueIterator;    \
+  using typename super::Information;
+
 template <typename Key,
           typename Value,
           template <typename, typename> class InformationType>
@@ -45,14 +72,14 @@ class BaseCache {
 
   virtual ~BaseCache() = default;
 
-  virtual bool contains(const Key& key) = 0;
+  virtual bool contains(const Key& key) const = 0;
   virtual const Value& find(const Key& key) const = 0;
 
   virtual const Value& operator[](const Key& key) const {
     return find(key);
   }
 
-  virtual const Value& insert(const Key& key, const Value& value) = 0;
+  virtual Value& insert(const Key& key, const Value& value) = 0;
 
   virtual void erase(const Key& key) {
     if (_last_accessed == key) {
@@ -99,14 +126,15 @@ class BaseCache {
   }
 
  protected:
-  using Queue = std::list<Key>;
+  using Queue = Internal::Queue<Key>;
   using QueueIterator = typename Queue::const_iterator;
 
-  using Map = std::unordered_map<Key, Information>;
+  using Map = Internal::Map<Key, Information>;
   using MapIterator = typename Map::iterator;
   using MapConstIterator = typename Map::const_iterator;
+  using MapInsertionResult = decltype(Map().emplace());
 
-  using LastAccessed = Internal::LastAccessed<MapConstIterator>;
+  using LastAccessed = typename Internal::LastAccessed<MapConstIterator>;
 
   virtual void _move_to_front(MapIterator iterator, const Value& new_value) {
     _order.erase(iterator->second.order);
@@ -122,9 +150,7 @@ class BaseCache {
   }
 
   virtual void _erase_lru() {
-    auto lru = _order.front();
-    _cache.erase(lru);
-    _order.pop_front();
+    _erase(_cache.find(_order.front()));
   }
 
   virtual void _erase(MapConstIterator iterator) {
@@ -134,6 +160,12 @@ class BaseCache {
 
     _order.erase(iterator->second.order);
     _cache.erase(iterator);
+  }
+
+  virtual Value& _value_from_result(MapInsertionResult& result) {
+    // `result.first` is the map iterator (to a pair), whose `second` member is
+    // the information object, whose `value` member is the value stored.
+    return result.first->second.value;
   }
 
   Map _cache;

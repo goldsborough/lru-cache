@@ -33,9 +33,9 @@ namespace Internal {
 
 template <typename Key, typename Value>
 struct Information {
-  using QueueIterator = typename Internal::QueueIterator<Key>;
+  using QueueIterator = typename Internal::Queue<Key>::const_iterator;
 
-  Information(const Value &value_, const QueueIterator &order_)
+  Information(const Value& value_, const QueueIterator& order_)
   : value(value_), order(order_) {
   }
 
@@ -49,13 +49,13 @@ struct TimedInformation : public Information<Key, Value> {
   using typename super::QueueIterator;
   using Timestamp = Internal::Timestamp;
 
-  TimedInformation(const Value &value_, const QueueIterator &order_)
+  TimedInformation(const Value& value_, const QueueIterator& order_)
   : TimedInformation(value_, order_, Internal::Clock::now()) {
   }
 
-  TimedInformation(const Value &value_,
-                   const QueueIterator &order_,
-                   const Timestamp &insertion_time_)
+  TimedInformation(const Value& value_,
+                   const QueueIterator& order_,
+                   const Timestamp& insertion_time_)
   : super(value_, order_), insertion_time(insertion_time_) {
   }
 

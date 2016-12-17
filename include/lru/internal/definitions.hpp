@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <list>
 #include <tuple>
+#include <unordered_map>
 
 namespace LRU {
 namespace Internal {
@@ -36,13 +37,13 @@ const std::size_t DEFAULT_CAPACITY = 128;
 template <typename T>
 using Queue = std::list<T>;
 
-template <typename T>
-using QueueIterator = typename Queue<T>::const_iterator;
+template <typename Key, typename Information>
+using Map = std::unordered_map<Key, Information>;
 
 using Clock = std::chrono::steady_clock;
 using Timestamp = Clock::time_point;
-}
-}
+}  // namespace Internal
+}  // namespace LRU
 
 
 #endif /* LRU_INTERNAL_GLOBALS_HPP*/

@@ -47,24 +47,16 @@ template <typename Key, typename Value>
 class Cache : public Internal::UntimedCacheBase<Key, Value> {
  private:
   using super = Internal::UntimedCacheBase<Key, Value>;
-  using super::_cache;
-  using super::_order;
-  using super::_last_accessed;
-  using super::_capacity;
-  using super::is_full;
-  using super::_erase_lru;
-  using super::is_empty;
-  using super::_move_to_front;
-  using typename super::Information;
+  using CACHE_BASE_MEMBERS;
 
  public:
-  using size_t = std::size_t;
+  using typename super::size_t;
 
   explicit Cache(size_t capacity = Internal::DEFAULT_CAPACITY)
   : super(capacity) {
   }
 
-  bool contains(const Key& key) override {
+  bool contains(const Key& key) const override {
     if (_last_accessed == key) return true;
 
     auto iterator = _cache.find(key);
@@ -91,7 +83,7 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
     return iterator->second.value;
   }
 
-  const Value& insert(const Key& key, const Value& value) override {
+  Value& insert(const Key& key, const Value& value) override {
     auto iterator = _cache.find(key);
 
     // To insert, we first check if the key is already present in the cache
@@ -99,9 +91,7 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
     // of the queue. Else, we insert the key at the end of the queue and
     // possibly pop the front if the cache has reached its capacity.
 
-    if (iterator != _cache.end()) {
-      _move_to_front(iterator, value);
-    } else {
+    if (iterator == _cache.end()) {
       if (is_full()) {
         super::_erase_lru();
       }
@@ -111,9 +101,12 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
       assert(result.second);
 
       _last_accessed = result.first;
-    }
 
-    return value;
+      return _value_from_result(result);
+    } else {
+      _move_to_front(iterator, value);
+      return iterator->second.value;
+    }
   }
 
   const Key& front() const noexcept {

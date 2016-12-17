@@ -48,19 +48,10 @@ template <typename Key,
 class TimedCache : public Internal::TimedCacheBase<Key, Value> {
  private:
   using super = Internal::TimedCacheBase<Key, Value>;
-  using super::_cache;
-  using super::_order;
-  using super::_last_accessed;
-  using super::_capacity;
-  using super::is_full;
-  using super::_erase_lru;
-  using super::_move_to_front;
-  using super::is_empty;
-  using typename super::Information;
+  using CACHE_BASE_MEMBERS;
 
  public:
-  using size_t = std::size_t;
-
+  using typename super::size_t;
 
   template <typename AnyDurationType>
   explicit TimedCache(const AnyDurationType& time_to_live,
@@ -69,39 +60,40 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
-  bool contains(const Key& key) override {
+  bool contains(const Key& key) const override {
     if (_last_accessed == key) return true;
 
     auto iterator = _cache.find(key);
-    if (iterator != _cache.end()) {
-      if (_has_expired(iterator->second)) {
-        _last_accessed = iterator;
-        return true;
-      } else {
-        _erase(iterator);
-      }
+    if (iterator != _cache.end() && !_has_expired(iterator->second)) {
+      _last_accessed = iterator;
+      return true;
     }
+
+    // Note how we do not erase the element, even if it has expired.
+    // The main reason why is that this would require `contains()` to be
+    // non-const, or making two overloads (`const` version returns false for
+    // expired elements, `non-const` returns *false* and erases the element).
+    // However, there is no immediate benefit from erasing an expired element
+    // here as opposed to doing it lazily in `insert()`. Also, if this element
+    // is expired, so are also all elements before it. If we really wanted to
+    // clean the cache, we can use `clean()` for this.
 
     return false;
   }
 
   const Value& find(const Key& key) const override {
+    MapConstIterator iterator;
+
     if (key == _last_accessed) {
-      if (_has_expired(*_last_accessed)) {
-        _erase(_last_accessed);
-        throw std::out_of_range{"Element has expired."};
-      } else {
-        return _last_accessed->value;
+      iterator = _last_accessed;
+    } else {
+      iterator = _cache.find(key);
+      if (iterator == _cache.end()) {
+        // throw key error
       }
     }
 
-    auto iterator = _cache.find(key);
-
-    // Throw
-    assert(iterator != _cache.end());
-
-    if (_has_expired(*iterator)) {
-      _erase(iterator);
+    if (_has_expired(iterator->second)) {
       throw std::out_of_range{"Element has expired."};
     }
 
@@ -110,32 +102,65 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
     return iterator->second.value;
   }
 
-  void insert(const Key& key, const Value& value) override {
+  Value& insert(const Key& key, const Value& value) override {
     auto iterator = _cache.find(key);
 
-    if (iterator != _cache.end()) {
-      _move_to_front(iterator, value);
-    } else {
+    if (iterator == _cache.end()) {
       if (is_full()) {
         super::_erase_lru();
       }
 
       auto order = _order.insert(_order.end(), key);
       auto result = _cache.emplace(key, Information(value, order));
-      assert(result.first);
+      assert(result.second);
 
-      _last_accessed = result.second;
+      _last_accessed = result.first;
+
+      return result.first->second.value;
+    } else {
+      _move_to_front(iterator, value);
+      return iterator->second.value;
     }
   }
 
   // no front() because we may have to erase the entire cache if everything
   // happens to be expired
 
-  bool all_expired() const noexcept {
+  bool all_expired() const {
     if (is_empty()) return false;
 
     auto latest = _cache.find(_order.back());
     return has_expired(*latest);
+  }
+
+  /**
+   * Erases all expired elements from the cache.
+   *
+   * \complexity O(N)
+   *
+   */
+  size_t clean() {
+    // We have to do a linear search here because linked lists do not
+    // support O(log N) binary searches given their node-based nature.
+    // Either way, in the worst case the entire cache has expired and
+    // we would have to do O(N) erasures.
+
+    if (is_empty()) return;
+
+    auto iterator = _order.begin();
+    size_t number_of_erasures = 0;
+
+    while (iterator != _order.end()) {
+      // If the current element hasn't expired, also all elements inserted
+      // after will not have, so we can stop.
+      if (!_has_expired(_cache[*iterator])) break;
+
+      // Erase and get the subsequent iterator
+      iterator = _erase(iterator);
+      number_of_erasures += 1;
+    }
+
+    return number_of_erasures;
   }
 
  private:

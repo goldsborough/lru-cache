@@ -36,6 +36,10 @@ class LastAccessed {
   using Key = typename Pair::first_type;
   using Value = typename Pair::second_type;
 
+  explicit LastAccessed(Iterator iterator)
+  : _iterator(iterator), _is_valid(true) {
+  }
+
   LastAccessed() : _is_valid(false) {
   }
 
@@ -49,13 +53,15 @@ class LastAccessed {
     return iterator == key;
   }
 
+  template <typename AnyIterator>
   friend bool
-  operator==(const LastAccessed& iterator, const Iterator& other) noexcept {
+  operator==(const LastAccessed& iterator, const AnyIterator& other) noexcept {
     return iterator._is_valid && other->first == iterator._iterator->first;
   }
 
+  template <typename AnyIterator>
   friend bool
-  operator==(const Iterator& other, const LastAccessed& iterator) noexcept {
+  operator==(const AnyIterator& other, const LastAccessed& iterator) noexcept {
     return iterator == other;
   }
 
@@ -69,17 +75,20 @@ class LastAccessed {
     return !(iterator == key);
   }
 
+  template <typename AnyIterator>
   friend bool
-  operator!=(const LastAccessed& iterator, const Iterator& other) noexcept {
+  operator!=(const LastAccessed& iterator, const AnyIterator& other) noexcept {
     return !(iterator == other);
   }
 
+  template <typename AnyIterator>
   friend bool
-  operator!=(const Iterator& other, const LastAccessed& iterator) noexcept {
+  operator!=(const AnyIterator& other, const LastAccessed& iterator) noexcept {
     return !(iterator == other);
   }
 
-  LastAccessed& operator=(const Iterator& iterator) {
+  template <typename AnyIterator>
+  LastAccessed& operator=(const AnyIterator& iterator) {
     _iterator = iterator;
     _is_valid = true;
 

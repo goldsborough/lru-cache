@@ -1,4 +1,6 @@
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 #include "lru/lru.hpp"
 
@@ -15,10 +17,14 @@ int fibonacci_cached(int n, LRU::Cache<int, int>& cache) {
 
   const auto value =
       fibonacci_cached(n - 1, cache) + fibonacci_cached(n - 2, cache);
-  return cache.insert(n, value);
+  cache.insert(n, value);
+
+  return value;
 }
 
 auto main() -> int {
+  using namespace std::chrono_literals;
+
   auto fib = LRU::memoize<int>(fibonacci);
   std::cout << fib(10) << std::endl;
   std::cout << fib.hit_rate() << std::endl;
@@ -27,4 +33,15 @@ auto main() -> int {
 
   std::cout << fib(10) << std::endl;
   std::cout << fib.hit_rate() << std::endl;
+
+
+  LRU::TimedCache<int, int> cache(1s);
+
+  cache.insert(1, 2);
+
+  std::cout << cache.contains(1) << '\n';
+
+  std::this_thread::sleep_for(1s);
+
+  std::cout << cache.contains(1) << '\n';
 }
