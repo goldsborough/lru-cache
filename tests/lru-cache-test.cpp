@@ -21,49 +21,9 @@
 * SOFTWARE.
 */
 
-#ifndef LRU_INTERNAL_INFORMATION_HPP
-#define LRU_INTERNAL_INFORMATION_HPP
+#include "gtest/gtest.h"
+#include "lru/cache.hpp"
 
-#include <utility>
-
-#include "lru/internal/globals.hpp"
-
-namespace LRU {
-namespace Internal {
-
-template <typename Key, typename Value>
-struct Information {
-  using QueueIterator = typename Internal::QueueIterator<Key>;
-  using Arguments = std::pair<const Value &, QueueIterator>;
-
-  Information(const Value &value_, const QueueIterator &order_)
-  : value(value_), order(order_) {
-  }
-
-  Information(const Arguments &arguments)
-  : Information(arguments.first, arguments.second) {
-  }
-
-  Value value;
-  QueueIterator order;
-};
-
-template <typename Key, typename Value>
-struct TimedInformation : public Information<Key, Value> {
-  using super = Information<Key, Value>;
-  using QueueIterator = typename super::QueueIterator;
-  using Arguments = typename super::Arguments;
-
-  TimedInformation(const Value &value_, const QueueIterator &order_)
-  : super(value_, order_) {
-  }
-
-  TimedInformation(const Arguments &arguments) : super(arguments) {
-  }
-
-  const Internal::Timestamp insertion_time;
-};
+TEST(LRUCacheTest, CuresCancer) {
+  EXPECT_TRUE(true);
 }
-}
-
-#endif /* LRU_INTERNAL_INFORMATION_HPP*/

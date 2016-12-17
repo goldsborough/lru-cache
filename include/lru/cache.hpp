@@ -78,6 +78,8 @@ class Cache : public CacheBase<Key, Value> {
     }
 
     auto iterator = _cache.find(key);
+
+    // Throw error
     assert(iterator != _cache.end());
 
     _last_accessed = iterator;
@@ -88,15 +90,20 @@ class Cache : public CacheBase<Key, Value> {
   const Value &insert(const Key &key, const Value &value) override {
     auto iterator = _cache.find(key);
 
+    // To insert, we first check if the key is already present in the cache
+    // and if so, update its value and move its order iterator to the front
+    // of the queue. Else, we insert the key at the end of the queue and
+    // possibly pop the front if the cache has reached its capacity.
+
     if (iterator != _cache.end()) {
       _order.erase(iterator->second.order);
 
       // Insert and get the iterator (push_back returns
       // void and emplace_back returns a reference ...)
       auto new_order = _order.insert(_order.end(), key);
-      iterator->second.order = new_order;
 
-      return iterator->second.value;
+      iterator->second.order = new_order;
+      iterator->second.value = value;
     } else {
       if (is_full()) {
         super::_erase_lru();
@@ -105,9 +112,9 @@ class Cache : public CacheBase<Key, Value> {
       auto order = _order.insert(_order.end(), key);
       InformationArguments arguments(value, order);
       auto result = _cache.emplace(key, arguments);
-
-      return result.first->second.value;
     }
+
+    return value;
   }
 };
 }

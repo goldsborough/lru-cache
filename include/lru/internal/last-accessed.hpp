@@ -119,6 +119,7 @@ class LastAccessed {
 
  private:
   Iterator _iterator;
+
   bool _is_valid;
 };
 }
