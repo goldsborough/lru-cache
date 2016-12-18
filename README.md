@@ -64,7 +64,14 @@ int __original__fib(int n) {
 
 int fib(int n) {
   // Instantiate the template with the return type, which is now known
-  return memoize<int>(__original__fib, n);
+  return memoize<int>(__original__ fib, n);
 }
 ```
 4. Profit $$
+
+## Extending Clang
+
+The next step would be to actually add attributes to clang itself and recompile clang to use the attribute as if it were a standard attribute:
+
+http://clang.llvm.org/docs/InternalsManual.html#attribute-basics
+http://stackoverflow.com/questions/38391314/clang-custom-attributes-not-visible-in-ast
