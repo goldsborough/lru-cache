@@ -21,20 +21,18 @@
 * SOFTWARE.
 */
 
+#include <sstream>
 #include <string>
+#include <vector>
 
-// #include "clang/AST/AST.h"
-// #include "clang/AST/ASTContext.h"
-// #include "clang/ASTMatchers/ASTMatchFinder.h"
-// #include "clang/ASTMatchers/ASTMatchers.h"
-
+#include "clang/Lex/Lexer.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
 namespace Memoize {
 
 class MemoizeHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  MemoizeHandler(clang::Rewriter& Rewriter) : Rewriter{Rewriter} {}
+  explicit MemoizeHandler(clang::Rewriter& Rewriter) : Rewriter{Rewriter} {}
 
   // Converts a FunctionDecl object into a string representation of the
   // prototype of the function, optionally renaming it.
@@ -64,7 +62,7 @@ public:
     return result.str();
   }
 
-  virtual void
+  void
   run(const clang::ast_matchers::MatchFinder::MatchResult& Result) override {
     clang::SourceManager* sm = Result.SourceManager;
     clang::LangOptions lopt = Result.Context->getLangOpts();

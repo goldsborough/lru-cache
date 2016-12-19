@@ -27,8 +27,9 @@
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Rewrite/Core/Rewriter.h"
-
 #include "llvm/ADT/StringRef.h"
+
+#include "memoize/consumer.hpp"
 
 namespace Memoize {
 

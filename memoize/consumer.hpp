@@ -21,17 +21,21 @@
 * SOFTWARE.
 */
 
+#include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Frontend/ASTConsumers.h"
 
+#include "memoize/annotation-matcher.hpp"
+#include "memoize/handler.hpp"
+
 namespace Memoize {
+
+using namespace clang::ast_matchers;  // NOLINT(build/namespaces)
 
 // All function calls whose callee is a function which has got an
 // annotate("memoizable") attribute.
 // Get both the function and the function call.
-auto MemoizedMatcher =
-    callExpr(callee(functionDecl(isAnnotatedWith("memoizable"))
-                        .bind("memoized_function")))
-        .bind("function_call");
+auto MemoizedMatcher = callExpr(callee(
+    functionDecl(isAnnotatedWith("memoizable")).bind("memoized_function")));
 
 class Consumer : public clang::ASTConsumer {
 public:
