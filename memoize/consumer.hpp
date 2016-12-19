@@ -24,7 +24,6 @@
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Frontend/ASTConsumers.h"
 
-#include "memoize/annotation-matcher.hpp"
 #include "memoize/handler.hpp"
 
 namespace Memoize {
@@ -39,29 +38,18 @@ public:
   /// Constructs a new Consumer.
   ///
   /// \param Rewriter A rewriter instance to perform source modifications.
-  explicit Consumer(clang::Rewriter& Rewriter) : Handler(Rewriter) {
-    using namespace clang::ast_matchers;  // NOLINT(build/namespaces)
+  explicit Consumer(clang::Rewriter& Rewriter) : Handler(Rewriter);
 
-    // Matches all functions annotated with "memoize" and that are
-    // *definitions* and not *declarations* (i.e. have a body).
-    // clang-format off
-    auto MemoizedMatcher =
-        functionDecl(
-          isAnnotatedWith("memoize"),
-          hasBody(compoundStmt())
-        ).bind("target");
-    // clang-format on
-
-    MatchFinder.addMatcher(MemoizedMatcher, &Handler);
-  }
-
-  void HandleTranslationUnit(clang::ASTContext& Context) override {
-    MatchFinder.matchAST(Context);
-  }
+  /// Consumes the AST after a single translation unit has been parsed.
+  ///
+  /// \param Context The `ASTContext` for the parsed AST.
+  void HandleTranslationUnit(clang::ASTContext& Context) override;
 
 private:
+  using clang::ast_matchers::MatchFinder;
+
   /// The MatchFinder instance to look for matching functions.
-  clang::ast_matchers::MatchFinder MatchFinder;
+  MatchFinder MatchFinder;
 
   /// The match handler for annotated functions. It must
   /// survive the lifetime of the `MatchFinder`.

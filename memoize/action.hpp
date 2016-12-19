@@ -24,12 +24,16 @@
 #include <memory>
 
 #include "clang/AST/ASTConsumer.h"
-#include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Rewrite/Core/Rewriter.h"
-#include "llvm/ADT/StringRef.h"
 
-#include "memoize/consumer.hpp"
+namespace clang {
+class CompilerInstance;
+}
+
+namespace llvm {
+class StringRef;
+}
 
 namespace Memoize {
 
@@ -47,28 +51,29 @@ class Action : public clang::ASTFrontendAction {
 public:
   using ASTConsumerPointer = std::unique_ptr<clang::ASTConsumer>;
 
+  /// Creates a consumer that will process the AST of each translation unit.
+  ///
+  /// \param Compiler The current compiler instance.
+  ///
+  /// \return A pointer to a `Memoize::Consumer`.
   ASTConsumerPointer CreateASTConsumer(clang::CompilerInstance& Compiler,
-                                       llvm::StringRef) override {
-    // The rewriter will allow us to perform modifications to the AST's source.
-    Rewriter.setSourceMgr(Compiler.getSourceManager(), Compiler.getLangOpts());
+                                       llvm::StringRef);
 
-    return std::make_unique<Memoize::Consumer>(Rewriter);
-  }
-
+  /// Performs an action before processing each source file.
+  ///
+  /// We just print out message that we are about to process the given file.
+  ///
+  /// \param Compiler The current compiler instance.
+  /// \param Filename The name of the source file about to be processed.
+  ///
+  /// \return `true` on success, else `false`.
   bool BeginSourceFileAction(clang::CompilerInstance& Compiler,
-                             llvm::StringRef Filename) override {
-    llvm::outs() << "Processing file '" << Filename << "' ...\n";
+                             llvm::StringRef Filename);
 
-    // Success
-    return true;
-  }
-
-  void EndSourceFileAction() override {
-    // Simply stream the result of processing this source file to STDOUT
-    // The user can always pipe the contents into an output file him/herself.
-    const auto file = Rewriter.getSourceMgr().getMainFileID();
-    Rewriter.getEditBuffer(file).write(llvm::outs());
-  }
+  /// Performs an action after processing each source file.
+  ///
+  /// We print out the (possibly) modified source code.
+  void EndSourceFileAction() override;
 
 private:
   /// The `Rewriter` instance we use to rewrite the AST.

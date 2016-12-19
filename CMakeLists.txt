@@ -33,29 +33,20 @@ endif()
 ## INCLUDES
 ###########################################################
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 ###########################################################
-## SOURCES
-###################################################FS########
-
-set(LRU_CACHE_SOURCES main.cpp)
-
-###########################################################
-## TARGETS
+## BINARIES
 ###########################################################
 
 set(LRU_CACHE_BINARY_DIR ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${LRU_CACHE_BINARY_DIR})
 
-add_executable(lru-cache ${LRU_CACHE_SOURCES})
-
 ###########################################################
-## COMPILER FLAGS
+## SUBDIRECTORIES
 ###########################################################
 
-target_compile_options(lru-cache PUBLIC -Os -O2 -g -Werror)
+add_subdirectory(memoize)
 
 ########################################
 # TESTS
