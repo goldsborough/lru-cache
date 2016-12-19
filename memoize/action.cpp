@@ -41,7 +41,7 @@ Action::CreateASTConsumer(clang::CompilerInstance& Compiler, llvm::StringRef) {
 
 bool Action::BeginSourceFileAction(clang::CompilerInstance& Compiler,
                                    llvm::StringRef Filename) {
-  llvm::outs() << "Processing file '" << Filename << "' ...\n";
+  llvm::errs() << "Processing file '" << Filename << "' ...\n";
 
   // Success
   return true;

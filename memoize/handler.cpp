@@ -24,11 +24,15 @@
 #include <cstddef>
 #include <string>
 
+#include "clang/AST/Decl.h"
+#include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
 #include "memoize/handler.hpp"
 
 namespace Memoize {
+
+Handler::Handler(clang::Rewriter& Rewriter) : Rewriter(Rewriter) {}
 
 void Handler::run(const MatchResult& Result) {
   // Set internal state
@@ -63,7 +67,7 @@ Handler::createMemoizedDefinition(const clang::FunctionDecl& Function,
   std::string MemoizedDefinition;
   MemoizedDefinition.reserve(75);
 
-  MemoizedDefinition += "\n\n";
+  MemoizedDefinition += "\n";
   MemoizedDefinition += Prototype;
   MemoizedDefinition += " {\nstatic const auto proxy = LRU::shallow_memoize(";
   MemoizedDefinition += NewName;

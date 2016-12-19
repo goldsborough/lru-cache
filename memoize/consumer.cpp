@@ -44,7 +44,7 @@ Consumer::Consumer(clang::Rewriter& Rewriter) : Handler(Rewriter) {
   MatchFinder.addMatcher(MemoizedMatcher, &Handler);
 }
 
-Consumer::HandleTranslationUnit(clang::ASTContext& Context) {
+void Consumer::HandleTranslationUnit(clang::ASTContext& Context) {
   MatchFinder.matchAST(Context);
 }
 

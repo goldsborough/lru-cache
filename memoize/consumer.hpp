@@ -21,6 +21,7 @@
 * SOFTWARE.
 */
 
+#include "clang/AST/ASTConsumer.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Frontend/ASTConsumers.h"
 
@@ -38,7 +39,7 @@ public:
   /// Constructs a new Consumer.
   ///
   /// \param Rewriter A rewriter instance to perform source modifications.
-  explicit Consumer(clang::Rewriter& Rewriter) : Handler(Rewriter);
+  explicit Consumer(clang::Rewriter& Rewriter);
 
   /// Consumes the AST after a single translation unit has been parsed.
   ///
@@ -46,14 +47,12 @@ public:
   void HandleTranslationUnit(clang::ASTContext& Context) override;
 
 private:
-  using clang::ast_matchers::MatchFinder;
-
   /// The MatchFinder instance to look for matching functions.
-  MatchFinder MatchFinder;
+  clang::ast_matchers::MatchFinder MatchFinder;
 
   /// The match handler for annotated functions. It must
   /// survive the lifetime of the `MatchFinder`.
-  MemoizeHandler Handler;
+  Memoize::Handler Handler;
 };
 
 }  // namespace Memoize

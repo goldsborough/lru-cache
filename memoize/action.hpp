@@ -57,7 +57,7 @@ public:
   ///
   /// \return A pointer to a `Memoize::Consumer`.
   ASTConsumerPointer CreateASTConsumer(clang::CompilerInstance& Compiler,
-                                       llvm::StringRef);
+                                       llvm::StringRef) override;
 
   /// Performs an action before processing each source file.
   ///
@@ -68,7 +68,7 @@ public:
   ///
   /// \return `true` on success, else `false`.
   bool BeginSourceFileAction(clang::CompilerInstance& Compiler,
-                             llvm::StringRef Filename);
+                             llvm::StringRef Filename) override;
 
   /// Performs an action after processing each source file.
   ///

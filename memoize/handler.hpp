@@ -24,6 +24,8 @@
 #include <cstddef>
 #include <string>
 
+#include "clang/ASTMatchers/ASTMatchFinder.h"
+// #include "clang/ASTMatchers/ASTMatchResult.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
 namespace Memoize {
@@ -50,11 +52,14 @@ namespace Memoize {
 ///
 /// All other code referencing the original code, including any other function
 /// calls as well as declaration, are unaffected by this chang.
-class MemoizeHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
+class Handler : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
   using MatchResult = clang::ast_matchers::MatchFinder::MatchResult;
 
-  explicit MemoizeHandler(clang::Rewriter& Rewriter);
+  /// Constructs a new Handler.
+  ///
+  /// \param Rewriter A rewriter instance to perform source code modifications.
+  explicit Handler(clang::Rewriter& Rewriter);
 
   /// Performs the appropriate rewriting on a matched function.
   ///
