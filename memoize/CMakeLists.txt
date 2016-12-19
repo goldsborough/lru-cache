@@ -37,83 +37,11 @@ set(CLANG_LIBS
   clangFormat
 )
 
-set(LLVM_LIBS
-  LLVMLTO
-  LLVMObjCARCOpts
-  LLVMSymbolize
-  LLVMDebugInfoPDB
-  LLVMDebugInfoDWARF
-  LLVMGlobalISel
-  LLVMCoverage
-  LLVMTableGen
-  LLVMOrcJIT
-  LLVMMIRParser
-  LLVMNVPTXCodeGen
-  LLVMNVPTXDesc
-  LLVMNVPTXInfo
-  LLVMNVPTXAsmPrinter
-  LLVMARMDisassembler
-  LLVMARMCodeGen
-  LLVMARMAsmParser
-  LLVMARMDesc
-  LLVMARMInfo
-  LLVMARMAsmPrinter
-  LLVMAMDGPUDisassembler
-  LLVMAMDGPUCodeGen
-  LLVMAMDGPUAsmParser
-  LLVMAMDGPUDesc
-  LLVMAMDGPUInfo
-  LLVMAMDGPUAsmPrinter
-  LLVMAMDGPUUtils
-  LLVMObjectYAML
-  LLVMX86Disassembler
-  LLVMX86AsmParser
-  LLVMX86CodeGen
-  LLVMSelectionDAG
-  LLVMAsmPrinter
-  LLVMDebugInfoCodeView
-  LLVMX86Desc
-  LLVMMCDisassembler
-  LLVMX86Info
-  LLVMX86AsmPrinter
-  LLVMX86Utils
-  LLVMMCJIT
-  LLVMLibDriver
-  LLVMOption
-  LLVMLineEditor
-  LLVMPasses LLVMipo
-  LLVMVectorize
-  LLVMLinker
-  LLVMIRReader
-  LLVMAsmParser
-  LLVMInterpreter
-  LLVMExecutionEngine
-  LLVMRuntimeDyld
-  LLVMObject
-  LLVMMCParser
-  LLVMCodeGen
-  LLVMTarget
-  LLVMScalarOpts
-  LLVMInstCombine
-  LLVMInstrumentation
-  LLVMTransformUtils
-  LLVMMC
-  LLVMBitWriter
-  LLVMBitReader
-  LLVMAnalysis
-  LLVMProfileData
-  LLVMCore
-  LLVMSupport
-)
+# Uses root/cmake/modules/FindLLVM.cmake
+find_package(LLVM REQUIRED)
 
-set(SYSTEM_LIBS
-  curses
-  z
-  m
-)
-
-link_directories(/usr/local/Cellar/llvm/3.9.0/lib)
-
+include_directories(${LLVM_INCLUDE_DIRS})
+link_directories(${LLVM_LIBRARY_DIRS})
 
 ###########################################################
 ## TARGETS
@@ -121,14 +49,15 @@ link_directories(/usr/local/Cellar/llvm/3.9.0/lib)
 
 add_executable(memoize-tool ${MEMOIZE_SOURCES})
 
-target_link_libraries(memoize-tool ${CLANG_LIBS} ${LLVM_LIBS} ${SYSTEM_LIBS})
+target_include_directories(memoize-tool PUBLIC ${LLVM_INCLUDE_DIR})
+target_link_libraries(memoize-tool
+  ${CLANG_LIBS}
+  ${LLVM_LIBRARIES}
+  ${LLVM_LDFLAGS}
+)
 
 ###########################################################
 ## COMPILER FLAGS
 ###########################################################
 
-target_compile_options(memoize-tool PUBLIC
-  -Os
-  -O2
-  -Werror
--I/usr/local/Cellar/llvm/3.9.0/include  -stdlib=libc++ -fPIC -fvisibility-inlines-hidden -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -pedantic -Wcovered-switch-default -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Werror=date-time -DNDEBUG   -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS)
+target_compile_options(memoize-tool PUBLIC -Os -O2 -Werror ${LLVM_CXXFLAGS})

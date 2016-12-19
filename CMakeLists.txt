@@ -28,6 +28,14 @@ else()
     message(FATAL_ERROR "Please install a modern C++ compiler, they are not expensive.")
 endif()
 
+###########################################################
+## DEPENDENCIES
+###########################################################
+
+set(CMAKE_MODULE_PATH
+  ${CMAKE_MODULE_PATH}
+  "${CMAKE_SOURCE_DIR}/cmake/Modules/"
+)
 
 ###########################################################
 ## INCLUDES

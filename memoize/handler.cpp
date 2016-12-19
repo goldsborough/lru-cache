@@ -21,6 +21,7 @@
 * SOFTWARE.
 */
 
+#include <cassert>
 #include <cstddef>
 #include <string>
 
@@ -42,8 +43,6 @@ void Handler::run(const MatchResult& Result) {
   // The matched function.
   const auto& Function =
       *(Result.Nodes.getNodeAs<clang::FunctionDecl>("target"));
-
-  assert(Function != nullptr);
 
   const auto NewName = renameOriginalFunction(Function);
   const auto Prototype = getFunctionPrototype(Function);
