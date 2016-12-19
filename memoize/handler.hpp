@@ -29,12 +29,37 @@
 
 namespace Memoize {
 
+/// Handles a match for a `memoize` annotation in the AST.
+///
+/// Given a matched function definition, this class will rewrite the original
+/// source code in a way that wraps the matched function inside a new function,
+/// which also stores a cache to replace some function calls with faster symbol
+/// table lookups. More precisely, given a function *definition* like the
+/// following:
+///
+/// \code{.cpp}
+/// int f(int x, float y, char z) { return x + y + z; }
+/// \endcode
+///
+/// The handler will replace this with new source code of the following form:
+///
+/// 1. The original function is declared before its definition.
+/// 2. The original function is renamed to a mangled name.
+/// 3. A new definition for the original function, under its original, unmangled
+/// name, is appended. This new definition stores a cache and has access to the
+/// original function to compute its return value in the case of a cache miss.
+///
+/// All other code referencing the original code, including any other function
+/// calls as well as declaration, are unaffected by this chang.
 class MemoizeHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
   using MatchResult = clang::ast_matchers::MatchFinder::MatchResult;
 
   explicit MemoizeHandler(clang::Rewriter& Rewriter) : Rewriter(Rewriter) {}
 
+  /// Performs the appropriate rewriting on a matched function.
+  ///
+  /// \param Result A 'MatchResult' representing the matched function.
   void run(const MatchResult& Result) override {
     // Set internal state
     SourceManager = Result.SourceManager;
@@ -55,12 +80,21 @@ public:
 
     // Redeclare the function before its original definition
     // so that recursive calls can see the declaration.
+    // Note that this has to be done *after* the other changes, as inserting
+    // it would otherwise offset all further source locations.
     Rewriter.InsertTextBefore(Function.getLocStart(), Prototype + ";\n");
   }
 
 private:
   using size_t = std::size_t;
 
+  /// Creates the memoized definition for the original function declaration.
+  ///
+  /// \param Function The matched function.
+  /// \param Prototype The prototype string of the original function.
+  /// \param NewName The new name of the original function.
+  ///
+  /// \return A string holding the entire new function definition.
   std::string createMemoizedDefinition(const clang::FunctionDecl& Function,
                                        const std::string& Prototype,
                                        const std::string& NewName) const {
@@ -70,17 +104,27 @@ private:
 
     MemoizedDefinition += "\n\n";
     MemoizedDefinition += Prototype;
-    MemoizedDefinition += " {\n";
-    MemoizedDefinition += "static const auto proxy = memoize(";
+    MemoizedDefinition += " {\nstatic const auto proxy = memoize(";
     MemoizedDefinition += NewName;
     MemoizedDefinition += ");\nreturn proxy(";
     MemoizedDefinition += getParameterNames(Function);
-    MemoizedDefinition += ");\n";
-    MemoizedDefinition += "}";
+    MemoizedDefinition += ");\n}";
 
     return MemoizedDefinition;
   }
 
+  /// Collects the names of the parameters of a function.
+  ///
+  /// Given a function like
+  /// \code{.cpp}
+  /// int f(int x, float y, char z) { ... }
+  /// \endcode
+  /// This function will return a comma-separated list of the function
+  /// parmeters' names, e.g. 'x, y, z' for this example. This string may be used
+  /// for a function call.
+  ///
+  /// \param Function The function whose parameter names to extract.
+  /// \return A comma-separated list of the function's parameter names.
   std::string getParameterNames(const clang::FunctionDecl& Function) const {
     std::string ParameterNames;
 
@@ -99,6 +143,11 @@ private:
     return ParameterNames;
   }
 
+  /// Renames the given function in the AST and returns its new name.
+  ///
+  /// \param Function The function to rename.
+  ///
+  /// \return The new name of the function (the original name + '__original__').
   std::string
   renameOriginalFunction(const clang::FunctionDecl& Function) const {
     const auto OriginalName = Function.getNameAsString();
@@ -111,13 +160,22 @@ private:
 
     const auto ReturnType = Function.getReturnType().getAsString();
     const auto NewDeclaration = ReturnType + " " + NewName;
+
     Rewriter.ReplaceText({DeclarationBegin, BeforeParameters}, NewDeclaration);
 
     return NewName;
   }
 
-  // Converts a FunctionDecl object into a string representation of the
-  // prototype of the function, optionally renaming it.
+  /// Collects the prototype of a function, as a string.
+  ///
+  /// Given a function like
+  /// \code{.cpp}
+  /// int f(int x, float y, char z) { ... }
+  /// \endcode
+  /// this function will return its prototype, e.g. `int f(int x, float y,
+  /// char z)` for this example. *No* terminator (like a semicolon) is appended.
+  ///
+  /// \return The prototype of the function, as a string.
   std::string getFunctionPrototype(const clang::FunctionDecl& Function) const {
     std::string Prototype;
     Prototype.reserve(256);
@@ -126,13 +184,24 @@ private:
 
     Prototype += Function.getReturnType().getAsString() + " ";
     Prototype += Name;
-    Prototype += getParameterDeclaration(Function, Name);
+    Prototype += getParameterList(Function, Name);
 
     return Prototype;
   }
 
-  std::string getParameterDeclaration(const clang::FunctionDecl& Function,
-                                      const std::string& Name) const {
+  /// Returns the parameter list of a function, as a string.
+  ///
+  /// Given a function like
+  /// \code{.cpp}
+  /// int f(int x, float y, char z) { ... }
+  /// \endcode
+  /// this function will return a comma-separated list of the function's
+  /// parameters, including their type and enclosed in parentheses. For this
+  /// example, the returned string would be `"(int x, float y, char z)"`.
+  ///
+  /// \return The parameter list of the function, as a string.
+  std::string getParameterList(const clang::FunctionDecl& Function,
+                               const std::string& Name) const {
     const auto BeforeParametersLocation =
         Function.getLocation().getLocWithOffset(Name.length());
     const auto* BeforeParameters =
@@ -146,8 +215,13 @@ private:
     return std::string(BeforeParameters, AfterParameters);
   }
 
+  /// The `Rewriter` instance used to modify the source code.
   clang::Rewriter& Rewriter;
+
+  /// The `SourceManager` to access the AST's source code.
   const clang::SourceManager* SourceManager;
+
+  /// The `LanguageOptions` for an AST.
   const clang::LangOptions* LanguageOptions;
 };
 
