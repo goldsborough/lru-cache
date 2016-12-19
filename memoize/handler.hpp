@@ -31,10 +31,11 @@ namespace Memoize {
 
 class MemoizeHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
+  using MatchResult = clang::ast_matchers::MatchFinder::MatchResult;
+
   explicit MemoizeHandler(clang::Rewriter& Rewriter) : Rewriter(Rewriter) {}
 
-  void
-  run(const clang::ast_matchers::MatchFinder::MatchResult& Result) override {
+  void run(const MatchResult& Result) override {
     // Set internal state
     SourceManager = Result.SourceManager;
     LanguageOptions = &(Result.Context->getLangOpts());
@@ -65,7 +66,7 @@ private:
                                        const std::string& NewName) const {
     // Add our new, memoized definition for the function under its original name
     std::string MemoizedDefinition;
-    MemoizedDefinition.reserve();
+    MemoizedDefinition.reserve(75);
 
     MemoizedDefinition += "\n\n";
     MemoizedDefinition += Prototype;
