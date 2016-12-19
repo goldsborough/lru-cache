@@ -38,8 +38,78 @@ set(CLANG_LIBS
 )
 
 set(LLVM_LIBS
-  LLVMLTO LLVMObjCARCOpts LLVMSymbolize LLVMDebugInfoPDB LLVMDebugInfoDWARF LLVMGlobalISel LLVMCoverage LLVMTableGen LLVMOrcJIT LLVMMIRParser LLVMNVPTXCodeGen LLVMNVPTXDesc LLVMNVPTXInfo LLVMNVPTXAsmPrinter LLVMARMDisassembler LLVMARMCodeGen LLVMARMAsmParser LLVMARMDesc LLVMARMInfo LLVMARMAsmPrinter LLVMAMDGPUDisassembler LLVMAMDGPUCodeGen LLVMAMDGPUAsmParser LLVMAMDGPUDesc LLVMAMDGPUInfo LLVMAMDGPUAsmPrinter LLVMAMDGPUUtils LLVMObjectYAML LLVMX86Disassembler LLVMX86AsmParser LLVMX86CodeGen LLVMSelectionDAG LLVMAsmPrinter LLVMDebugInfoCodeView LLVMX86Desc LLVMMCDisassembler LLVMX86Info LLVMX86AsmPrinter LLVMX86Utils LLVMMCJIT LLVMLibDriver LLVMOption LLVMLineEditor LLVMPasses LLVMipo LLVMVectorize LLVMLinker LLVMIRReader LLVMAsmParser LLVMInterpreter LLVMExecutionEngine LLVMRuntimeDyld LLVMObject LLVMMCParser LLVMCodeGen LLVMTarget LLVMScalarOpts LLVMInstCombine LLVMInstrumentation LLVMTransformUtils LLVMMC LLVMBitWriter LLVMBitReader LLVMAnalysis LLVMProfileData LLVMCore LLVMSupport
-  curses z m
+  LLVMLTO
+  LLVMObjCARCOpts
+  LLVMSymbolize
+  LLVMDebugInfoPDB
+  LLVMDebugInfoDWARF
+  LLVMGlobalISel
+  LLVMCoverage
+  LLVMTableGen
+  LLVMOrcJIT
+  LLVMMIRParser
+  LLVMNVPTXCodeGen
+  LLVMNVPTXDesc
+  LLVMNVPTXInfo
+  LLVMNVPTXAsmPrinter
+  LLVMARMDisassembler
+  LLVMARMCodeGen
+  LLVMARMAsmParser
+  LLVMARMDesc
+  LLVMARMInfo
+  LLVMARMAsmPrinter
+  LLVMAMDGPUDisassembler
+  LLVMAMDGPUCodeGen
+  LLVMAMDGPUAsmParser
+  LLVMAMDGPUDesc
+  LLVMAMDGPUInfo
+  LLVMAMDGPUAsmPrinter
+  LLVMAMDGPUUtils
+  LLVMObjectYAML
+  LLVMX86Disassembler
+  LLVMX86AsmParser
+  LLVMX86CodeGen
+  LLVMSelectionDAG
+  LLVMAsmPrinter
+  LLVMDebugInfoCodeView
+  LLVMX86Desc
+  LLVMMCDisassembler
+  LLVMX86Info
+  LLVMX86AsmPrinter
+  LLVMX86Utils
+  LLVMMCJIT
+  LLVMLibDriver
+  LLVMOption
+  LLVMLineEditor
+  LLVMPasses LLVMipo
+  LLVMVectorize
+  LLVMLinker
+  LLVMIRReader
+  LLVMAsmParser
+  LLVMInterpreter
+  LLVMExecutionEngine
+  LLVMRuntimeDyld
+  LLVMObject
+  LLVMMCParser
+  LLVMCodeGen
+  LLVMTarget
+  LLVMScalarOpts
+  LLVMInstCombine
+  LLVMInstrumentation
+  LLVMTransformUtils
+  LLVMMC
+  LLVMBitWriter
+  LLVMBitReader
+  LLVMAnalysis
+  LLVMProfileData
+  LLVMCore
+  LLVMSupport
+)
+
+set(SYSTEM_LIBS
+  curses
+  z
+  m
 )
 
 link_directories(/usr/local/Cellar/llvm/3.9.0/lib)
@@ -51,7 +121,7 @@ link_directories(/usr/local/Cellar/llvm/3.9.0/lib)
 
 add_executable(memoize-tool ${MEMOIZE_SOURCES})
 
-target_link_libraries(memoize-tool ${CLANG_LIBS} ${LLVM_LIBS})
+target_link_libraries(memoize-tool ${CLANG_LIBS} ${LLVM_LIBS} ${SYSTEM_LIBS})
 
 ###########################################################
 ## COMPILER FLAGS
