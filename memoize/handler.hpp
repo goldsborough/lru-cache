@@ -21,9 +21,8 @@
 * SOFTWARE.
 */
 
-#include <sstream>
+#include <cstddef>
 #include <string>
-#include <vector>
 
 #include "clang/Lex/Lexer.h"
 #include "clang/Rewrite/Core/Rewriter.h"
@@ -32,119 +31,123 @@ namespace Memoize {
 
 class MemoizeHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  explicit MemoizeHandler(clang::Rewriter& Rewriter) : Rewriter{Rewriter} {}
-
-  // Converts a FunctionDecl object into a string representation of the
-  // prototype of the function, optionally renaming it.
-  std::string funcdecl2prototype(clang::FunctionDecl const* fd,
-                                 clang::SourceManager* sm,
-                                 clang::LangOptions lopt,
-                                 std::string newName = "") {
-    std::ostringstream result;
-
-    result << fd->getReturnType().getAsString() << " ";
-
-    if (newName.empty()) {
-      result << fd->getNameAsString();
-    } else {
-      result << newName;
-    }
-
-    clang::SourceLocation b(
-        fd->getLocation().getLocWithOffset(fd->getNameAsString().length()));
-    clang::SourceLocation _e(fd->getBody()->getLocStart().getLocWithOffset(-1));
-    clang::SourceLocation e(
-        clang::Lexer::getLocForEndOfToken(_e, 0, *sm, lopt));
-
-    result << std::string(sm->getCharacterData(b),
-                          sm->getCharacterData(e) - sm->getCharacterData(b));
-
-    return result.str();
-  }
+  explicit MemoizeHandler(clang::Rewriter& Rewriter) : Rewriter(Rewriter) {}
 
   void
   run(const clang::ast_matchers::MatchFinder::MatchResult& Result) override {
-    clang::SourceManager* sm = Result.SourceManager;
-    clang::LangOptions lopt = Result.Context->getLangOpts();
+    // Set internal state
+    SourceManager = Result.SourceManager;
+    LanguageOptions = &(Result.Context->getLangOpts());
 
-    // The function whose results should be memoized.
-    auto const* mf =
-        Result.Nodes.getNodeAs<clang::FunctionDecl>("memoized_function");
+    // The matched function.
+    const auto& Function =
+        *(Result.Nodes.getNodeAs<clang::FunctionDecl>("target"));
 
-    // The actual function call.
-    auto const* fc = Result.Nodes.getNodeAs<clang::CallExpr>("function_call");
+    assert(Function != nullptr);
 
-    if (mf) {
-      auto it = std::find(std::begin(memoizedFunctions),
-                          std::end(memoizedFunctions), mf);
+    const auto NewName = renameOriginalFunction(Function);
+    const auto Prototype = getFunctionPrototype(Function);
 
-      // A function has to be wrapped only once of couse, no matter how often it
-      // is called.
-      if (it == std::end(memoizedFunctions)) {
-        memoizedFunctions.emplace_back(mf);
+    auto NewDefinition = createMemoizedDefinition(Function, Prototype, NewName);
+    auto AfterOriginalFunction = Function.getLocEnd().getLocWithOffset(1);
+    Rewriter.InsertTextAfter(AfterOriginalFunction, NewDefinition);
 
-        auto before = mf->getLocStart();
-        auto after = mf->getLocEnd().getLocWithOffset(1);
-
-        std::ostringstream beforess, afterss;
-
-        // Block to be inserted before the function definition.
-        beforess << "\n"
-                 << "#include \"lru/lru.hpp\"\n"
-                 << funcdecl2prototype(mf, sm, lopt, mf->getNameAsString() +
-                                                         std::string("_cached"))
-                 << ";"
-                 << "\n\n";
-
-        // Block to be inserted after the function definition.
-        afterss << "\n\n"
-                << funcdecl2prototype(mf, sm, lopt, mf->getNameAsString() +
-                                                        std::string("_cached"))
-                << " {\n"
-                << "static auto cache = LRU::memoize<decltype("
-                << mf->getNameAsString() << ")>(" << mf->getNameAsString()
-                << ");\n"
-                << "return cache(";
-
-        // Get the names of all the parameters and create the argument list
-        // inside of the braces.
-        // Horrible.
-        std::vector<std::string> params;
-
-        std::transform(
-            mf->param_begin(), mf->param_end(), std::back_inserter(params),
-            [](clang::ParmVarDecl* p) { return p->getNameAsString(); });
-
-        bool first = true;
-        for (auto it = std::begin(params); it != std::end(params); ++it) {
-          if (!first) {
-            afterss << ", ";
-          }
-
-          first = false;
-
-          afterss << *it;
-        }
-
-        afterss << ");\n"
-                << "}\n\n";
-
-        Rewriter.InsertTextBefore(before, beforess.str());
-        Rewriter.InsertTextAfter(after, afterss.str());
-      }
-    }
-
-    if (fc) {
-      // functionCalls.emplace_back(fc);
-      Rewriter.ReplaceText(fc->getLocStart(), mf->getNameAsString().length(),
-                           mf->getNameAsString() + std::string("_cached"));
-    }
+    // Redeclare the function before its original definition
+    // so that recursive calls can see the declaration.
+    Rewriter.InsertTextBefore(Function.getLocStart(), Prototype + ";\n");
   }
 
 private:
-  clang::Rewriter& Rewriter;
+  using size_t = std::size_t;
 
-  std::vector<clang::FunctionDecl const*> memoizedFunctions;
+  std::string createMemoizedDefinition(const clang::FunctionDecl& Function,
+                                       const std::string& Prototype,
+                                       const std::string& NewName) const {
+    // Add our new, memoized definition for the function under its original name
+    std::string MemoizedDefinition;
+    MemoizedDefinition.reserve();
+
+    MemoizedDefinition += "\n\n";
+    MemoizedDefinition += Prototype;
+    MemoizedDefinition += " {\n";
+    MemoizedDefinition += "static const auto proxy = memoize(";
+    MemoizedDefinition += NewName;
+    MemoizedDefinition += ");\nreturn proxy(";
+    MemoizedDefinition += getParameterNames(Function);
+    MemoizedDefinition += ");\n";
+    MemoizedDefinition += "}";
+
+    return MemoizedDefinition;
+  }
+
+  std::string getParameterNames(const clang::FunctionDecl& Function) const {
+    std::string ParameterNames;
+
+    // Reserve an upper bound of space for the names in a
+    // parameter list (usually shorter without types)
+    ParameterNames.reserve(128);
+
+    size_t index = 0;
+    for (const auto* Parameter : Function.parameters()) {
+      ParameterNames += Parameter->getNameAsString();
+      if (++index < Function.getNumParams()) {
+        ParameterNames += ", ";
+      }
+    }
+
+    return ParameterNames;
+  }
+
+  std::string
+  renameOriginalFunction(const clang::FunctionDecl& Function) const {
+    const auto OriginalName = Function.getNameAsString();
+    const auto NewName = OriginalName + "__original__";
+
+    const auto BeforeParameters =
+        Function.getLocation().getLocWithOffset(OriginalName.length() - 1);
+
+    const auto DeclarationBegin = Function.getLocStart();
+
+    const auto ReturnType = Function.getReturnType().getAsString();
+    const auto NewDeclaration = ReturnType + " " + NewName;
+    Rewriter.ReplaceText({DeclarationBegin, BeforeParameters}, NewDeclaration);
+
+    return NewName;
+  }
+
+  // Converts a FunctionDecl object into a string representation of the
+  // prototype of the function, optionally renaming it.
+  std::string getFunctionPrototype(const clang::FunctionDecl& Function) const {
+    std::string Prototype;
+    Prototype.reserve(256);
+
+    const auto Name = Function.getNameAsString();
+
+    Prototype += Function.getReturnType().getAsString() + " ";
+    Prototype += Name;
+    Prototype += getParameterDeclaration(Function, Name);
+
+    return Prototype;
+  }
+
+  std::string getParameterDeclaration(const clang::FunctionDecl& Function,
+                                      const std::string& Name) const {
+    const auto BeforeParametersLocation =
+        Function.getLocation().getLocWithOffset(Name.length());
+    const auto* BeforeParameters =
+        SourceManager->getCharacterData(BeforeParametersLocation);
+
+    const auto AfterParametersLocation =
+        Function.getBody()->getLocStart().getLocWithOffset(-1);
+    const auto* AfterParameters =
+        SourceManager->getCharacterData(AfterParametersLocation);
+
+    return std::string(BeforeParameters, AfterParameters);
+  }
+
+  clang::Rewriter& Rewriter;
+  const clang::SourceManager* SourceManager;
+  const clang::LangOptions* LanguageOptions;
 };
 
 }  // namespace Memoize

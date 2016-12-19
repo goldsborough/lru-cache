@@ -47,3 +47,4 @@ CTestTestfile.cmake
 
 ### Other ###
 build/
+*.dSYM/

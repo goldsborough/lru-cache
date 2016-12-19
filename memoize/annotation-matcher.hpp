@@ -28,6 +28,7 @@
 
 namespace clang {
 namespace ast_matchers {
+
 /// \brief Matches declaration that has a particular annotate attribute.
 ///
 /// Given an annotation on a function, for example:
@@ -50,5 +51,6 @@ AST_MATCHER_P(Decl, isAnnotatedWith, std::string, TargetAnnotation) {
 
   return false;
 }
+
 }  // namespace ast_matchers
 }  // namespace clang

@@ -29,17 +29,29 @@
 
 namespace Memoize {
 
-using namespace clang::ast_matchers;  // NOLINT(build/namespaces)
-
-// All function calls whose callee is a function which has got an
-// annotate("memoizable") attribute.
-// Get both the function and the function call.
-auto MemoizedMatcher = callExpr(callee(
-    functionDecl(isAnnotatedWith("memoizable")).bind("memoized_function")));
-
+/// Consumes an AST and applies the match handler for appropriate functions.
+///
+/// The Consumer dispatches a `MatchFinder` with an AST match expression that
+/// matches all functions annotated with a `memoize` attribute, which then
+/// calls our natch handler for each match found.
 class Consumer : public clang::ASTConsumer {
 public:
+  /// Constructs a new Consumer.
+  ///
+  /// \param Rewriter A rewriter instance to perform source modifications.
   explicit Consumer(clang::Rewriter& Rewriter) : Handler(Rewriter) {
+    using namespace clang::ast_matchers;  // NOLINT(build/namespaces)
+
+    // Matches all functions annotated with "memoize" and that are
+    // *definitions* and not *declarations* (i.e. have a body).
+    // clang-format off
+    auto MemoizedMatcher =
+        functionDecl(
+          isAnnotatedWith("memoize"),
+          hasBody(compoundStmt())
+        ).bind("target");
+    // clang-format on
+
     MatchFinder.addMatcher(MemoizedMatcher, &Handler);
   }
 
@@ -48,7 +60,11 @@ public:
   }
 
 private:
+  /// The MatchFinder instance to look for matching functions.
   clang::ast_matchers::MatchFinder MatchFinder;
+
+  /// The match handler for annotated functions. It must
+  /// survive the lifetime of the `MatchFinder`.
   MemoizeHandler Handler;
 };
 

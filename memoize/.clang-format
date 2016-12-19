@@ -4,3 +4,5 @@ BasedOnStyle: LLVM
 
 SpacesBeforeTrailingComments: 2
 PointerAlignment: Left
+BinPackArguments: false
+BinPackParameters: false

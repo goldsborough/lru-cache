@@ -37,6 +37,31 @@
 
 namespace LRU {
 
+template <typename Function>
+auto memoize(Function original_function) {
+  return [captured_function =
+              std::move(original_function)](auto&&... arguments) {
+    using Arguments = std::tuple<std::decay_t<decltype(arguments)>...>;
+    using ReturnType = decltype(
+        original_function(std::forward<decltype(arguments)>(arguments)...));
+
+    static std::unordered_map<Arguments, ReturnType> cache;
+
+    auto key = std::make_tuple(arguments...);
+    auto iterator = cache.find(key);
+
+    if (iterator != cache.end()) {
+      return iterator->second;
+    }
+
+    auto value =
+        original_function(std::forward<decltype(arguments)...>(arguments)...);
+    cache.emplace(key, value);
+
+    return value;
+  };
+}
+
 template <typename Function, typename... Keys>
 class MemoizedFunction {
  public:
