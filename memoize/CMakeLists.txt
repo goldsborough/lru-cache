@@ -14,29 +14,22 @@ set(MEMOIZE_SOURCES
 ###########################################################
 
 set(CLANG_LIBS
-  -Wl,-\(
   clangAST
   clangASTMatchers
-  clangAnalysis
   clangBasic
-  clangDriver
-  clangEdit
   clangFrontend
-  clangFrontendTool
   clangLex
   clangParse
   clangSema
   clangEdit
   clangRewrite
-  clangRewriteFrontend
-  clangStaticAnalyzerFrontend
-  clangStaticAnalyzerCheckers
-  clangStaticAnalyzerCore
   clangSerialization
-  clangToolingCore
   clangTooling
-  clangFormat
-  -Wl,-\)
+  clangAST
+  clangAnalysis
+  clangBasic
+  clangDriver
+  clangLex
 )
 
 # Uses root/cmake/modules/FindLLVM.cmake
