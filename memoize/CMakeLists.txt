@@ -38,7 +38,7 @@ set(CLANG_LIBS
 )
 
 # Uses root/cmake/modules/FindLLVM.cmake
-find_package(LLVM REQUIRED)
+find_package(LLVM 3.9 REQUIRED)
 
 include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
