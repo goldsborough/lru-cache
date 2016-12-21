@@ -60,4 +60,7 @@ target_link_libraries(memoize-tool
 ## COMPILER FLAGS
 ###########################################################
 
+separate_arguments(LLVM_CXXFLAGS)
+list(REMOVE_ITEM LLVM_CXXFLAGS "-std=c++0x" "-std=c++11" "-std=c++14" "-std=c++1z")
+
 target_compile_options(memoize-tool PUBLIC -Os -O2 -Werror ${LLVM_CXXFLAGS})
