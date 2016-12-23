@@ -21,28 +21,7 @@
 * SOFTWARE.
 */
 
-#include <iostream>
+#ifndef LRU_UNORDERED_ITERATOR_HPP
+#define LRU_UNORDERED_ITERATOR_HPP
 
-#include "gtest/gtest.h"
-#include "lru/lru.hpp"
-
-TEST(LRUCacheTest, CuresCancer) {
-  EXPECT_TRUE(true);
-
-  LRU::TimedCache<int, int> cache(100);
-
-  cache.insert(1, 1);
-  cache.insert(200, 2);
-  cache.insert(3000, 3);
-  cache.insert(40000, 4);
-  cache.insert(500000, 5);
-  cache.insert(500001, 5);
-  cache.insert(500002, 5);
-  cache.insert(500003, 5);
-  cache.insert(500004, 5);
-  cache.insert(500005, 5);
-
-  for (auto i = cache.ordered_cbegin(), e = cache.ordered_cend(); i != e; ++i) {
-    std::cout << i->first << " -> " << i->second << std::endl;
-  }
-}
+#endif /* LRU_UNORDERED_ITERATOR_HPP*/

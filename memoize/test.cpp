@@ -1,5 +1,14 @@
-__attribute__((annotate("memoize"))) int fac(int x) {
-  return x == 0 ? 1 : x * fac(x - 1);
+#include <cstddef>
+#include <iostream>
+
+#include "lru/memoize.hpp"
+
+__attribute__((annotate("memoize"))) std::size_t fib(std::size_t n) {
+  if (n < 2) {
+    return 1;
+  }
+
+  return fib(n - 1) + fib(n - 2);
 }
 
-int main() { return fac(5); }
+int main() { std::cout << fib(50) << std::endl; }

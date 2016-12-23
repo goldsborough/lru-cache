@@ -21,49 +21,40 @@
 * SOFTWARE.
 */
 
-#ifndef LRU_INTERNAL_INFORMATION_HPP
-#define LRU_INTERNAL_INFORMATION_HPP
 
+#ifndef LRU_PAIR_HPP
+#define LRU_PAIR_HPP
+
+#include <algorithm>
 #include <utility>
-
-#include "lru/internal/definitions.hpp"
 
 namespace LRU {
 namespace Internal {
-
 template <typename Key, typename Value>
-struct Information {
-  using KeyType = Key;
-  using ValueType = Value;
-  using QueueIterator = typename Internal::Queue<Key>::const_iterator;
-
-  Information(const Value& value_, const QueueIterator& order_)
-  : value(value_), order(order_) {
+struct Pair final {
+  Pair(const Key& key, Value& value) : first(key), second(value) {
   }
 
-  Value value;
-  QueueIterator order;
+  Pair(const Pair& other) : first(other.first), second(other.second) {
+  }
+
+  const Key& key() const noexcept {
+    return first;
+  }
+
+  Value& value() noexcept {
+    return second;
+  }
+
+  const Value& value() const noexcept {
+    return second;
+  }
+
+  const Key& first;
+  Value& second;
 };
+}  // namespace Internal
+}  // namespace LRU
 
-template <typename Key, typename Value>
-struct TimedInformation : public Information<Key, Value> {
-  using super = Information<Key, Value>;
-  using typename super::QueueIterator;
-  using Timestamp = Internal::Timestamp;
 
-  TimedInformation(const Value& value_, const QueueIterator& order_)
-  : TimedInformation(value_, order_, Internal::Clock::now()) {
-  }
-
-  TimedInformation(const Value& value_,
-                   const QueueIterator& order_,
-                   const Timestamp& insertion_time_)
-  : super(value_, order_), insertion_time(insertion_time_) {
-  }
-
-  const Timestamp insertion_time;
-};
-}
-}
-
-#endif /* LRU_INTERNAL_INFORMATION_HPP*/
+#endif /* LRU_PAIR_HPP*/

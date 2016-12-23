@@ -68,7 +68,7 @@ Handler::createMemoizedDefinition(const clang::FunctionDecl& Function,
 
   MemoizedDefinition += "\n";
   MemoizedDefinition += Prototype;
-  MemoizedDefinition += " {\nstatic const auto proxy = LRU::shallow_memoize(";
+  MemoizedDefinition += " {\nstatic const auto proxy = LRU::wrap(";
   MemoizedDefinition += NewName;
   MemoizedDefinition += ");\nreturn proxy(";
   MemoizedDefinition += getParameterNames(Function);

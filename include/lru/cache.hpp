@@ -68,9 +68,27 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
     return false;
   }
 
-  const Value& find(const Key& key) const override {
+  const Value& lookup(const Key& key) const override {
     if (key == _last_accessed) {
       return _last_accessed->value;
+    }
+
+    auto iterator = _cache.find(key);
+
+    // Throw error
+    assert(iterator != _cache.end());
+
+    _last_accessed = iterator;
+
+    return iterator->second.value;
+  }
+
+  Value& lookup(const Key& key) override {
+    if (key == _last_accessed) {
+      // what do we do here?
+      // ideally the last accessed would actually be non-const
+      // should we const-cast the const away?
+      // return _last_accessed->value;
     }
 
     auto iterator = _cache.find(key);

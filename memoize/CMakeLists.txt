@@ -36,6 +36,8 @@ set(CLANG_LIBS
 find_package(LLVM 3.9 REQUIRED)
 
 include_directories(${LLVM_INCLUDE_DIRS})
+# include_directories(/usr/local/Cellar/llvm/3.9.0/include/c++/v1/)
+include_directories(/usr/local/Cellar/llvm/3.9.0/lib/clang/3.9.0/include/)
 link_directories(${LLVM_LIBRARY_DIRS})
 
 ###########################################################
@@ -55,7 +57,7 @@ target_link_libraries(memoize-tool
 ## COMPILER FLAGS
 ###########################################################
 
-separate_arguments(LLVM_CXXFLAGS)
+# separate_arguments(LLVM_CXXFLAGS)
 list(REMOVE_ITEM LLVM_CXXFLAGS "-std=c++0x" "-std=c++11" "-std=c++14" "-std=c++1z")
 
-target_compile_options(memoize-tool PUBLIC -Os -O2 -Werror ${LLVM_CXXFLAGS})
+target_compile_options(memoize-tool PUBLIC -Os -O2 -Werror ${LLVM_CXXFLAGS} -stdlib=libc++)

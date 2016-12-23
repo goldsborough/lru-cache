@@ -63,7 +63,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
   bool contains(const Key& key) const override {
     if (_last_accessed == key) return true;
 
-    auto iterator = _cache.find(key);
+    auto iterator = _cache.lookup(key);
     if (iterator != _cache.end() && !_has_expired(iterator->second)) {
       _last_accessed = iterator;
       return true;
@@ -81,13 +81,13 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
     return false;
   }
 
-  const Value& find(const Key& key) const override {
+  const Value& lookup(const Key& key) const override {
     MapConstIterator iterator;
 
     if (key == _last_accessed) {
       iterator = _last_accessed;
     } else {
-      iterator = _cache.find(key);
+      iterator = _cache.lookup(key);
       if (iterator == _cache.end()) {
         // throw key error
       }
@@ -103,7 +103,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
   }
 
   Value& insert(const Key& key, const Value& value) override {
-    auto iterator = _cache.find(key);
+    auto iterator = _cache.lookup(key);
 
     if (iterator == _cache.end()) {
       if (is_full()) {
@@ -129,7 +129,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
   bool all_expired() const {
     if (is_empty()) return false;
 
-    auto latest = _cache.find(_order.back());
+    auto latest = _cache.lookup(_order.back());
     return has_expired(*latest);
   }
 
