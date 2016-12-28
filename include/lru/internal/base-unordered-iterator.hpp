@@ -1,28 +1,28 @@
-/**
-* The MIT License (MIT)
-* Copyright (c) 2016 Peter Goldsborough and Markus Engel
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+/// The MIT License (MIT)
+/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+///
+/// Permission is hereby granted, free of charge, to any person obtaining a copy
+/// of this software and associated documentation files (the "Software"), to
+/// deal in the Software without restriction, including without limitation the
+/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+/// sell copies of the Software, and to permit persons to whom the Software is
+/// furnished to do so, subject to the following conditions:
+///
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+///
+/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+/// IN THE SOFTWARE.
 
 #ifndef BASE_UNORDERED_ITERATOR_HPP
 #define BASE_UNORDERED_ITERATOR_HPP
+
+#include <iterator>
 
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/optional.hpp"
@@ -32,13 +32,19 @@
 namespace LRU {
 namespace Internal {
 template <typename UnderlyingIterator>
-class BaseUnorderedIterator {
+class BaseUnorderedIterator
+    : public std::iterator<
+          std::forward_iterator_tag,
+          LRU::Internal::Pair<decltype(UnderlyingIterator{}.first),
+                              decltype(UnderlyingIterator{}.second)>> {
  public:
   using UnderlyingPair =
       typename std::iterator_traits<UnderlyingIterator>::value_type;
   using Key = typename UnderlyingPair::first_type;
   using Value = typename UnderlyingPair::second_type::ValueType;
   using Pair = LRU::Internal::Pair<Key, Value>;
+
+  BaseUnorderedIterator() = default;
 
   explicit BaseUnorderedIterator(UnderlyingIterator iterator)
   : _iterator(iterator) {
@@ -61,18 +67,6 @@ class BaseUnorderedIterator {
   BaseUnorderedIterator operator++(int) {
     auto previous = *this;
     ++*this;
-    return previous;
-  }
-
-  BaseUnorderedIterator& operator--() {
-    --_iterator;
-    _pair.reset();
-    return *this;
-  }
-
-  BaseUnorderedIterator operator--(int) {
-    auto previous = *this;
-    --*this;
     return previous;
   }
 

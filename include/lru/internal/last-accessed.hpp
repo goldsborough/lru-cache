@@ -1,25 +1,23 @@
-/**
-* The MIT License (MIT)
-* Copyright (c) 2016 Peter Goldsborough and Markus Engel
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+/// The MIT License (MIT)
+/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+///
+/// Permission is hereby granted, free of charge, to any person obtaining a copy
+/// of this software and associated documentation files (the "Software"), to
+/// deal in the Software without restriction, including without limitation the
+/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+/// sell copies of the Software, and to permit persons to whom the Software is
+/// furnished to do so, subject to the following conditions:
+///
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+///
+/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+/// IN THE SOFTWARE.
 
 #ifndef LRU_INTERNAL_LAST_ACCESSED_HPP
 #define LRU_INTERNAL_LAST_ACCESSED_HPP
@@ -29,104 +27,127 @@
 namespace LRU {
 namespace Internal {
 
-template <typename Iterator>
+/// Provides a simple iterator-compatible pointer object for a key and value.
+///
+/// The easisest idea for this class, theoretically, would be to just store an s
+/// iterator to the internal cache map (i.e. template the class on the iterator
+/// type). However, the major trouble with that approach is that this class
+/// should be 100% *mutable*, as in "always non-const", so that  keys and values
+/// we store for fast access can be (quickly) retrieved as either const or
+/// non-const (iterators for example). This is not possible, since the
+/// const-ness of `const_iterators` are not the usual idea of const in C++,
+/// meaning especially it cannot be cast away with a `const_cast` as is required
+/// for the mutability. As such, we *must* store the plain keys and values.
+/// This, however, means that iterators cannot be stored efficiently, since a
+/// new hash table lookup would be required to go from a key to its iterator.
+/// However, since the main use case of this class is to avoid a second lookup
+/// in the usual `if (cache.contains(key)) return cache.lookup(key)`, which is
+/// not an issue for iterators since they can be compared to the `end` iterator
+/// in constant time (equivalent to the call to `contains()`).
+///
+/// WARNING: This class stores *pointers* to keys and values. As such lifetime
+/// of the pointed-to objects must be cared for by the user of this class.
+template <typename Key, typename Value>
 class LastAccessed {
+ private:
+  template <typename T>
+  using enable_if_iterator = typename std::iterator_traits<T>::value_type;
+
  public:
-  using Pair = typename std::iterator_traits<Iterator>::value_type;
-  using Key = typename Pair::first_type;
-  using Value = typename Pair::second_type;
-
-  explicit LastAccessed(Iterator iterator)
-  : _iterator(iterator), _is_valid(true) {
-  }
-
   LastAccessed() : _is_valid(false) {
   }
 
-  friend bool
-  operator==(const LastAccessed& iterator, const Key& key) noexcept {
-    return iterator._is_valid && key == iterator._iterator->first;
+  LastAccessed(const Key& key, const Value& value)
+  : _key(const_cast<Key*>(&key))
+  , _value(const_cast<Value*>(&value))
+  , _is_valid(true) {
   }
 
-  friend bool
-  operator==(const Key& key, const LastAccessed& iterator) noexcept {
-    return iterator == key;
+  template <typename Iterator>
+  explicit LastAccessed(Iterator iterator)
+  : LastAccessed(iterator->first, iterator->second) {
   }
 
-  template <typename AnyIterator>
-  friend bool
-  operator==(const LastAccessed& iterator, const AnyIterator& other) noexcept {
-    return iterator._is_valid && other->first == iterator._iterator->first;
-  }
-
-  template <typename AnyIterator>
-  friend bool
-  operator==(const AnyIterator& other, const LastAccessed& iterator) noexcept {
-    return iterator == other;
-  }
-
-  friend bool
-  operator!=(const LastAccessed& iterator, const Key& key) noexcept {
-    return !(iterator == key);
-  }
-
-  friend bool
-  operator!=(const Key& key, const LastAccessed& iterator) noexcept {
-    return !(iterator == key);
-  }
-
-  template <typename AnyIterator>
-  friend bool
-  operator!=(const LastAccessed& iterator, const AnyIterator& other) noexcept {
-    return !(iterator == other);
-  }
-
-  template <typename AnyIterator>
-  friend bool
-  operator!=(const AnyIterator& other, const LastAccessed& iterator) noexcept {
-    return !(iterator == other);
-  }
-
-  template <typename AnyIterator>
-  LastAccessed& operator=(const AnyIterator& iterator) {
-    _iterator = iterator;
+  template <typename Iterator>
+  LastAccessed& operator=(Iterator iterator) {
+    _key = const_cast<Key*>(&(iterator->first));
+    _value = const_cast<Value*>(&(iterator->second));
     _is_valid = true;
 
     return *this;
   }
 
-  const Value& operator*() const noexcept {
-    return value();
+  /// Comparisons to keys
+  friend bool
+  operator==(const LastAccessed& last_accessed, const Key& key) noexcept {
+    return last_accessed._is_valid && key == *(last_accessed._key);
   }
 
-  const Value* operator->() const noexcept {
-    return &(value());
+  friend bool
+  operator==(const Key& key, const LastAccessed& last_accessed) noexcept {
+    return last_accessed == key;
+  }
+
+  friend bool
+  operator!=(const LastAccessed& last_accessed, const Key& key) noexcept {
+    return !(last_accessed == key);
+  }
+
+  friend bool
+  operator!=(const Key& key, const LastAccessed& last_accessed) noexcept {
+    return !(key == last_accessed);
+  }
+
+  /// Fast comparisons to other iterators (not relying on implicit conversions)
+  template <typename Iterator, typename = enable_if_iterator<Iterator>>
+  friend bool operator==(const LastAccessed& last_accessed,
+                         const Iterator& iterator) noexcept {
+    return last_accessed == iterator->first;
+  }
+
+  template <typename Iterator, typename = enable_if_iterator<Iterator>>
+  friend bool operator==(const Iterator& iterator,
+                         const LastAccessed& last_accessed) noexcept {
+    return last_accessed == iterator;
+  }
+
+  template <typename Iterator, typename = enable_if_iterator<Iterator>>
+  friend bool operator!=(const LastAccessed& last_accessed,
+                         const Iterator& iterator) noexcept {
+    return !(last_accessed == iterator);
+  }
+
+  template <typename Iterator, typename = enable_if_iterator<Iterator>>
+  friend bool operator!=(const Iterator& iterator,
+                         const LastAccessed& last_accessed) noexcept {
+    return !(iterator == last_accessed);
   }
 
   explicit operator bool() const noexcept {
     return is_valid();
   }
 
-  operator Iterator() noexcept {
-    return iterator();
-  }
-
-  const Iterator& iterator() const noexcept {
-    assert(_is_valid);
-    return _iterator;
+  Key& key() noexcept {
+    assert(is_valid());
+    return *_key;
   }
 
   const Key& key() const noexcept {
-    assert(_is_valid);
-    return _iterator->first;
+    assert(is_valid());
+    return *_key;
+  }
+
+  Value& value() noexcept {
+    assert(is_valid());
+    return *_value;
   }
 
   const Value& value() const noexcept {
-    assert(_is_valid);
-    return _iterator->second;
+    assert(is_valid());
+    return *_value;
   }
 
-  auto is_valid() const noexcept {
+  bool is_valid() const noexcept {
     return _is_valid;
   }
 
@@ -135,11 +156,12 @@ class LastAccessed {
   }
 
  private:
-  Iterator _iterator;
+  Key* _key;
+  Value* _value;
 
   bool _is_valid;
 };
-}
-}
+}  // namespace Internal
+}  // namespace LRU
 
 #endif /* LRU_INTERNAL_LAST_ACCESSED_HPP*/

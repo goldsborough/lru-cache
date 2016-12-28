@@ -1,5 +1,11 @@
 # lru-cache
 
+## TODO
+
+1. Make `LastAccessed` store the Key and Value and const-cast away const qualifiers
+2. Make find() return iterators and erase() take them
+3. Implement remaining standard container interface functions (emplace)
+
 ## rewrite-tool
 Some interesting links:
 * http://stackoverflow.com/a/33473726

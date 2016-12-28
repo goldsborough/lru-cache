@@ -1,25 +1,23 @@
-/**
-* The MIT License (MIT)
-* Copyright (c) 2016 Peter Goldsborough and Markus Engel
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+/// The MIT License (MIT)
+/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+///
+/// Permission is hereby granted, free of charge, to any person obtaining a copy
+/// of this software and associated documentation files (the "Software"), to
+/// deal in the Software without restriction, including without limitation the
+/// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+/// sell copies of the Software, and to permit persons to whom the Software is
+/// furnished to do so, subject to the following conditions:
+///
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+///
+/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+/// IN THE SOFTWARE.
 
 #ifndef LRU_TIMED_CACHE_HPP
 #define LRU_TIMED_CACHE_HPP
@@ -53,7 +51,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
  public:
   using typename super::size_t;
 
-  template <typename AnyDurationType>
+  template <typename AnyDurationType = Duration>
   explicit TimedCache(const AnyDurationType& time_to_live,
                       size_t capacity = Internal::DEFAULT_CAPACITY)
   : super(capacity)
@@ -63,7 +61,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
   bool contains(const Key& key) const override {
     if (_last_accessed == key) return true;
 
-    auto iterator = _cache.lookup(key);
+    auto iterator = _cache.find(key);
     if (iterator != _cache.end() && !_has_expired(iterator->second)) {
       _last_accessed = iterator;
       return true;
@@ -81,29 +79,50 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
     return false;
   }
 
-  const Value& lookup(const Key& key) const override {
-    MapConstIterator iterator;
+  Value& lookup(const Key& key) override {
+    Information* information;
 
     if (key == _last_accessed) {
-      iterator = _last_accessed;
+      information = &(_last_accessed.value());
     } else {
-      iterator = _cache.lookup(key);
+      auto iterator = _cache.find(key);
       if (iterator == _cache.end()) {
         // throw key error
       }
+      _last_accessed = iterator;
+      information = &(iterator->second);
     }
 
-    if (_has_expired(iterator->second)) {
+    if (_has_expired(*information)) {
       throw std::out_of_range{"Element has expired."};
     }
 
-    _last_accessed = iterator;
+    return information->value;
+  }
 
-    return iterator->second.value;
+  const Value& lookup(const Key& key) const override {
+    const Information* information;
+
+    if (key == _last_accessed) {
+      information = &(_last_accessed.value());
+    } else {
+      auto iterator = _cache.find(key);
+      if (iterator == _cache.end()) {
+        // throw key error
+      }
+      _last_accessed = iterator;
+      information = &(iterator->second);
+    }
+
+    if (_has_expired(*information)) {
+      throw std::out_of_range{"Element has expired."};
+    }
+
+    return information->value;
   }
 
   Value& insert(const Key& key, const Value& value) override {
-    auto iterator = _cache.lookup(key);
+    auto iterator = _cache.find(key);
 
     if (iterator == _cache.end()) {
       if (is_full()) {
@@ -133,12 +152,9 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
     return has_expired(*latest);
   }
 
-  /**
-   * Erases all expired elements from the cache.
-   *
-   * \complexity O(N)
-   *
-   */
+  /// Erases all expired elements from the cache.
+  ///
+  /// \complexity O(N)
   size_t clean() {
     // We have to do a linear search here because linked lists do not
     // support O(log N) binary searches given their node-based nature.
