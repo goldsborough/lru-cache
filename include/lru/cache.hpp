@@ -29,7 +29,6 @@
 #include <list>
 #include <stdexcept>
 #include <unordered_map>
-#include <utility>
 
 #include "lru/error.hpp"
 #include "lru/internal/base-cache.hpp"
@@ -38,6 +37,7 @@
 
 namespace LRU {
 namespace Internal {
+
 template <typename Key, typename Value>
 using UntimedCacheBase = Internal::BaseCache<Key, Value, Internal::Information>;
 }
@@ -69,12 +69,12 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
 
   const Value& lookup(const Key& key) const override {
     if (key == _last_accessed) {
-      return _last_accessed.value();
+      return _last_accessed.value().value;
     }
 
     auto iterator = _cache.find(key);
     if (iterator == _cache.end()) {
-      throw LRU::Error::KeyNotFound(key);
+      throw LRU::Error::KeyNotFound();
     } else {
       _last_accessed = iterator;
     }
@@ -84,43 +84,17 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
 
   Value& lookup(const Key& key) override {
     if (key == _last_accessed) {
-      return _last_accessed.value();
+      return _last_accessed.value().value;
     }
 
     auto iterator = _cache.find(key);
     if (iterator == _cache.end()) {
-      throw LRU::Error::KeyNotFound(key);
+      throw LRU::Error::KeyNotFound();
     } else {
       _last_accessed = iterator;
     }
 
     return iterator->second.value;
-  }
-
-  Value& insert(const Key& key, const Value& value) override {
-    auto iterator = _cache.find(key);
-
-    // To insert, we first check if the key is already present in the cache
-    // and if so, update its value and move its order iterator to the front
-    // of the queue. Else, we insert the key at the end of the queue and
-    // possibly pop the front if the cache has reached its capacity.
-
-    if (iterator == _cache.end()) {
-      if (is_full()) {
-        super::_erase_lru();
-      }
-
-      auto order = _order.insert(_order.end(), key);
-      auto result = _cache.emplace(key, Information(value, order));
-      assert(result.second);
-
-      _last_accessed = result.first;
-
-      return super::_value_from_result(result);
-    } else {
-      super::_move_to_front(iterator, value);
-      return iterator->second.value;
-    }
   }
 
   const Key& front() const noexcept {

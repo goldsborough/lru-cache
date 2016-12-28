@@ -22,9 +22,12 @@
 #ifndef LRU_INTERNAL_INFORMATION_HPP
 #define LRU_INTERNAL_INFORMATION_HPP
 
+#include <cstddef>
+#include <tuple>
 #include <utility>
 
 #include "lru/internal/definitions.hpp"
+#include "lru/internal/utility.hpp"
 
 namespace LRU {
 namespace Internal {
@@ -39,8 +42,29 @@ struct Information {
   : value(value_), order(order_) {
   }
 
+  template <typename... ValueArguments>
+  Information(const QueueIterator& order_, ValueArguments&&... value_argument)
+  : value(std::forward<ValueArguments>(value_argument)...), order(order_) {
+  }
+
+  template <typename... ValueArguments>
+  Information(const QueueIterator& order_,
+              const std::tuple<ValueArguments...>& value_arguments)
+  : Information(
+        order_, value_arguments, Internal::tuple_indices(value_arguments)) {
+  }
+
   Value value;
   QueueIterator order;
+
+ private:
+  template <typename... ValueArguments, std::size_t... Indices>
+  Information(const QueueIterator& order_,
+              const std::tuple<ValueArguments...>& value_argument,
+              std::index_sequence<Indices...>)
+  : value(std::forward<ValueArguments>(std::get<Indices>(value_argument))...)
+  , order(order_) {
+  }
 };
 
 template <typename Key, typename Value>
@@ -49,19 +73,32 @@ struct TimedInformation : public Information<Key, Value> {
   using typename super::QueueIterator;
   using Timestamp = Internal::Timestamp;
 
-  TimedInformation(const Value& value_, const QueueIterator& order_)
-  : TimedInformation(value_, order_, Internal::Clock::now()) {
-  }
-
   TimedInformation(const Value& value_,
                    const QueueIterator& order_,
                    const Timestamp& insertion_time_)
   : super(value_, order_), insertion_time(insertion_time_) {
   }
 
+  TimedInformation(const Value& value_, const QueueIterator& order_)
+  : TimedInformation(value_, order_, Internal::Clock::now()) {
+  }
+
+  template <typename... ValueArguments>
+  TimedInformation(const QueueIterator& order_,
+                   ValueArguments&&... value_argument)
+  : super(std::forward<ValueArguments>(value_argument)..., order_)
+  , insertion_time(Internal::Clock::now()) {
+  }
+
+  template <typename... ValueArguments>
+  TimedInformation(const QueueIterator& order_,
+                   const std::tuple<ValueArguments...>& value_arguments)
+  : super(order_, value_arguments), insertion_time(Internal::Clock::now()) {
+  }
+
   const Timestamp insertion_time;
 };
-}
-}
+}  // namespace Internal
+}  // namespace LRU
 
-#endif // LRU_INTERNAL_INFORMATION_HPP
+#endif  // LRU_INTERNAL_INFORMATION_HPP

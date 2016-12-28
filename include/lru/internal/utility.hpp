@@ -19,46 +19,38 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef LRU_INTERNAL_ERRORS_HPP
-#define LRU_INTERNAL_ERRORS_HPP
+#ifndef LRU_UTILITY_HPP
+#define LRU_UTILITY_HPP
 
-#include <stdexcept>
-#include <string>
+#include <cstddef>
+#include <tuple>
 
 namespace LRU {
-namespace Error {
+namespace Internal {
 
-struct KeyNotFound : public std::runtime_error {
-  using super = std::runtime_error;
+template <typename... Ts>
+constexpr auto tuple_indices(const std::tuple<Ts...>&) {
+  return std::make_index_sequence<sizeof...(Ts)>();
+}
 
-  KeyNotFound() : super("Failed to find key") {
-  }
+template <typename T, typename... Args, std::size_t... Indices>
+constexpr T construct_from_tuple(const std::tuple<Args...>& args,
+                                 std::index_sequence<Indices...>) {
+  return T(std::forward<Args>(std::get<Indices>(args))...);
+}
 
-  explicit KeyNotFound(const std::string& key)
-  : super("Failed to find key: " + key) {
-  }
-};
+template <typename T, typename... Args>
+constexpr T construct_from_tuple(const std::tuple<Args...>& args) {
+  return construct_from_tuple<T>(args, tuple_indices(args));
+}
 
-struct KeyExpired : public std::runtime_error {
-  using super = std::runtime_error;
+template <typename T, typename... Args>
+constexpr T construct_from_tuple(Args&&... args) {
+  return construct_from_tuple<T>(
+      std::forward_as_tuple(std::forward<Args>(args)...));
+}
 
-  explicit KeyExpired(const std::string& key)
-  : super("Key found, but expired: " + key) {
-  }
-
-  KeyExpired() : super("Key found, but expired") {
-  }
-};
-
-struct EmptyCache : public std::runtime_error {
-  using super = std::runtime_error;
-
-  explicit EmptyCache(const std::string& what_was_expected)
-  : super("Requested " + what_was_expected + " of empty cache") {
-  }
-};
-
-}  // namespace Error
+}  // namespace Internal
 }  // namespace LRU
 
-#endif  // LRU_INTERNAL_ERRORS_HPP
+#endif  // LRU_UTILITY_HPP

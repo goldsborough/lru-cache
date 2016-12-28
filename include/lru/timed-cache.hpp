@@ -88,7 +88,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
     } else {
       auto iterator = _cache.find(key);
       if (iterator == _cache.end()) {
-        throw LRU::Error::KeyNotFound(key);
+        throw LRU::Error::KeyNotFound();
       }
       _last_accessed = iterator;
       information = &(iterator->second);
@@ -109,7 +109,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
     } else {
       auto iterator = _cache.find(key);
       if (iterator == _cache.end()) {
-        throw LRU::Error::KeyNotFound(key);
+        throw LRU::Error::KeyNotFound();
       }
       _last_accessed = iterator;
       information = &(iterator->second);
@@ -120,27 +120,6 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
     }
 
     return information->value;
-  }
-
-  Value& insert(const Key& key, const Value& value) override {
-    auto iterator = _cache.find(key);
-
-    if (iterator == _cache.end()) {
-      if (is_full()) {
-        super::_erase_lru();
-      }
-
-      auto order = _order.insert(_order.end(), key);
-      auto result = _cache.emplace(key, Information(value, order));
-      assert(result.second);
-
-      _last_accessed = result.first;
-
-      return result.first->second.value;
-    } else {
-      _move_to_front(iterator, value);
-      return iterator->second.value;
-    }
   }
 
   // no front() because we may have to erase the entire cache if everything

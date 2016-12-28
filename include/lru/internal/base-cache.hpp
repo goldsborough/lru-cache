@@ -24,6 +24,7 @@
 
 #include <cstddef>
 #include <list>
+#include <tuple>
 #include <unordered_map>
 
 #include "lru/internal/base-ordered-iterator.hpp"
@@ -31,6 +32,7 @@
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/last-accessed.hpp"
 #include "lru/internal/optional.hpp"
+#include "lru/internal/utility.hpp"
 #include "lru/pair.hpp"
 
 namespace LRU {
@@ -219,7 +221,71 @@ class BaseCache {
     return lookup(key);
   }
 
-  virtual Value& insert(const Key& key, const Value& value) = 0;
+  virtual Value& insert(const Key& key, const Value& value) {
+    auto iterator = _cache.find(key);
+
+    // To insert, we first check if the key is already present in the cache
+    // and if so, update its value and move its order iterator to the front
+    // of the queue. Else, we insert the key at the end of the queue and
+    // possibly pop the front if the cache has reached its capacity.
+
+    if (iterator == _cache.end()) {
+      if (is_full()) {
+        _erase_lru();
+      }
+
+      auto order = _order.insert(_order.end(), key);
+      auto result = _cache.emplace(key, Information(order, value));
+      assert(result.second);
+
+      _last_accessed = result.first;
+
+      return _value_from_result(result);
+    } else {
+      _move_to_front(iterator, value);
+      return iterator->second.value;
+    }
+  }
+
+  template <typename... Ks, typename... Vs>
+  Value& emplace(std::piecewise_construct_t,
+                 const std::tuple<Ks...>& key_arguments,
+                 const std::tuple<Vs...>& value_arguments) {
+    auto key = Internal::construct_from_tuple<Key>(key_arguments);
+    auto iterator = _cache.find(key);
+
+    if (iterator == _cache.end()) {
+      if (is_full()) {
+        _erase_lru();
+      }
+
+      auto order = _order.emplace(_order.end(), key);
+
+      // clang-format off
+        auto result = _cache.emplace(
+          std::move(key),
+          Information(order, value_arguments)
+        );
+      // clang-format on
+
+      assert(result.second);
+
+      _last_accessed = result.first;
+
+      return _value_from_result(result);
+    } else {
+      auto value = Internal::construct_from_tuple<Value>(value_arguments);
+      _move_to_front(iterator, value);
+      return iterator->second.value;
+    }
+  }
+
+  template <typename K, typename V>
+  Value& emplace(K&& key_argument, V&& value_argument) {
+    auto key_tuple = std::forward_as_tuple(std::forward<K>(key_argument));
+    auto value_tuple = std::forward_as_tuple(std::forward<V>(value_argument));
+    return emplace(std::piecewise_construct, key_tuple, value_tuple);
+  }
 
   virtual void erase(const Key& key) {
     if (_last_accessed == key) {
@@ -235,6 +301,7 @@ class BaseCache {
   virtual void clear() {
     _cache.clear();
     _order.clear();
+    _last_accessed.invalidate();
   }
 
   size_t size() const noexcept {
