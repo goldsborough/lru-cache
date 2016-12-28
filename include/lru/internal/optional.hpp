@@ -136,4 +136,4 @@ class Optional {
 
 #endif
 
-#endif /* LRU_INTERNAL_OPTIONAL_HPP*/
+#endif // LRU_INTERNAL_OPTIONAL_HPP

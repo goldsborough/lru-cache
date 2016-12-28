@@ -319,7 +319,7 @@ class BaseCache {
 
   size_t _capacity;
 };
-}
-}
+}  // namespace Internal
+}  // namespace LRU
 
-#endif /* LRU_INTERNAL_BASE_CACHE_HPP*/
+#endif  // LRU_INTERNAL_BASE_CACHE_HPP

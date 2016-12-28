@@ -31,6 +31,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "lru/error.hpp"
 #include "lru/internal/base-cache.hpp"
 #include "lru/internal/information.hpp"
 #include "lru/internal/last-accessed.hpp"
@@ -72,11 +73,11 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
     }
 
     auto iterator = _cache.find(key);
-
-    // Throw error
-    assert(iterator != _cache.end());
-
-    _last_accessed = iterator;
+    if (iterator == _cache.end()) {
+      throw LRU::Error::KeyNotFound(key);
+    } else {
+      _last_accessed = iterator;
+    }
 
     return iterator->second.value;
   }
@@ -87,11 +88,11 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
     }
 
     auto iterator = _cache.find(key);
-
-    // Throw error
-    assert(iterator != _cache.end());
-
-    _last_accessed = iterator;
+    if (iterator == _cache.end()) {
+      throw LRU::Error::KeyNotFound(key);
+    } else {
+      _last_accessed = iterator;
+    }
 
     return iterator->second.value;
   }
@@ -115,24 +116,29 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
 
       _last_accessed = result.first;
 
-      return _value_from_result(result);
+      return super::_value_from_result(result);
     } else {
-      _move_to_front(iterator, value);
+      super::_move_to_front(iterator, value);
       return iterator->second.value;
     }
   }
 
   const Key& front() const noexcept {
-    // throw
-    assert(!is_empty());
-    return _order.front();
+    if (is_empty()) {
+      throw LRU::Error::EmptyCache("front");
+    } else {
+      return _order.front();
+    }
   }
 
   const Key& back() const noexcept {
-    // throw
-    assert(!is_empty());
-    return _order.back();
+    if (is_empty()) {
+      throw LRU::Error::EmptyCache("back");
+    } else {
+      return _order.back();
+    }
   }
 };
-}
-#endif /* LRU_CACHE_HPP*/
+}  // namespace LRU
+
+#endif  // LRU_CACHE_HPP

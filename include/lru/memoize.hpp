@@ -28,7 +28,7 @@
 #include <utility>
 
 #include "lru/cache.hpp"
-#include "lru/errors.hpp"
+#include "lru/error.hpp"
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/hash.hpp"
 #include "lru/statistics.hpp"
@@ -58,6 +58,6 @@ auto wrap(const Function& original_function) {
     return value;
   };
 }
-}
+}  //  namespace LRU
 
-#endif /* LRU_MEMOIZE_HPP*/
+#endif  // LRU_MEMOIZE_HPP

@@ -115,4 +115,4 @@ class BaseOrderedIterator {
 }  // namespace Internal
 }  // namespace LRU
 
-#endif /* BASE_ORDERED_ITERATOR_HPP*/
+#endif // BASE_ORDERED_ITERATOR_HPP

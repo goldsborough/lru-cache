@@ -19,26 +19,48 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
+#ifndef LRU_INTERNAL_ERRORS_HPP
+#define LRU_INTERNAL_ERRORS_HPP
 
-#ifndef LRU_STATISTICS_HPP
-#define LRU_STATISTICS_HPP
-
-#include <cstddef>
-
-#include "lru/internal/definitions.hpp"
+#include <stdexcept>
+#include <string>
 
 namespace LRU {
-template <typename HitMap>
-struct Statistics {
-  using size_t = std::size_t;
+namespace Error {
 
-  double hit_rate;
-  const HitMap& hits_for;
+struct KeyNotFound : public std::runtime_error {
+  using super = std::runtime_error;
 
-  size_t total_accesses;
-  size_t total_hits;
-  size_t total_misses;
+  explicit KeyNotFound(const std::string& key)
+  : super("Failed to find key: " + key) {
+  }
+
+  template <typename T>
+  explicit KeyNotFound(const T& key) : KeyNotFound(std::to_string(key)) {
+  }
 };
-}
 
-#endif // LRU_STATISTICS_HPP
+struct KeyExpired : public std::runtime_error {
+  using super = std::runtime_error;
+
+  explicit KeyExpired(const std::string& key)
+  : super("Key found but expired: " + key) {
+  }
+
+  template <typename T>
+  explicit KeyExpired(const T& key) : KeyNotFound(std::to_string(key)) {
+  }
+};
+
+struct EmptyCache : public std::runtime_error {
+  using super = std::runtime_error;
+
+  explicit EmptyCache(const std::string& what_was_expected)
+  : super("Requested " + what_was_expected + " of empty cache") {
+  }
+};
+
+}  // namespace Error
+}  // namespace LRU
+
+#endif  // LRU_INTERNAL_ERRORS_HPP

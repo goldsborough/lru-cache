@@ -164,4 +164,4 @@ class LastAccessed {
 }  // namespace Internal
 }  // namespace LRU
 
-#endif /* LRU_INTERNAL_LAST_ACCESSED_HPP*/
+#endif  // LRU_INTERNAL_LAST_ACCESSED_HPP

@@ -54,4 +54,4 @@ struct Pair final {
 }  // namespace LRU
 
 
-#endif /* LRU_PAIR_HPP*/
+#endif // LRU_PAIR_HPP

@@ -64,4 +64,4 @@ struct TimedInformation : public Information<Key, Value> {
 }
 }
 
-#endif /* LRU_INTERNAL_INFORMATION_HPP*/
+#endif // LRU_INTERNAL_INFORMATION_HPP

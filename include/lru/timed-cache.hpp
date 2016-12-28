@@ -31,6 +31,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "lru/error.hpp"
 #include "lru/internal/base-cache.hpp"
 #include "lru/internal/last-accessed.hpp"
 
@@ -87,7 +88,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
     } else {
       auto iterator = _cache.find(key);
       if (iterator == _cache.end()) {
-        // throw key error
+        throw LRU::Error::KeyNotFound(key);
       }
       _last_accessed = iterator;
       information = &(iterator->second);
@@ -108,7 +109,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
     } else {
       auto iterator = _cache.find(key);
       if (iterator == _cache.end()) {
-        // throw key error
+        throw LRU::Error::KeyNotFound(key);
       }
       _last_accessed = iterator;
       information = &(iterator->second);
@@ -191,4 +192,4 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
 };
 }  // namespace LRU
 
-#endif /* LRU_TIMED_CACHE_HPP*/
+#endif  // LRU_TIMED_CACHE_HPP

@@ -44,4 +44,4 @@ using Timestamp = Clock::time_point;
 }  // namespace LRU
 
 
-#endif /* LRU_INTERNAL_DEFINITIONS_HPP*/
+#endif // LRU_INTERNAL_DEFINITIONS_HPP

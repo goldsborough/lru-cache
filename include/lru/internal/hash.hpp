@@ -56,4 +56,4 @@ struct hash<std::tuple<Ts...>> {
 };
 }
 
-#endif /* LRU_INTERNAL_HASH_HPP*/
+#endif // LRU_INTERNAL_HASH_HPP
