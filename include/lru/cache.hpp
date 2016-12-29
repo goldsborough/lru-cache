@@ -46,9 +46,10 @@ template <typename Key, typename Value>
 class Cache : public Internal::UntimedCacheBase<Key, Value> {
  private:
   using super = Internal::UntimedCacheBase<Key, Value>;
-  using CACHE_BASE_MEMBERS;
+  using PRIVATE_CACHE_BASE_MEMBERS;
 
  public:
+  using PUBLIC_CACHE_BASE_MEMBERS;
   using typename super::size_t;
 
   explicit Cache(size_t capacity = Internal::DEFAULT_CAPACITY)

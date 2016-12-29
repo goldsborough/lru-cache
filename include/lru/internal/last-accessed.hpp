@@ -24,6 +24,8 @@
 
 #include <iterator>
 
+#include "lru/internal/utility.hpp"
+
 namespace LRU {
 namespace Internal {
 
@@ -49,10 +51,6 @@ namespace Internal {
 /// of the pointed-to objects must be cared for by the user of this class.
 template <typename Key, typename Value>
 class LastAccessed {
- private:
-  template <typename T>
-  using enable_if_iterator = typename std::iterator_traits<T>::value_type;
-
  public:
   LastAccessed() : _is_valid(false) {
   }

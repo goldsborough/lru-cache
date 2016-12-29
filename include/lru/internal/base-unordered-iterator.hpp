@@ -23,6 +23,7 @@
 #define BASE_UNORDERED_ITERATOR_HPP
 
 #include <iterator>
+#include <type_traits>
 
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/optional.hpp"
@@ -39,6 +40,7 @@ class BaseUnorderedIterator
           LRU::Internal::Pair<decltype(UnderlyingIterator()->first),
                               decltype(UnderlyingIterator()->second)>> {
  public:
+  using Tag = std::false_type;
   using Key = decltype(UnderlyingIterator()->first);
   using Value =
       std::conditional_t<std::is_const<Cache>::value,
@@ -104,6 +106,9 @@ class BaseUnorderedIterator
   }
 
  protected:
+  template <typename, typename, typename>
+  friend class BaseOrderedIterator;
+
   UnderlyingIterator _iterator;
   Optional<Pair> _pair;
   Cache& _cache;

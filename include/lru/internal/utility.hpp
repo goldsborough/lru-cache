@@ -50,6 +50,9 @@ constexpr T construct_from_tuple(Args&&... args) {
       std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
+template <typename T>
+using enable_if_iterator = typename std::iterator_traits<T>::value_type;
+
 }  // namespace Internal
 }  // namespace LRU
 

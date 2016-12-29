@@ -43,17 +43,17 @@ class Optional {
   Optional() = default;
 
   Optional(const Optional& other) {
-    emplace(*other);
+    if (other) emplace(*other);
   }
 
   template <typename U>
   Optional(const Optional<U>& other) {
-    emplace(*other);
+    if (other) emplace(*other);
   }
 
   template <typename U>
   Optional(Optional<U>&& other) {
-    emplace(*std::forward<U>(other));
+    if (other) emplace(*std::forward<U>(other));
   }
 
   Optional(Optional&& other) {

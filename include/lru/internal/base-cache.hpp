@@ -45,17 +45,9 @@ namespace Internal {
 // With this macro, you can simply do:
 // using super = BaseCache<Key, Value, Information>;
 // using CACHE_BASE_MEMBERS;
-#define CACHE_BASE_MEMBERS                 \
-  super::_cache;                           \
-  using super::_order;                     \
-  using super::_last_accessed;             \
-  using super::_capacity;                  \
-  using super::is_full;                    \
-  using super::_erase;                     \
-  using super::_erase_lru;                 \
+#define PUBLIC_CACHE_BASE_MEMBERS          \
+  super::is_full;                          \
   using super::is_empty;                   \
-  using super::_move_to_front;             \
-  using super::_value_from_result;         \
   using typename super::Map;               \
   using typename super::MapIterator;       \
   using typename super::MapConstIterator;  \
@@ -64,6 +56,16 @@ namespace Internal {
   using typename super::Information;       \
   using typename super::UnorderedIterator; \
   using typename super::UnorderedConstIterator;
+
+#define PRIVATE_CACHE_BASE_MEMBERS \
+  super::_cache;                   \
+  using super::_order;             \
+  using super::_last_accessed;     \
+  using super::_capacity;          \
+  using super::_erase;             \
+  using super::_erase_lru;         \
+  using super::_move_to_front;     \
+  using super::_value_from_result;
 
 template <typename Key,
           typename Value,
@@ -114,6 +116,11 @@ class BaseCache {
     using UnderlyingIterator = typename super::UnderlyingIterator;
     friend BaseCache;
 
+    OrderedIterator(
+        UnorderedIterator unordered_iterator)  // NOLINT(runtime/explicit)
+        : super(unordered_iterator) {
+    }
+
     OrderedIterator(BaseCache& cache, UnderlyingIterator iterator)
     : super(cache, iterator) {
     }
@@ -124,6 +131,11 @@ class BaseCache {
     using super = BaseOrderedIterator<Key, const Value, const BaseCache>;
     using UnderlyingIterator = typename super::UnderlyingIterator;
     friend BaseCache;
+
+    OrderedConstIterator(
+        UnorderedConstIterator unordered_iterator)  // NOLINT(runtime/explicit)
+        : super(unordered_iterator) {
+    }
 
     OrderedConstIterator(OrderedIterator iterator)  // NOLINT(runtime/explicit)
         : super(iterator) {

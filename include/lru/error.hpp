@@ -58,6 +58,15 @@ struct EmptyCache : public std::runtime_error {
   }
 };
 
+struct InvalidIteratorConversion : public std::runtime_error {
+  using super = std::runtime_error;
+
+  ;
+  InvalidIteratorConversion()
+  : super("Cannot convert past-the-end unordered to ordered iterator") {
+  }
+};
+
 }  // namespace Error
 }  // namespace LRU
 

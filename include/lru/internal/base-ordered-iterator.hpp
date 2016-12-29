@@ -23,7 +23,9 @@
 #define BASE_ORDERED_ITERATOR_HPP
 
 #include <functional>
+#include <type_traits>
 
+#include "lru/error.hpp"
 #include "lru/internal/base-unordered-iterator.hpp"
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/optional.hpp"
@@ -34,6 +36,7 @@ namespace Internal {
 template <typename Key, typename Value, typename Cache>
 class BaseOrderedIterator {
  public:
+  using Tag = std::true_type;
   using UnderlyingIterator = typename Queue<Key>::const_iterator;
   using Pair = LRU::Internal::Pair<Key, Value>;
 
@@ -42,9 +45,14 @@ class BaseOrderedIterator {
   }
 
   template <typename UnderlyingIterator>
-  BaseOrderedIterator(
-      const BaseUnorderedIterator<Cache, UnderlyingIterator>& unordered)
-  : _iterator(unordered._iterator->second.order), _cache(unordered._cache) {
+  BaseOrderedIterator(const BaseUnorderedIterator<Cache, UnderlyingIterator>&
+                          unordered_iterator)
+  : _cache(unordered_iterator._cache) {
+    if (unordered_iterator == _cache.unordered_end()) {
+      throw LRU::Error::InvalidIteratorConversion();
+    } else {
+      _iterator = unordered_iterator._iterator->second.order;
+    }
   }
 
   bool operator==(const BaseOrderedIterator& other) const noexcept {
@@ -53,6 +61,48 @@ class BaseOrderedIterator {
 
   bool operator!=(const BaseOrderedIterator& other) const noexcept {
     return !(*this == other);
+  }
+
+  template <typename OtherCache, typename OtherUnderlyingIterator>
+  friend bool
+  operator==(const BaseOrderedIterator& first,
+             const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>&
+                 second) noexcept {
+    if (&first._cache != &second._cache) return false;
+
+    // The past-the-end iterators of the same cache should compare equal
+    // This is an exceptional guarantee we make. This is also the reason
+    // why we can't rely on the conversion from unordered to ordered iterators
+    // because construction of an ordered iterator from the past-the-end
+    // unordered iterator will fail (with an InvalidIteratorConversion error)
+    if (second == second._cache.unordered_end()) {
+      return first == first._cache.ordered_end();
+    }
+
+    // Will call the other overload
+    return first == static_cast<BaseOrderedIterator>(second);
+  }
+
+  template <typename OtherCache, typename OtherUnderlyingIterator>
+  friend bool operator==(
+      const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>& first,
+      const BaseOrderedIterator& second) noexcept {
+    return second == first;
+  }
+
+  template <typename OtherCache, typename OtherUnderlyingIterator>
+  friend bool
+  operator!=(const BaseOrderedIterator& first,
+             const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>&
+                 second) noexcept {
+    return !(first == second);
+  }
+
+  template <typename OtherCache, typename OtherUnderlyingIterator>
+  friend bool operator!=(
+      const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>& first,
+      const BaseOrderedIterator& second) noexcept {
+    return second != first;
   }
 
   BaseOrderedIterator& operator++() {
@@ -92,7 +142,7 @@ class BaseOrderedIterator {
   }
 
   Value& value() noexcept {
-    return _maybe_lookup()->value();
+    return _maybe_lookup().value();
   }
 
   const Key& key() noexcept {
