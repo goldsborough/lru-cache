@@ -42,19 +42,18 @@ class Optional {
  public:
   Optional() = default;
 
-
   Optional(const Optional& other) {
-    reset(*other);
+    emplace(*other);
   }
 
   template <typename U>
   Optional(const Optional<U>& other) {
-    reset(*other);
+    emplace(*other);
   }
 
   template <typename U>
   Optional(Optional<U>&& other) {
-    reset(*std::forward<U>(other));
+    emplace(*std::forward<U>(other));
   }
 
   Optional(Optional&& other) {
@@ -136,4 +135,4 @@ class Optional {
 
 #endif
 
-#endif // LRU_INTERNAL_OPTIONAL_HPP
+#endif  // LRU_INTERNAL_OPTIONAL_HPP

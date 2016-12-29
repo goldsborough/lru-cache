@@ -31,30 +31,39 @@
 
 namespace LRU {
 namespace Internal {
-template <typename UnderlyingIterator>
+
+template <typename Cache, typename UnderlyingIterator>
 class BaseUnorderedIterator
     : public std::iterator<
           std::forward_iterator_tag,
-          LRU::Internal::Pair<decltype(UnderlyingIterator{}.first),
-                              decltype(UnderlyingIterator{}.second)>> {
+          LRU::Internal::Pair<decltype(UnderlyingIterator()->first),
+                              decltype(UnderlyingIterator()->second)>> {
  public:
-  using UnderlyingPair =
-      typename std::iterator_traits<UnderlyingIterator>::value_type;
-  using Key = typename UnderlyingPair::first_type;
-  using Value = typename UnderlyingPair::second_type::ValueType;
+  using Key = decltype(UnderlyingIterator()->first);
+  using Value =
+      std::conditional_t<std::is_const<Cache>::value,
+                         const decltype(UnderlyingIterator()->second.value),
+                         decltype(UnderlyingIterator()->second.value)>;
   using Pair = LRU::Internal::Pair<Key, Value>;
 
   BaseUnorderedIterator() = default;
 
-  explicit BaseUnorderedIterator(UnderlyingIterator iterator)
-  : _iterator(iterator) {
+  explicit BaseUnorderedIterator(Cache& cache, UnderlyingIterator iterator)
+  : _iterator(iterator), _cache(cache) {
   }
 
-  bool operator==(const BaseUnorderedIterator& other) const noexcept {
+
+  template <typename AnyCache, typename AnyIterator>
+  bool
+  operator==(const BaseUnorderedIterator<AnyCache, AnyIterator>& other) const
+      noexcept {
     return this->_iterator == other._iterator;
   }
 
-  bool operator!=(const BaseUnorderedIterator& other) const noexcept {
+  template <typename AnyCache, typename AnyIterator>
+  bool
+  operator!=(const BaseUnorderedIterator<AnyCache, AnyIterator>& other) const
+      noexcept {
     return !(*this == other);
   }
 
@@ -97,8 +106,9 @@ class BaseUnorderedIterator
  protected:
   UnderlyingIterator _iterator;
   Optional<Pair> _pair;
+  Cache& _cache;
 };
 }  // namespace Internal
 }  // namespace LRU
 
-#endif // BASE_UNORDERED_ITERATOR_HPP
+#endif  // BASE_UNORDERED_ITERATOR_HPP

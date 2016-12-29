@@ -25,15 +25,13 @@
 #include "lru/lru.hpp"
 #include "tests/move-aware-dummies.hpp"
 
-using namespace std::chrono_literals;
-
 struct MoveAwarenessTest : public ::testing::Test {
-  MoveAwarenessTest() : cache(100ms) {
+  MoveAwarenessTest() {
     MoveAwareKey::reset();
     MoveAwareValue::reset();
   }
 
-  LRU::TimedCache<MoveAwareKey, MoveAwareValue> cache;
+  LRU::Cache<MoveAwareKey, MoveAwareValue> cache;
 };
 
 TEST_F(MoveAwarenessTest, DoesNotMoveForInsert) {

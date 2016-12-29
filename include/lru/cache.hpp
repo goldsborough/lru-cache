@@ -55,23 +55,7 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
   : super(capacity) {
   }
 
-  bool contains(const Key& key) const override {
-    if (_last_accessed == key) return true;
-
-    auto iterator = _cache.find(key);
-    if (iterator != _cache.end()) {
-      _last_accessed = iterator;
-      return true;
-    }
-
-    return false;
-  }
-
-  const Value& lookup(const Key& key) const override {
-    if (key == _last_accessed) {
-      return _last_accessed.value().value;
-    }
-
+  UnorderedIterator find(const Key& key) override {
     auto iterator = _cache.find(key);
     if (iterator == _cache.end()) {
       throw LRU::Error::KeyNotFound();
@@ -79,14 +63,10 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
       _last_accessed = iterator;
     }
 
-    return iterator->second.value;
+    return {*this, iterator};
   }
 
-  Value& lookup(const Key& key) override {
-    if (key == _last_accessed) {
-      return _last_accessed.value().value;
-    }
-
+  UnorderedConstIterator find(const Key& key) const override {
     auto iterator = _cache.find(key);
     if (iterator == _cache.end()) {
       throw LRU::Error::KeyNotFound();
@@ -94,7 +74,7 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
       _last_accessed = iterator;
     }
 
-    return iterator->second.value;
+    return {*this, iterator};
   }
 
   const Key& front() const noexcept {

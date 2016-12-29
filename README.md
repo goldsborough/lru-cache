@@ -2,9 +2,9 @@
 
 ## TODO
 
-1. Make `LastAccessed` store the Key and Value and const-cast away const qualifiers
 2. Make find() return iterators and erase() take them
 3. Implement remaining standard container interface functions (emplace)
+4. Allow own hashing and comparison algorithms
 
 ## rewrite-tool
 Some interesting links:

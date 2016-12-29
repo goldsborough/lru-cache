@@ -41,6 +41,12 @@ class BaseOrderedIterator {
   : _iterator(iterator), _cache(cache) {
   }
 
+  template <typename UnderlyingIterator>
+  BaseOrderedIterator(
+      const BaseUnorderedIterator<Cache, UnderlyingIterator>& unordered)
+  : _iterator(unordered._iterator->second.order), _cache(unordered._cache) {
+  }
+
   bool operator==(const BaseOrderedIterator& other) const noexcept {
     return this->_iterator == other._iterator;
   }
@@ -115,4 +121,4 @@ class BaseOrderedIterator {
 }  // namespace Internal
 }  // namespace LRU
 
-#endif // BASE_ORDERED_ITERATOR_HPP
+#endif  // BASE_ORDERED_ITERATOR_HPP

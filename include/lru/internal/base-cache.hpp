@@ -45,23 +45,25 @@ namespace Internal {
 // With this macro, you can simply do:
 // using super = BaseCache<Key, Value, Information>;
 // using CACHE_BASE_MEMBERS;
-#define CACHE_BASE_MEMBERS                \
-  super::_cache;                          \
-  using super::_order;                    \
-  using super::_last_accessed;            \
-  using super::_capacity;                 \
-  using super::is_full;                   \
-  using super::_erase;                    \
-  using super::_erase_lru;                \
-  using super::is_empty;                  \
-  using super::_move_to_front;            \
-  using super::_value_from_result;        \
-  using typename super::Map;              \
-  using typename super::MapIterator;      \
-  using typename super::MapConstIterator; \
-  using typename super::Queue;            \
-  using typename super::QueueIterator;    \
-  using typename super::Information;
+#define CACHE_BASE_MEMBERS                 \
+  super::_cache;                           \
+  using super::_order;                     \
+  using super::_last_accessed;             \
+  using super::_capacity;                  \
+  using super::is_full;                    \
+  using super::_erase;                     \
+  using super::_erase_lru;                 \
+  using super::is_empty;                   \
+  using super::_move_to_front;             \
+  using super::_value_from_result;         \
+  using typename super::Map;               \
+  using typename super::MapIterator;       \
+  using typename super::MapConstIterator;  \
+  using typename super::Queue;             \
+  using typename super::QueueIterator;     \
+  using typename super::Information;       \
+  using typename super::UnorderedIterator; \
+  using typename super::UnorderedConstIterator;
 
 template <typename Key,
           typename Value,
@@ -79,45 +81,53 @@ class BaseCache {
   using MapConstIterator = typename Map::const_iterator;
 
  public:
-  class UnorderedIterator : public BaseUnorderedIterator<MapIterator> {
-   private:
-    using super = BaseUnorderedIterator<MapIterator>;
-    friend class BaseCache;
+  struct UnorderedIterator
+      : public BaseUnorderedIterator<BaseCache, MapIterator> {
+    using super = BaseUnorderedIterator<BaseCache, MapIterator>;
+    friend BaseCache;
 
-    UnorderedIterator(MapIterator iterator)  // NOLINT(runtime/explicit)
-        : super(iterator) {
+    UnorderedIterator(BaseCache& cache,
+                      MapIterator iterator)  // NOLINT(runtime/explicit)
+        : super(cache, iterator) {
     }
   };
 
-  class UnorderedConstIterator
-      : public BaseUnorderedIterator<MapConstIterator> {
-   private:
-    using super = BaseUnorderedIterator<MapConstIterator>;
-    friend class BaseCache;
+  struct UnorderedConstIterator
+      : public BaseUnorderedIterator<const BaseCache, MapConstIterator> {
+    using super = BaseUnorderedIterator<const BaseCache, MapConstIterator>;
+    friend BaseCache;
 
     UnorderedConstIterator(
+        UnorderedIterator iterator)  // NOLINT(runtime/explicit)
+        : super(iterator._cache, iterator._iterator) {
+    }
+
+    UnorderedConstIterator(
+        const BaseCache& cache,
         MapConstIterator iterator)  // NOLINT(runtime/explicit)
-        : super(iterator) {
+        : super(cache, iterator) {
     }
   };
 
-  class OrderedIterator : public BaseOrderedIterator<Key, Value, BaseCache> {
-   private:
+  struct OrderedIterator : public BaseOrderedIterator<Key, Value, BaseCache> {
     using super = BaseOrderedIterator<Key, Value, BaseCache>;
     using UnderlyingIterator = typename super::UnderlyingIterator;
-    friend class BaseCache;
+    friend BaseCache;
 
     OrderedIterator(BaseCache& cache, UnderlyingIterator iterator)
     : super(cache, iterator) {
     }
   };
 
-  class OrderedConstIterator
+  struct OrderedConstIterator
       : public BaseOrderedIterator<Key, const Value, const BaseCache> {
-   private:
     using super = BaseOrderedIterator<Key, const Value, const BaseCache>;
     using UnderlyingIterator = typename super::UnderlyingIterator;
-    friend class BaseCache;
+    friend BaseCache;
+
+    OrderedConstIterator(OrderedIterator iterator)  // NOLINT(runtime/explicit)
+        : super(iterator) {
+    }
 
     OrderedConstIterator(const BaseCache& cache, UnderlyingIterator iterator)
     : super(cache, iterator) {
@@ -132,7 +142,7 @@ class BaseCache {
   virtual ~BaseCache() = default;
 
   UnorderedIterator unordered_begin() {
-    return _cache.begin();
+    return {*this, _cache.begin()};
   }
 
   UnorderedConstIterator unordered_begin() const {
@@ -140,11 +150,11 @@ class BaseCache {
   }
 
   UnorderedConstIterator unordered_cbegin() const {
-    return _cache.cbegin();
+    return {*this, _cache.cbegin()};
   }
 
   UnorderedIterator unordered_end() {
-    return _cache.end();
+    return {*this, _cache.end()};
   }
 
   UnorderedConstIterator unordered_end() const {
@@ -152,7 +162,7 @@ class BaseCache {
   }
 
   UnorderedConstIterator unordered_cend() const {
-    return _cache.cend();
+    return {*this, _cache.cend()};
   }
 
   OrderedIterator ordered_begin() {
@@ -179,39 +189,70 @@ class BaseCache {
     return {*this, _order.cend()};
   }
 
-  OrderedIterator begin() {
-    return ordered_begin();
+  UnorderedIterator begin() {
+    return unordered_begin();
   }
 
-  OrderedConstIterator begin() const {
+  UnorderedConstIterator begin() const {
     return cbegin();
   }
 
-  OrderedConstIterator cbegin() const {
-    return ordered_begin();
+  UnorderedConstIterator cbegin() const {
+    return unordered_begin();
   }
 
-  OrderedIterator end() {
-    return ordered_end();
+  UnorderedIterator end() {
+    return unordered_end();
   }
 
-  OrderedConstIterator end() const {
+  UnorderedConstIterator end() const {
     return cend();
   }
 
-  OrderedConstIterator cend() const {
-    return ordered_cend();
+  UnorderedConstIterator cend() const {
+    return unordered_cend();
   }
 
+  virtual bool contains(const Key& key) const {
+    if (_last_accessed == key) return true;
 
-  virtual bool contains(const Key& key) const = 0;
+    auto iterator = find(key);
+    if (iterator != end()) {
+      _last_accessed = iterator._iterator;
+      return true;
+    } else {
+      return false;
+    }
+  }
 
+  virtual const Value& lookup(const Key& key) const {
+    if (key == _last_accessed) {
+      return _last_accessed.value().value;
+    }
 
-  // The non const verions are tricky because the user may change the
-  // value but we will *not* insert it at the back! only insert() does that
-  virtual Value& lookup(const Key& key) = 0;
+    auto iterator = find(key);
+    if (iterator == end()) {
+      throw LRU::Error::KeyNotFound();
+    } else {
+      return iterator.value();
+    }
+  }
 
-  virtual const Value& lookup(const Key& key) const = 0;
+  virtual Value& lookup(const Key& key) {
+    if (key == _last_accessed) {
+      return _last_accessed.value().value;
+    }
+
+    auto iterator = find(key);
+    if (iterator == end()) {
+      throw LRU::Error::KeyNotFound();
+    } else {
+      return iterator.value();
+    }
+  }
+
+  virtual UnorderedIterator find(const Key& key) = 0;
+  virtual UnorderedConstIterator find(const Key& key) const = 0;
 
   virtual Value& operator[](const Key& key) {
     return lookup(key);
@@ -295,6 +336,18 @@ class BaseCache {
     auto iterator = _cache.find(key);
     if (iterator != _cache.end()) {
       _erase(iterator);
+    }
+  }
+
+  virtual void erase(UnorderedConstIterator iterator) {
+    if (iterator != unordered_cend()) {
+      _erase(iterator._iterator);
+    }
+  }
+
+  virtual void erase(OrderedConstIterator iterator) {
+    if (iterator != ordered_cend()) {
+      _erase(_cache.find(iterator.key()));
     }
   }
 
