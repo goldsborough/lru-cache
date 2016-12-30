@@ -25,6 +25,7 @@
 #include <cstddef>
 #include <iterator>
 #include <tuple>
+#include <utility>
 
 namespace LRU {
 namespace Internal {
@@ -53,6 +54,9 @@ constexpr T construct_from_tuple(Args&&... args) {
 
 template <typename T>
 using enable_if_iterator = typename std::iterator_traits<T>::value_type;
+
+template <typename T>
+using enable_if_range = enable_if_iterator<decltype(std::declval<T>().begin())>;
 
 template <typename T>
 using enable_if_iterator_over_pair =

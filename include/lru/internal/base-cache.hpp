@@ -79,10 +79,8 @@ template <typename Key,
           typename HashFunction,
           typename KeyEqual>
 class BaseCache {
- public:
-  using Information = InformationType<Key, Value>;
-
  protected:
+  using Information = InformationType<Key, Value>;
   using Queue = Internal::Queue<Key>;
   using QueueIterator = typename Queue::const_iterator;
 
@@ -187,11 +185,10 @@ class BaseCache {
 
   using size_t = std::size_t;
 
-
-  explicit BaseCache(size_t capacity,
-                     const HashFunction& hash,
-                     const KeyEqual& equal)
-  : _cache(0, hash, equal), _capacity(capacity) {
+  BaseCache(size_t capacity,
+            const HashFunction& hash,
+            const KeyEqual& key_equal)
+  : _cache(0, hash, key_equal), _capacity(capacity), _last_accessed(key_equal) {
   }
 
   template <typename Iterator>
@@ -199,8 +196,8 @@ class BaseCache {
             Iterator begin,
             Iterator end,
             const HashFunction& hash,
-            const KeyEqual& equal)
-  : _cache(0, hash, equal), _capacity(capacity) {
+            const KeyEqual& key_equal)
+  : BaseCache(capacity, hash, key_equal) {
     insert(begin, end);
   }
 
@@ -208,41 +205,41 @@ class BaseCache {
   BaseCache(Iterator begin,
             Iterator end,
             const HashFunction& hash,
-            const KeyEqual& equal)
+            const KeyEqual& key_equal)
       // This may be expensive
-      : BaseCache(std::distance(begin, end), begin, end, hash, equal) {
+      : BaseCache(std::distance(begin, end), begin, end, hash, key_equal) {
   }
 
   template <typename Range>
   explicit BaseCache(Range&& range,
                      const HashFunction& hash,
-                     const KeyEqual& equal)
+                     const KeyEqual& key_equal)
   : BaseCache(std::begin(std::forward<Range>(range)),
               std::end(std::forward<Range>(range)),
               hash,
-              equal) {
+              key_equal) {
   }
 
   template <typename Range>
   BaseCache(size_t capacity,
             Range&& range,
             const HashFunction& hash,
-            const KeyEqual& equal)
-  : _cache(0, hash, equal), _capacity(capacity) {
+            const KeyEqual& key_equal)
+  : BaseCache(capacity, hash, key_equal) {
     insert(std::forward<Range>(range));
   }
 
   BaseCache(InitializerList list,
             const HashFunction& hash,
-            const KeyEqual& equal)  // NOLINT(runtime/explicit)
-      : BaseCache(list.size(), list.begin(), list.end(), hash, equal) {
+            const KeyEqual& key_equal)  // NOLINT(runtime/explicit)
+      : BaseCache(list.size(), list.begin(), list.end(), hash, key_equal) {
   }
 
   BaseCache(size_t capacity,
             InitializerList list,
             const HashFunction& hash,
-            const KeyEqual& equal)
-  : BaseCache(capacity, list.begin(), list.end(), hash, equal) {
+            const KeyEqual& key_equal)
+  : BaseCache(capacity, list.begin(), list.end(), hash, key_equal) {
   }
 
   virtual ~BaseCache() = default;
@@ -399,7 +396,7 @@ class BaseCache {
     }
   }
 
-  template <typename Range>
+  template <typename Range, typename = Internal::enable_if_range<Range>>
   void insert(Range&& range) {
     using std::begin;
     using std::end;
@@ -510,7 +507,8 @@ class BaseCache {
 
  protected:
   using MapInsertionResult = decltype(Map().emplace());
-  using LastAccessed = typename Internal::LastAccessed<Key, Information>;
+  using LastAccessed =
+      typename Internal::LastAccessed<Key, Information, KeyEqual>;
 
   virtual void _move_to_front(MapIterator iterator, const Value& new_value) {
     _order.erase(iterator->second.order);

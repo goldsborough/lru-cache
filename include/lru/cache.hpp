@@ -83,14 +83,14 @@ class Cache
   : super(begin, end, hash, equal) {
   }
 
-  template <typename Range>
+  template <typename Range, typename = Internal::enable_if_range<Range>>
   explicit Cache(Range&& range,
                  const HashFunction& hash = HashFunction(),
                  const KeyEqual& equal = KeyEqual())
   : super(std::forward<Range>(range), hash, equal) {
   }
 
-  template <typename Range>
+  template <typename Range, typename = Internal::enable_if_range<Range>>
   Cache(size_t capacity,
         Range&& range,
         const HashFunction& hash = HashFunction(),

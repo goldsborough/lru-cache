@@ -22,6 +22,7 @@
 #ifndef LRU_INTERNAL_LAST_ACCESSED_HPP
 #define LRU_INTERNAL_LAST_ACCESSED_HPP
 
+#include <functional>
 #include <iterator>
 
 #include "lru/internal/utility.hpp"
@@ -49,21 +50,26 @@ namespace Internal {
 ///
 /// WARNING: This class stores *pointers* to keys and values. As such lifetime
 /// of the pointed-to objects must be cared for by the user of this class.
-template <typename Key, typename Value>
+template <typename Key, typename Value, typename KeyEqual = std::equal_to<Key>>
 class LastAccessed {
  public:
-  LastAccessed() : _is_valid(false) {
+  explicit LastAccessed(const KeyEqual& key_equal = KeyEqual())
+  : _is_valid(false), _key_equal(key_equal) {
   }
 
-  LastAccessed(const Key& key, const Value& value)
+  LastAccessed(const Key& key,
+               const Value& value,
+               const KeyEqual& key_equal = KeyEqual())
   : _key(const_cast<Key*>(&key))
   , _value(const_cast<Value*>(&value))
-  , _is_valid(true) {
+  , _is_valid(true)
+  , _key_equal(key_equal) {
   }
 
   template <typename Iterator>
-  explicit LastAccessed(Iterator iterator)
-  : LastAccessed(iterator->first, iterator->second) {
+  explicit LastAccessed(Iterator iterator,
+                        const KeyEqual& key_equal = KeyEqual())
+  : LastAccessed(iterator->first, iterator->second, key_equal) {
   }
 
   template <typename Iterator>
@@ -78,7 +84,8 @@ class LastAccessed {
   /// Comparisons to keys
   friend bool
   operator==(const LastAccessed& last_accessed, const Key& key) noexcept {
-    return last_accessed._is_valid && key == *(last_accessed._key);
+    if (!last_accessed._is_valid) return false;
+    return last_accessed._key_equal(key, *(last_accessed._key));
   }
 
   friend bool
@@ -153,11 +160,20 @@ class LastAccessed {
     _is_valid = false;
   }
 
+  void key_equal(const KeyEqual& key_equal) {
+    _key_equal = key_equal;
+  }
+
+  const KeyEqual& key_equal() const noexcept {
+    return _key_equal;
+  }
+
  private:
   Key* _key;
   Value* _value;
 
   bool _is_valid;
+  KeyEqual _key_equal;
 };
 }  // namespace Internal
 }  // namespace LRU
