@@ -92,6 +92,38 @@ TEST(CacheConstructionTest, IsConstructibleFromIterators) {
   EXPECT_EQ(cache["three"], 3);
 }
 
+TEST(CacheConstructionTest, UsesCustomHashFunction) {
+  std::size_t mock_hash_call_count = 0;
+  const auto mock_hash = [&mock_hash_call_count](int value) {
+    mock_hash_call_count += 1;
+    return value;
+  };
+
+  Cache<int, int, decltype(mock_hash)> cache(128, mock_hash);
+
+  EXPECT_EQ(mock_hash_call_count, 0);
+
+  cache.contains(5);
+  EXPECT_EQ(mock_hash_call_count, 1);
+}
+
+TEST(CacheConstructionTest, UsesCustomKeyEqual) {
+  std::size_t mock_equal_call_count = 0;
+  const auto mock_equal = [&mock_equal_call_count](int a, int b) {
+    mock_equal_call_count += 1;
+    return a == b;
+  };
+
+  Cache<int, int, std::hash<int>, decltype(mock_equal)> cache(
+      128, std::hash<int>(), mock_equal);
+
+  EXPECT_EQ(mock_equal_call_count, 0);
+
+  cache.insert(5, 1);
+  ASSERT_TRUE(cache.contains(5));
+  EXPECT_EQ(mock_equal_call_count, 1);
+}
+
 TEST_F(CacheTest, CanInsertIterators) {
   std::vector<std::pair<std::string, int>> range = {
       {"one", 1}, {"two", 2}, {"three", 3}};
