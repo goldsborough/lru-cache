@@ -75,7 +75,9 @@ namespace Internal {
 
 template <typename Key,
           typename Value,
-          template <typename, typename> class InformationType>
+          template <typename, typename> class InformationType,
+          typename HashFunction,
+          typename KeyEqual>
 class BaseCache {
  public:
   using Information = InformationType<Key, Value>;
@@ -84,7 +86,7 @@ class BaseCache {
   using Queue = Internal::Queue<Key>;
   using QueueIterator = typename Queue::const_iterator;
 
-  using Map = Internal::Map<Key, Information>;
+  using Map = Internal::Map<Key, Information, HashFunction, KeyEqual>;
   using MapIterator = typename Map::iterator;
   using MapConstIterator = typename Map::const_iterator;
 
@@ -185,38 +187,62 @@ class BaseCache {
 
   using size_t = std::size_t;
 
-  explicit BaseCache(size_t capacity) : _capacity(capacity) {
+
+  explicit BaseCache(size_t capacity,
+                     const HashFunction& hash,
+                     const KeyEqual& equal)
+  : _cache(0, hash, equal), _capacity(capacity) {
   }
 
   template <typename Iterator>
-  BaseCache(size_t capacity, Iterator begin, Iterator end)
-  : _capacity(capacity) {
+  BaseCache(size_t capacity,
+            Iterator begin,
+            Iterator end,
+            const HashFunction& hash,
+            const KeyEqual& equal)
+  : _cache(0, hash, equal), _capacity(capacity) {
     insert(begin, end);
   }
 
   template <typename Iterator>
-  BaseCache(Iterator begin, Iterator end)
+  BaseCache(Iterator begin,
+            Iterator end,
+            const HashFunction& hash,
+            const KeyEqual& equal)
       // This may be expensive
-      : BaseCache(std::distance(begin, end), begin, end) {
+      : BaseCache(std::distance(begin, end), begin, end, hash, equal) {
   }
 
   template <typename Range>
-  explicit BaseCache(Range&& range)
+  explicit BaseCache(Range&& range,
+                     const HashFunction& hash,
+                     const KeyEqual& equal)
   : BaseCache(std::begin(std::forward<Range>(range)),
-              std::end(std::forward<Range>(range))) {
+              std::end(std::forward<Range>(range)),
+              hash,
+              equal) {
   }
 
   template <typename Range>
-  BaseCache(size_t capacity, Range&& range) : _capacity(capacity) {
+  BaseCache(size_t capacity,
+            Range&& range,
+            const HashFunction& hash,
+            const KeyEqual& equal)
+  : _cache(0, hash, equal), _capacity(capacity) {
     insert(std::forward<Range>(range));
   }
 
-  BaseCache(InitializerList list)  // NOLINT(runtime/explicit)
-      : BaseCache(list.size(), list) {
+  BaseCache(InitializerList list,
+            const HashFunction& hash,
+            const KeyEqual& equal)  // NOLINT(runtime/explicit)
+      : BaseCache(list.size(), list.begin(), list.end(), hash, equal) {
   }
 
-  BaseCache(size_t capacity, InitializerList list)
-  : BaseCache(capacity, list.begin(), list.end()) {
+  BaseCache(size_t capacity,
+            InitializerList list,
+            const HashFunction& hash,
+            const KeyEqual& equal)
+  : BaseCache(capacity, list.begin(), list.end(), hash, equal) {
   }
 
   virtual ~BaseCache() = default;

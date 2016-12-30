@@ -25,6 +25,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <list>
 #include <stdexcept>
@@ -37,16 +38,23 @@
 
 namespace LRU {
 namespace Internal {
-template <typename Key, typename Value>
-using TimedCacheBase = BaseCache<Key, Value, Internal::TimedInformation>;
+template <typename Key,
+          typename Value,
+          typename HashFunction,
+          typename KeyEqual>
+using TimedCacheBase =
+    BaseCache<Key, Value, Internal::TimedInformation, HashFunction, KeyEqual>;
 }
 
 template <typename Key,
           typename Value,
-          typename Duration = std::chrono::milliseconds>
-class TimedCache : public Internal::TimedCacheBase<Key, Value> {
+          typename Duration = std::chrono::milliseconds,
+          typename HashFunction = std::hash<Key>,
+          typename KeyEqual = std::equal_to<Key>>
+class TimedCache
+    : public Internal::TimedCacheBase<Key, Value, HashFunction, KeyEqual> {
  private:
-  using super = Internal::TimedCacheBase<Key, Value>;
+  using super = Internal::TimedCacheBase<Key, Value, HashFunction, KeyEqual>;
   using PRIVATE_BASE_CACHE_MEMBERS;
 
  public:
@@ -55,8 +63,10 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
 
   template <typename AnyDurationType = Duration>
   explicit TimedCache(const AnyDurationType& time_to_live,
-                      size_t capacity = Internal::DEFAULT_CAPACITY)
-  : super(capacity)
+                      size_t capacity = Internal::DEFAULT_CAPACITY,
+                      const HashFunction& hash = HashFunction(),
+                      const KeyEqual& equal = KeyEqual())
+  : super(capacity, hash, equal)
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
@@ -64,43 +74,58 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
   TimedCache(const AnyDurationType& time_to_live,
              size_t capacity,
              Iterator begin,
-             Iterator end)
-  : super(capacity, begin, end)
+             Iterator end,
+             const HashFunction& hash = HashFunction(),
+             const KeyEqual& equal = KeyEqual())
+  : super(capacity, begin, end, hash, equal)
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
   template <typename Iterator, typename AnyDurationType = Duration>
-  TimedCache(const AnyDurationType& time_to_live, Iterator begin, Iterator end)
-  : super(begin, end)
+  TimedCache(const AnyDurationType& time_to_live,
+             Iterator begin,
+             Iterator end,
+             const HashFunction& hash = HashFunction(),
+             const KeyEqual& equal = KeyEqual())
+  : super(begin, end, hash, equal)
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
   template <typename Range, typename AnyDurationType = Duration>
-  explicit TimedCache(const AnyDurationType& time_to_live, Range&& range)
-  : super(std::forward<Range>(range))
+  explicit TimedCache(const AnyDurationType& time_to_live,
+                      Range&& range,
+                      const HashFunction& hash = HashFunction(),
+                      const KeyEqual& equal = KeyEqual())
+  : super(std::forward<Range>(range), hash, equal)
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
   template <typename Range, typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
              size_t capacity,
-             Range&& range)
-  : super(capacity, std::forward<Range>(range))
+             Range&& range,
+             const HashFunction& hash = HashFunction(),
+             const KeyEqual& equal = KeyEqual())
+  : super(capacity, std::forward<Range>(range), hash, equal)
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
   template <typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
-             InitializerList list)  // NOLINT(runtime/explicit)
-      : super(list),
+             InitializerList list,
+             const HashFunction& hash = HashFunction(),
+             const KeyEqual& equal = KeyEqual())  // NOLINT(runtime/explicit)
+      : super(list, hash, equal),
         _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
   template <typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
              size_t capacity,
-             InitializerList list)  // NOLINT(runtime/explicit)
-      : super(capacity, list),
+             InitializerList list,
+             const HashFunction& hash = HashFunction(),
+             const KeyEqual& equal = KeyEqual())  // NOLINT(runtime/explicit)
+      : super(capacity, list, hash, equal),
         _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 

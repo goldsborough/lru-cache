@@ -25,6 +25,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <list>
 #include <stdexcept>
@@ -37,49 +38,77 @@
 
 namespace LRU {
 namespace Internal {
-
-template <typename Key, typename Value>
-using UntimedCacheBase = Internal::BaseCache<Key, Value, Internal::Information>;
+template <typename Key,
+          typename Value,
+          typename HashFunction,
+          typename KeyEqual>
+using UntimedCacheBase = Internal::
+    BaseCache<Key, Value, Internal::Information, HashFunction, KeyEqual>;
 }
 
-template <typename Key, typename Value>
-class Cache : public Internal::UntimedCacheBase<Key, Value> {
+template <typename Key,
+          typename Value,
+          typename HashFunction = std::hash<Key>,
+          typename KeyEqual = std::equal_to<Key>>
+class Cache
+    : public Internal::UntimedCacheBase<Key, Value, HashFunction, KeyEqual> {
  private:
-  using super = Internal::UntimedCacheBase<Key, Value>;
+  using super = Internal::UntimedCacheBase<Key, Value, HashFunction, KeyEqual>;
   using PRIVATE_BASE_CACHE_MEMBERS;
 
  public:
   using PUBLIC_BASE_CACHE_MEMBERS;
   using typename super::size_t;
 
-  explicit Cache(size_t capacity = Internal::DEFAULT_CAPACITY)
-  : super(capacity) {
+  explicit Cache(size_t capacity = Internal::DEFAULT_CAPACITY,
+                 const HashFunction& hash = HashFunction(),
+                 const KeyEqual& equal = KeyEqual())
+  : super(capacity, hash, equal) {
   }
 
   template <typename Iterator>
-  Cache(size_t capacity, Iterator begin, Iterator end)
-  : super(capacity, begin, end) {
+  Cache(size_t capacity,
+        Iterator begin,
+        Iterator end,
+        const HashFunction& hash = HashFunction(),
+        const KeyEqual& equal = KeyEqual())
+  : super(capacity, begin, end, hash, equal) {
   }
 
   template <typename Iterator>
-  Cache(Iterator begin, Iterator end) : super(begin, end) {
+  Cache(Iterator begin,
+        Iterator end,
+        const HashFunction& hash = HashFunction(),
+        const KeyEqual& equal = KeyEqual())
+  : super(begin, end, hash, equal) {
   }
 
   template <typename Range>
-  explicit Cache(Range&& range) : super(std::forward<Range>(range)) {
+  explicit Cache(Range&& range,
+                 const HashFunction& hash = HashFunction(),
+                 const KeyEqual& equal = KeyEqual())
+  : super(std::forward<Range>(range), hash, equal) {
   }
 
   template <typename Range>
-  Cache(size_t capacity, Range&& range)
-  : super(capacity, std::forward<Range>(range)) {
+  Cache(size_t capacity,
+        Range&& range,
+        const HashFunction& hash = HashFunction(),
+        const KeyEqual& equal = KeyEqual())
+  : super(capacity, std::forward<Range>(range), hash, equal) {
   }
 
-  Cache(InitializerList list)  // NOLINT(runtime/explicit)
-      : super(list) {
+  Cache(InitializerList list,
+        const HashFunction& hash = HashFunction(),
+        const KeyEqual& equal = KeyEqual())  // NOLINT(runtime/explicit)
+      : super(list, hash, equal) {
   }
 
-  Cache(size_t capacity, InitializerList list)  // NOLINT(runtime/explicit)
-      : super(capacity, list) {
+  Cache(size_t capacity,
+        InitializerList list,
+        const HashFunction& hash = HashFunction(),
+        const KeyEqual& equal = KeyEqual())  // NOLINT(runtime/explicit)
+      : super(capacity, list, hash, equal) {
   }
 
   UnorderedIterator find(const Key& key) override {

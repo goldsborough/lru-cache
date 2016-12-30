@@ -35,8 +35,11 @@ const std::size_t DEFAULT_CAPACITY = 128;
 template <typename T>
 using Queue = std::list<T>;
 
-template <typename Key, typename Information>
-using Map = std::unordered_map<Key, Information>;
+template <typename Key,
+          typename Information,
+          typename HashFunction,
+          typename KeyEqual>
+using Map = std::unordered_map<Key, Information, HashFunction, KeyEqual>;
 
 using Clock = std::chrono::steady_clock;
 using Timestamp = Clock::time_point;
@@ -44,4 +47,4 @@ using Timestamp = Clock::time_point;
 }  // namespace LRU
 
 
-#endif // LRU_INTERNAL_DEFINITIONS_HPP
+#endif  // LRU_INTERNAL_DEFINITIONS_HPP
