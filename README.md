@@ -2,8 +2,7 @@
 
 ## TODO
 
-2. Make find() return iterators and erase() take them
-3. Implement remaining standard container interface functions (emplace)
+1. Range + initializer list insertion and construction 
 4. Allow own hashing and comparison algorithms
 
 ## rewrite-tool

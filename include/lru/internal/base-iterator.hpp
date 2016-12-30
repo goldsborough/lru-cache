@@ -68,6 +68,25 @@ class BaseIterator
   : _iterator(iterator), _pair(pair), _cache(&cache) {
   }
 
+  BaseIterator(const BaseIterator& other) noexcept
+  : _iterator(other._iterator), _cache(other._cache) {
+    // Note: we do not copy the pair, as it would require a new allocation.
+    // Since iterators are often taken by value, this may incur a high cost.
+    // As such we delay the retrieval of the pair to the first call to pair().
+  }
+
+  BaseIterator& operator=(const BaseIterator& other) noexcept {
+    if (this != &other) {
+      _iterator = other._iterator;
+      _cache = other._cache;
+    }
+    return *this;
+  }
+
+  // If one special member function is defined, all must be.
+  BaseIterator(BaseIterator&& other) = default;
+  BaseIterator& operator=(BaseIterator&& other) noexcept = default;
+
   template <typename AnyIteratorTag,
             typename AnyKeyType,
             typename AnyValueType,

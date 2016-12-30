@@ -52,11 +52,13 @@ class Optional {
   }
 
   template <typename U>
-  Optional(Optional<U>&& other) {
-    if (other) emplace(*std::move(other));
+  Optional(Optional<U>&& other) noexcept {
+    if (other) {
+      _value = std::make_unique<T>(std::move(*other));
+    }
   }
 
-  Optional(Optional&& other) {
+  Optional(Optional&& other) noexcept {
     swap(other);
   }
 
@@ -130,6 +132,9 @@ class Optional {
   }
 
  private:
+  template <typename>
+  friend class Optional;
+
   std::unique_ptr<T> _value;
 };
 
