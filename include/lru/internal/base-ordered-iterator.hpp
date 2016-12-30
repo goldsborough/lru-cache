@@ -24,9 +24,11 @@
 
 #include <algorithm>
 #include <functional>
+#include <iterator>
 #include <type_traits>
 
 #include "lru/error.hpp"
+#include "lru/internal/base-iterator.hpp"
 #include "lru/internal/base-unordered-iterator.hpp"
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/optional.hpp"
@@ -34,31 +36,42 @@
 
 namespace LRU {
 namespace Internal {
+
 template <typename Key, typename Value, typename Cache>
-class BaseOrderedIterator {
+using BaseForBaseOrderedIterator =
+    BaseIterator<std::bidirectional_iterator_tag,
+                 Key,
+                 Value,
+                 Cache,
+                 typename Queue<Key>::const_iterator>;
+
+template <typename Key, typename Value, typename Cache>
+class BaseOrderedIterator
+    : public BaseForBaseOrderedIterator<Key, Value, Cache> {
+ protected:
+  using super = BaseForBaseOrderedIterator<Key, Value, Cache>;
+  using PRIVATE_BASE_ITERATOR_MEMBERS;
+
  public:
   using Tag = std::true_type;
-  using UnderlyingIterator = typename Queue<Key>::const_iterator;
-  using Pair = LRU::Internal::Pair<Key, Value>;
+  using PUBLIC_BASE_ITERATOR_MEMBERS;
 
-  BaseOrderedIterator() = default;
+  BaseOrderedIterator() noexcept = default;
 
   BaseOrderedIterator(Cache& cache, UnderlyingIterator iterator)
-  : _iterator(iterator), _cache(&cache) {
+  : super(cache, iterator) {
   }
 
   template <typename OtherKey, typename OtherValue, typename OtherCache>
   BaseOrderedIterator(
       const BaseOrderedIterator<OtherKey, OtherValue, OtherCache>& other)
-  : _iterator(other._iterator), _pair(other._pair), _cache(other._cache) {
+  : super(other) {
   }
 
   template <typename OtherKey, typename OtherValue, typename OtherCache>
   BaseOrderedIterator(
       BaseOrderedIterator<OtherKey, OtherValue, OtherCache>&& other)
-  : _iterator(std::move(other._iterator))
-  , _pair(std::move(other._pair))
-  , _cache(std::move(other._cache)) {
+  : super(std::move(other)) {
   }
 
   template <
@@ -68,8 +81,7 @@ class BaseOrderedIterator {
           std::is_same<std::decay_t<OtherCache>, std::decay_t<Cache>>::value>>
   BaseOrderedIterator(
       const BaseUnorderedIterator<OtherCache, UnderlyingIterator>&
-          unordered_iterator)
-  : _cache(nullptr) {
+          unordered_iterator) {
     // Atomicity
     _check_if_at_end(unordered_iterator);
     _cache = unordered_iterator._cache;
@@ -83,8 +95,7 @@ class BaseOrderedIterator {
       typename = std::enable_if_t<
           std::is_same<std::decay_t<OtherCache>, std::decay_t<Cache>>::value>>
   BaseOrderedIterator(BaseUnorderedIterator<OtherCache, UnderlyingIterator>&&
-                          unordered_iterator)
-  : _cache(nullptr) {
+                          unordered_iterator) {
     // Atomicity
     _check_if_at_end(unordered_iterator);
     _cache = std::move(unordered_iterator._cache);
@@ -98,20 +109,6 @@ class BaseOrderedIterator {
                 unordered_iterator) {
     swap(unordered_iterator);
     return *this;
-  }
-
-  void swap(BaseOrderedIterator& other) noexcept {
-    // Enable ADL
-    using std::swap;
-
-    swap(_iterator, other._iterator);
-    swap(_pair, other._pair);
-    swap(_cache, other._cache);
-  }
-
-  friend void
-  swap(BaseOrderedIterator& first, BaseOrderedIterator& second) noexcept {
-    first.swap(second);
   }
 
   bool operator==(const BaseOrderedIterator& other) const noexcept {
@@ -188,23 +185,15 @@ class BaseOrderedIterator {
     return previous;
   }
 
-  Pair& operator*() noexcept {
-    return pair();
-  }
-
-  Pair* operator->() noexcept {
-    return &(**this);
-  }
-
-  Pair& pair() noexcept {
+  Pair& pair() noexcept override {
     return _maybe_lookup();
   }
 
-  Value& value() noexcept {
+  Value& value() noexcept override {
     return _maybe_lookup().value();
   }
 
-  const Key& key() noexcept {
+  const Key& key() noexcept override {
     return *_iterator;
   }
 
@@ -224,12 +213,6 @@ class BaseOrderedIterator {
     Value& value = _cache->lookup(key());
     _pair.emplace(key(), value);
   }
-
-  UnderlyingIterator _iterator;
-  Optional<Pair> _pair;
-
-  // Pointer and not reference because it's cheap to copy
-  Cache* _cache;
 
  private:
   template <typename UnorderedIterator>

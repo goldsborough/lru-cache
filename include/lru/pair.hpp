@@ -27,7 +27,6 @@
 #include <utility>
 
 namespace LRU {
-namespace Internal {
 template <typename Key, typename Value>
 struct Pair final {
   Pair(const Key& key, Value& value) : first(key), second(value) {
@@ -57,7 +56,6 @@ struct Pair final {
   const Key& first;
   Value& second;
 };
-}  // namespace Internal
 }  // namespace LRU
 
 

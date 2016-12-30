@@ -26,6 +26,7 @@
 #include <iterator>
 #include <type_traits>
 
+#include "lru/internal/base-iterator.hpp"
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/optional.hpp"
 #include "lru/pair.hpp"
@@ -35,38 +36,29 @@ namespace LRU {
 namespace Internal {
 
 template <typename Cache, typename UnderlyingIterator>
+using BaseForBaseUnorderedIterator =
+    BaseIterator<std::forward_iterator_tag,
+                 decltype(UnderlyingIterator()->first),
+                 decltype(UnderlyingIterator()->second.value),
+                 Cache,
+                 UnderlyingIterator>;
+
+template <typename Cache, typename UnderlyingIterator>
 class BaseUnorderedIterator
-    : public std::iterator<
-          std::forward_iterator_tag,
-          LRU::Internal::Pair<decltype(UnderlyingIterator()->first),
-                              decltype(UnderlyingIterator()->second)>> {
+    : public BaseForBaseUnorderedIterator<Cache, UnderlyingIterator> {
+ protected:
+  using super = BaseForBaseUnorderedIterator<Cache, UnderlyingIterator>;
+  using PRIVATE_BASE_ITERATOR_MEMBERS;
+
  public:
   using Tag = std::false_type;
-  using Key = decltype(UnderlyingIterator()->first);
-  using Value =
-      std::conditional_t<std::is_const<Cache>::value,
-                         const decltype(UnderlyingIterator()->second.value),
-                         decltype(UnderlyingIterator()->second.value)>;
-  using Pair = LRU::Internal::Pair<Key, Value>;
+  using PUBLIC_BASE_ITERATOR_MEMBERS;
 
-  BaseUnorderedIterator() = default;
+  BaseUnorderedIterator() noexcept = default;
 
-  explicit BaseUnorderedIterator(Cache& cache, UnderlyingIterator iterator)
-  : _iterator(iterator), _cache(&cache) {
-  }
-
-  void swap(BaseUnorderedIterator& other) noexcept {
-    // Enable ADL
-    using std::swap;
-
-    swap(_iterator, other._iterator);
-    swap(_pair, other._pair);
-    swap(_cache, other._cache);
-  }
-
-  friend void
-  swap(BaseUnorderedIterator& first, BaseUnorderedIterator& second) noexcept {
-    first.swap(second);
+  explicit BaseUnorderedIterator(Cache& cache,
+                                 const UnderlyingIterator& iterator)
+  : super(cache, iterator) {
   }
 
   template <typename AnyCache, typename AnyIterator>
@@ -95,15 +87,7 @@ class BaseUnorderedIterator
     return previous;
   }
 
-  Pair& operator*() noexcept {
-    return pair();
-  }
-
-  Pair* operator->() noexcept {
-    return &(**this);
-  }
-
-  Pair& pair() noexcept {
+  Pair& pair() noexcept override {
     if (!_pair.has_value()) {
       _pair.emplace(key(), value());
     }
@@ -111,21 +95,17 @@ class BaseUnorderedIterator
     return *_pair;
   }
 
-  Value& value() noexcept {
+  Value& value() noexcept override {
     return _iterator->second.value;
   }
 
-  const Key& key() noexcept {
+  const Key& key() noexcept override {
     return _iterator->first;
   }
 
  protected:
   template <typename, typename, typename>
   friend class BaseOrderedIterator;
-
-  UnderlyingIterator _iterator;
-  Optional<Pair> _pair;
-  Cache* _cache;
 };
 }  // namespace Internal
 }  // namespace LRU

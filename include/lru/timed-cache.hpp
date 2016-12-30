@@ -47,10 +47,10 @@ template <typename Key,
 class TimedCache : public Internal::TimedCacheBase<Key, Value> {
  private:
   using super = Internal::TimedCacheBase<Key, Value>;
-  using PRIVATE_CACHE_BASE_MEMBERS;
+  using PRIVATE_BASE_CACHE_MEMBERS;
 
  public:
-  using PUBLIC_CACHE_BASE_MEMBERS;
+  using PUBLIC_BASE_CACHE_MEMBERS;
   using typename super::size_t;
 
   template <typename AnyDurationType = Duration>

@@ -44,8 +44,8 @@ namespace Internal {
 // directive when we make a change to the `BaseCache`.
 // With this macro, you can simply do:
 // using super = BaseCache<Key, Value, Information>;
-// using CACHE_BASE_MEMBERS;
-#define PUBLIC_CACHE_BASE_MEMBERS          \
+// using BASE_CACHE_MEMBERS;
+#define PUBLIC_BASE_CACHE_MEMBERS          \
   super::is_full;                          \
   using super::is_empty;                   \
   using typename super::Map;               \
@@ -57,7 +57,7 @@ namespace Internal {
   using typename super::UnorderedIterator; \
   using typename super::UnorderedConstIterator;
 
-#define PRIVATE_CACHE_BASE_MEMBERS \
+#define PRIVATE_BASE_CACHE_MEMBERS \
   super::_cache;                   \
   using super::_order;             \
   using super::_last_accessed;     \
