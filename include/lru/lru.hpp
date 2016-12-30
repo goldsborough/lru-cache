@@ -26,4 +26,4 @@
 #include "lru/memoize.hpp"
 #include "lru/timed-cache.hpp"
 
-#endif // LRU_HPP
+#endif  // LRU_HPP

@@ -187,15 +187,39 @@ class BaseCache {
   explicit BaseCache(size_t capacity) : _capacity(capacity) {
   }
 
+  template <typename Iterator>
+  BaseCache(size_t capacity, Iterator begin, Iterator end)
+  : _capacity(capacity) {
+    for (; begin != end; ++begin) {
+      emplace(std::move(begin->first), std::move(begin->second));
+    }
+  }
+
+  template <typename Iterator>
+  BaseCache(Iterator begin, Iterator end)
+      // This may be expensive
+      : BaseCache(std::distance(begin, end), begin, end) {
+  }
+
+  template <typename Range>
+  explicit BaseCache(Range&& range)
+  : BaseCache(std::begin(std::forward<Range>(range)),
+              std::end(std::forward<Range>(range))) {
+  }
+
+  template <typename Range>
+  BaseCache(size_t capacity, Range&& range)
+  : BaseCache(capacity,
+              std::begin(std::forward<Range>(range)),
+              std::end(std::forward<Range>(range))) {
+  }
+
   BaseCache(InitializerList list)  // NOLINT(runtime/explicit)
       : BaseCache(list.size(), list) {
   }
 
-  BaseCache(size_t capacity, InitializerList list)  // NOLINT(runtime/explicit)
-      : _capacity(capacity) {
-    for (const auto& pair : list) {
-      emplace(std::move(pair.first), std::move(pair.second));
-    }
+  BaseCache(size_t capacity, InitializerList list)
+  : BaseCache(capacity, list.begin(), list.end()) {
   }
 
   virtual ~BaseCache() = default;

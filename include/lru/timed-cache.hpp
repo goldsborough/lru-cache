@@ -60,6 +60,35 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
+  template <typename Iterator, typename AnyDurationType = Duration>
+  TimedCache(const AnyDurationType& time_to_live,
+             size_t capacity,
+             Iterator begin,
+             Iterator end)
+  : super(capacity, begin, end)
+  , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
+  }
+
+  template <typename Iterator, typename AnyDurationType = Duration>
+  TimedCache(const AnyDurationType& time_to_live, Iterator begin, Iterator end)
+  : super(begin, end)
+  , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
+  }
+
+  template <typename Range, typename AnyDurationType = Duration>
+  explicit TimedCache(const AnyDurationType& time_to_live, Range&& range)
+  : super(std::forward<Range>(range))
+  , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
+  }
+
+  template <typename Range, typename AnyDurationType = Duration>
+  TimedCache(const AnyDurationType& time_to_live,
+             size_t capacity,
+             Range&& range)
+  : super(capacity, std::forward<Range>(range))
+  , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
+  }
+
   template <typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
              InitializerList list)  // NOLINT(runtime/explicit)
@@ -67,6 +96,7 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
         _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
+  template <typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
              size_t capacity,
              InitializerList list)  // NOLINT(runtime/explicit)

@@ -20,6 +20,8 @@
 /// IN THE SOFTWARE.
 
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "gtest/gtest.h"
 
@@ -49,6 +51,38 @@ TEST(CacheTest, IsConstructibleFromInitializerListWithCapacity) {
   EXPECT_FALSE(cache.is_empty());
   EXPECT_EQ(cache.size(), 2);
   EXPECT_FALSE(cache.contains("one"));
+  EXPECT_EQ(cache["two"], 2);
+  EXPECT_EQ(cache["three"], 3);
+}
+
+TEST(CacheTest, IsConstructibleFromRange) {
+  // clang-format off
+  std::vector<std::pair<std::string, int>> range = {
+      {"one", 1}, {"two", 2}, {"three", 3}
+  };
+  // clang-format on
+
+  Cache<std::string, int> cache(range);
+
+  EXPECT_FALSE(cache.is_empty());
+  EXPECT_EQ(cache.size(), 3);
+  EXPECT_EQ(cache["one"], 1);
+  EXPECT_EQ(cache["two"], 2);
+  EXPECT_EQ(cache["three"], 3);
+}
+
+TEST(CacheTest, IsConstructibleFromIterators) {
+  // clang-format off
+  std::vector<std::pair<std::string, int>> range = {
+      {"one", 1}, {"two", 2}, {"three", 3}
+  };
+  // clang-format on
+
+  Cache<std::string, int> cache(range.begin(), range.end());
+
+  EXPECT_FALSE(cache.is_empty());
+  EXPECT_EQ(cache.size(), 3);
+  EXPECT_EQ(cache["one"], 1);
   EXPECT_EQ(cache["two"], 2);
   EXPECT_EQ(cache["three"], 3);
 }

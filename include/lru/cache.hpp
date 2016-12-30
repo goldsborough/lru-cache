@@ -56,6 +56,24 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
   : super(capacity) {
   }
 
+  template <typename Iterator>
+  Cache(size_t capacity, Iterator begin, Iterator end)
+  : super(capacity, begin, end) {
+  }
+
+  template <typename Iterator>
+  Cache(Iterator begin, Iterator end) : super(begin, end) {
+  }
+
+  template <typename Range>
+  explicit Cache(Range&& range) : super(std::forward<Range>(range)) {
+  }
+
+  template <typename Range>
+  Cache(size_t capacity, Range&& range)
+  : super(capacity, std::forward<Range>(range)) {
+  }
+
   Cache(InitializerList list)  // NOLINT(runtime/explicit)
       : super(list) {
   }
