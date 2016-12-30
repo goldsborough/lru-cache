@@ -48,7 +48,7 @@ using TimedCacheBase =
 
 template <typename Key,
           typename Value,
-          typename Duration = std::chrono::milliseconds,
+          typename Duration = std::chrono::duration<double, std::milli>,
           typename HashFunction = std::hash<Key>,
           typename KeyEqual = std::equal_to<Key>>
 class TimedCache
@@ -91,7 +91,9 @@ class TimedCache
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
-  template <typename Range, typename AnyDurationType = Duration>
+  template <typename Range,
+            typename AnyDurationType = Duration,
+            typename = Internal::enable_if_range<Range>>
   explicit TimedCache(const AnyDurationType& time_to_live,
                       Range&& range,
                       const HashFunction& hash = HashFunction(),
@@ -100,7 +102,9 @@ class TimedCache
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
-  template <typename Range, typename AnyDurationType = Duration>
+  template <typename Range,
+            typename AnyDurationType = Duration,
+            typename = Internal::enable_if_range<Range>>
   TimedCache(const AnyDurationType& time_to_live,
              size_t capacity,
              Range&& range,
@@ -129,100 +133,65 @@ class TimedCache
         _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
-  bool contains(const Key& key) const override {
-    if (_last_accessed == key) return true;
-
+  UnorderedIterator find(const Key& key) override {
     auto iterator = _cache.find(key);
-    if (iterator != _cache.end() && !_has_expired(iterator->second)) {
-      _last_accessed = iterator;
-      return true;
+    if (iterator != _cache.end()) {
+      if (!_has_expired(iterator->second)) {
+        _last_accessed = iterator;
+        return {*this, iterator};
+      }
     }
 
-    // Note how we do not erase the element, even if it has expired.
-    // The main reason why is that this would require `contains()` to be
-    // non-const, or making two overloads (`const` version returns false for
-    // expired elements, `non-const` returns *false* and erases the element).
-    // However, there is no immediate benefit from erasing an expired element
-    // here as opposed to doing it lazily in `insert()`. Also, if this element
-    // is expired, so are also all elements before it. If we really wanted to
-    // clean the cache, we can use `clean()` for this.
-
-    return false;
+    return end();
   }
 
-  Value& lookup(const Key& key) override {
-    Information* information;
-
-    if (key == _last_accessed) {
-      information = &(_last_accessed.value());
-    } else {
-      auto iterator = _cache.find(key);
-      if (iterator == _cache.end()) {
-        throw LRU::Error::KeyNotFound();
+  UnorderedConstIterator find(const Key& key) const override {
+    auto iterator = _cache.find(key);
+    if (iterator != _cache.end()) {
+      if (!_has_expired(iterator->second)) {
+        _last_accessed = iterator;
+        return {*this, iterator};
       }
-      _last_accessed = iterator;
-      information = &(iterator->second);
     }
 
-    if (_has_expired(*information)) {
-      throw std::out_of_range{"Element has expired."};
-    }
-
-    return information->value;
-  }
-
-  const Value& lookup(const Key& key) const override {
-    const Information* information;
-
-    if (key == _last_accessed) {
-      information = &(_last_accessed.value());
-    } else {
-      auto iterator = _cache.find(key);
-      if (iterator == _cache.end()) {
-        throw LRU::Error::KeyNotFound();
-      }
-      _last_accessed = iterator;
-      information = &(iterator->second);
-    }
-
-    if (_has_expired(*information)) {
-      throw std::out_of_range{"Element has expired."};
-    }
-
-    return information->value;
+    return cend();
   }
 
   // no front() because we may have to erase the entire cache if everything
   // happens to be expired
 
   bool all_expired() const {
-    if (is_empty()) return false;
+    // By the laws of predicate logic, any statement about any empty set is true
+    if (is_empty()) return true;
 
-    auto latest = _cache.lookup(_order.back());
-    return has_expired(*latest);
+    auto latest = _cache.find(_order.back());
+    return _has_expired(latest->second);
   }
 
   /// Erases all expired elements from the cache.
   ///
   /// \complexity O(N)
-  size_t clean() {
+  size_t erase_expired() {
     // We have to do a linear search here because linked lists do not
     // support O(log N) binary searches given their node-based nature.
     // Either way, in the worst case the entire cache has expired and
     // we would have to do O(N) erasures.
 
-    if (is_empty()) return;
+    if (is_empty()) return 0;
 
     auto iterator = _order.begin();
     size_t number_of_erasures = 0;
 
     while (iterator != _order.end()) {
+      auto map_iterator = _cache.find(*iterator);
+
       // If the current element hasn't expired, also all elements inserted
       // after will not have, so we can stop.
-      if (!_has_expired(_cache[*iterator])) break;
+      if (!_has_expired(map_iterator->second)) break;
 
-      // Erase and get the subsequent iterator
-      iterator = _erase(iterator);
+      _erase(map_iterator);
+
+      iterator = _order.begin();
       number_of_erasures += 1;
     }
 
@@ -231,6 +200,29 @@ class TimedCache
 
  private:
   using Clock = typename Internal::Clock;
+
+  bool _key_is_last_accessed(const Key& key) const noexcept override {
+    if (!super::_key_is_last_accessed(key)) return false;
+    return !_has_expired(_last_accessed.value());
+  }
+
+  Value& _value_for_last_accessed() override {
+    auto& information = _last_accessed.value();
+    if (_has_expired(information)) {
+      throw LRU::Error::KeyExpired();
+    } else {
+      return information.value;
+    }
+  }
+
+  const Value& _value_for_last_accessed() const override {
+    const auto& information = _last_accessed.value();
+    if (_has_expired(information)) {
+      throw LRU::Error::KeyExpired();
+    } else {
+      return information.value;
+    }
+  }
 
   bool _has_expired(const Information& information) const noexcept {
     auto elapsed = Clock::now() - information.insertion_time;

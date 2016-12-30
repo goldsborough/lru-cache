@@ -51,6 +51,10 @@ namespace Internal {
 #define PUBLIC_BASE_CACHE_MEMBERS               \
   super::is_full;                               \
   using super::is_empty;                        \
+  using super::clear;                           \
+  using super::end;                             \
+  using super::cend;                            \
+  using super::operator=;                       \
   using typename super::Information;            \
   using typename super::UnorderedIterator;      \
   using typename super::UnorderedConstIterator; \
@@ -71,7 +75,8 @@ namespace Internal {
   using super::_erase;                    \
   using super::_erase_lru;                \
   using super::_move_to_front;            \
-  using super::_value_from_result;
+  using super::_value_from_result;        \
+  using super::_key_is_last_accessed
 
 template <typename Key,
           typename Value,
@@ -242,6 +247,28 @@ class BaseCache {
   : BaseCache(capacity, list.begin(), list.end(), hash, key_equal) {
   }
 
+  template <typename Range, typename = Internal::enable_if_range<Range>>
+  BaseCache& operator=(const Range& range) {
+    clear();
+    for (const auto& pair : range) {
+      insert(pair.first, pair.second);
+    }
+    return *this;
+  }
+
+  template <typename Range, typename = Internal::enable_if_range<Range>>
+  BaseCache& operator=(Range&& range) {
+    clear();
+    for (auto& pair : range) {
+      emplace(std::move(pair.first), std::move(pair.second));
+    }
+    return *this;
+  }
+
+  BaseCache& operator=(InitializerList list) {
+    return operator=<InitializerList>(list);
+  }
+
   virtual ~BaseCache() = default;
 
   UnorderedIterator unordered_begin() {
@@ -317,7 +344,7 @@ class BaseCache {
   }
 
   virtual bool contains(const Key& key) const {
-    if (_last_accessed == key) return true;
+    if (_key_is_last_accessed(key)) return true;
 
     auto iterator = find(key);
     if (iterator != end()) {
@@ -330,7 +357,7 @@ class BaseCache {
 
   virtual const Value& lookup(const Key& key) const {
     if (key == _last_accessed) {
-      return _last_accessed.value().value;
+      return _value_for_last_accessed();
     }
 
     auto iterator = find(key);
@@ -343,7 +370,7 @@ class BaseCache {
 
   virtual Value& lookup(const Key& key) {
     if (key == _last_accessed) {
-      return _last_accessed.value().value;
+      return _value_for_last_accessed();
     }
 
     auto iterator = find(key);
@@ -551,6 +578,18 @@ class BaseCache {
     // `result.first` is the map iterator (to a pair), whose `second` member is
     // the information object, whose `value` member is the value stored.
     return result.first->second.value;
+  }
+
+  virtual bool _key_is_last_accessed(const Key& key) const noexcept {
+    return _last_accessed == key;
+  }
+
+  virtual Value& _value_for_last_accessed() {
+    return _last_accessed.value().value;
+  }
+
+  virtual const Value& _value_for_last_accessed() const {
+    return _last_accessed.value().value;
   }
 
   Map _cache;

@@ -5,6 +5,8 @@
 cmake_minimum_required(VERSION 3.2)
 project(lru-cache)
 
+add_compile_options(-g)
+
 ########################################
 # C++ VERSIONING
 ########################################

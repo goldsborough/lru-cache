@@ -2,8 +2,7 @@
 
 ## TODO
 
-1. Range + initializer list insertion and construction 
-4. Allow own hashing and comparison algorithms
+
 
 ## rewrite-tool
 Some interesting links:

@@ -30,6 +30,7 @@ set(TEST_LRU_CACHE_SOURCES
   last-accessed-test.cpp
   iterator-test.cpp
   cache-test.cpp
+  timed-cache-test.cpp
 )
 
 ########################################
