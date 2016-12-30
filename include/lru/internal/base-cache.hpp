@@ -30,6 +30,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "lru/insertion-result.hpp"
 #include "lru/internal/base-ordered-iterator.hpp"
 #include "lru/internal/base-unordered-iterator.hpp"
 #include "lru/internal/definitions.hpp"
@@ -93,8 +94,10 @@ class BaseCache {
   using MapIterator = typename Map::iterator;
   using MapConstIterator = typename Map::const_iterator;
 
+
  public:
   using InitializerList = std::initializer_list<std::pair<Key, Value>>;
+  using size_t = std::size_t;
 
   struct UnorderedIterator
       : public BaseUnorderedIterator<BaseCache, MapIterator> {
@@ -188,7 +191,7 @@ class BaseCache {
     }
   };
 
-  using size_t = std::size_t;
+  using InsertionResult = InsertionResult<UnorderedIterator>;
 
   BaseCache(size_t capacity,
             const HashFunction& hash,
@@ -392,7 +395,7 @@ class BaseCache {
     return lookup(key);
   }
 
-  virtual void insert(const Key& key, const Value& value) {
+  virtual InsertionResult insert(const Key& key, const Value& value) {
     auto iterator = _cache.find(key);
 
     // To insert, we first check if the key is already present in the cache
@@ -410,8 +413,10 @@ class BaseCache {
       assert(result.second);
 
       _last_accessed = result.first;
+      return {true, {*this, result.first}};
     } else {
       _move_to_front(iterator, value);
+      return {false, {*this, iterator}};
     }
   }
 
@@ -436,9 +441,9 @@ class BaseCache {
   }
 
   template <typename... Ks, typename... Vs>
-  Value& emplace(std::piecewise_construct_t,
-                 const std::tuple<Ks...>& key_arguments,
-                 const std::tuple<Vs...>& value_arguments) {
+  InsertionResult emplace(std::piecewise_construct_t,
+                          const std::tuple<Ks...>& key_arguments,
+                          const std::tuple<Vs...>& value_arguments) {
     auto key = Internal::construct_from_tuple<Key>(key_arguments);
     auto iterator = _cache.find(key);
 
@@ -460,16 +465,16 @@ class BaseCache {
 
       _last_accessed = result.first;
 
-      return _value_from_result(result);
+      return {true, {*this, result.first}};
     } else {
       auto value = Internal::construct_from_tuple<Value>(value_arguments);
       _move_to_front(iterator, value);
-      return iterator->second.value;
+      return {false, {*this, iterator}};
     }
   }
 
   template <typename K, typename V>
-  Value& emplace(K&& key_argument, V&& value_argument) {
+  InsertionResult emplace(K&& key_argument, V&& value_argument) {
     auto key_tuple = std::forward_as_tuple(std::forward<K>(key_argument));
     auto value_tuple = std::forward_as_tuple(std::forward<V>(value_argument));
     return emplace(std::piecewise_construct, key_tuple, value_tuple);

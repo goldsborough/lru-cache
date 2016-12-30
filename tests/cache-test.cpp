@@ -149,3 +149,35 @@ TEST_F(CacheTest, CanInsertList) {
   cache.insert({{"one", 1}, {"two", 2}, {"three", 3}});
   EXPECT_TRUE(is_equal_to_range(cache, list));
 }
+
+TEST_F(CacheTest, ResultIsCorrectForInsert) {
+  auto result = cache.insert("one", 1);
+
+  EXPECT_TRUE(result.was_inserted());
+  EXPECT_TRUE(result);
+
+  EXPECT_EQ(result.iterator(), cache.begin());
+
+  result = cache.insert("one", 1);
+
+  EXPECT_FALSE(result.was_inserted());
+  EXPECT_FALSE(result);
+
+  EXPECT_EQ(result.iterator(), cache.begin());
+}
+
+TEST_F(CacheTest, ResultIsCorrectForEmplace) {
+  auto result = cache.emplace("one", 1);
+
+  EXPECT_TRUE(result.was_inserted());
+  EXPECT_TRUE(result);
+
+  EXPECT_EQ(result.iterator(), cache.begin());
+
+  result = cache.emplace("one", 1);
+
+  EXPECT_FALSE(result.was_inserted());
+  EXPECT_FALSE(result);
+
+  EXPECT_EQ(result.iterator(), cache.begin());
+}
