@@ -23,9 +23,11 @@
 #define LRU_INTERNAL_BASE_CACHE_HPP
 
 #include <cstddef>
+#include <initializer_list>
 #include <list>
 #include <tuple>
 #include <unordered_map>
+#include <utility>
 
 #include "lru/internal/base-ordered-iterator.hpp"
 #include "lru/internal/base-unordered-iterator.hpp"
@@ -45,26 +47,29 @@ namespace Internal {
 // With this macro, you can simply do:
 // using super = BaseCache<Key, Value, Information>;
 // using BASE_CACHE_MEMBERS;
-#define PUBLIC_BASE_CACHE_MEMBERS          \
-  super::is_full;                          \
-  using super::is_empty;                   \
-  using typename super::Map;               \
-  using typename super::MapIterator;       \
-  using typename super::MapConstIterator;  \
-  using typename super::Queue;             \
-  using typename super::QueueIterator;     \
-  using typename super::Information;       \
-  using typename super::UnorderedIterator; \
-  using typename super::UnorderedConstIterator;
+#define PUBLIC_BASE_CACHE_MEMBERS               \
+  super::is_full;                               \
+  using super::is_empty;                        \
+  using typename super::Information;            \
+  using typename super::UnorderedIterator;      \
+  using typename super::UnorderedConstIterator; \
+  using typename super::OrderedIterator;        \
+  using typename super::OrderedConstIterator;   \
+  using typename super::InitializerList;
 
-#define PRIVATE_BASE_CACHE_MEMBERS \
-  super::_cache;                   \
-  using super::_order;             \
-  using super::_last_accessed;     \
-  using super::_capacity;          \
-  using super::_erase;             \
-  using super::_erase_lru;         \
-  using super::_move_to_front;     \
+#define PRIVATE_BASE_CACHE_MEMBERS        \
+  super::_cache;                          \
+  using typename super::Map;              \
+  using typename super::MapIterator;      \
+  using typename super::MapConstIterator; \
+  using typename super::Queue;            \
+  using typename super::QueueIterator;    \
+  using super::_order;                    \
+  using super::_last_accessed;            \
+  using super::_capacity;                 \
+  using super::_erase;                    \
+  using super::_erase_lru;                \
+  using super::_move_to_front;            \
   using super::_value_from_result;
 
 template <typename Key,
@@ -83,6 +88,8 @@ class BaseCache {
   using MapConstIterator = typename Map::const_iterator;
 
  public:
+  using InitializerList = std::initializer_list<std::pair<Key, Value>>;
+
   struct UnorderedIterator
       : public BaseUnorderedIterator<BaseCache, MapIterator> {
     using super = BaseUnorderedIterator<BaseCache, MapIterator>;
@@ -178,6 +185,17 @@ class BaseCache {
   using size_t = std::size_t;
 
   explicit BaseCache(size_t capacity) : _capacity(capacity) {
+  }
+
+  BaseCache(InitializerList list)  // NOLINT(runtime/explicit)
+      : BaseCache(list.size(), list) {
+  }
+
+  BaseCache(size_t capacity, InitializerList list)  // NOLINT(runtime/explicit)
+      : _capacity(capacity) {
+    for (const auto& pair : list) {
+      emplace(std::move(pair.first), std::move(pair.second));
+    }
   }
 
   virtual ~BaseCache() = default;

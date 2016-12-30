@@ -60,6 +60,20 @@ class TimedCache : public Internal::TimedCacheBase<Key, Value> {
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
+  template <typename AnyDurationType = Duration>
+  TimedCache(const AnyDurationType& time_to_live,
+             InitializerList list)  // NOLINT(runtime/explicit)
+      : super(list),
+        _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
+  }
+
+  TimedCache(const AnyDurationType& time_to_live,
+             size_t capacity,
+             InitializerList list)  // NOLINT(runtime/explicit)
+      : super(capacity, list),
+        _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
+  }
+
   bool contains(const Key& key) const override {
     if (_last_accessed == key) return true;
 

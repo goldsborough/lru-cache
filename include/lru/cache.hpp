@@ -56,11 +56,17 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
   : super(capacity) {
   }
 
+  Cache(InitializerList list)  // NOLINT(runtime/explicit)
+      : super(list) {
+  }
+
+  Cache(size_t capacity, InitializerList list)  // NOLINT(runtime/explicit)
+      : super(capacity, list) {
+  }
+
   UnorderedIterator find(const Key& key) override {
     auto iterator = _cache.find(key);
-    if (iterator == _cache.end()) {
-      throw LRU::Error::KeyNotFound();
-    } else {
+    if (iterator != _cache.end()) {
       _last_accessed = iterator;
     }
 
@@ -69,9 +75,7 @@ class Cache : public Internal::UntimedCacheBase<Key, Value> {
 
   UnorderedConstIterator find(const Key& key) const override {
     auto iterator = _cache.find(key);
-    if (iterator == _cache.end()) {
-      throw LRU::Error::KeyNotFound();
-    } else {
+    if (iterator != _cache.end()) {
       _last_accessed = iterator;
     }
 

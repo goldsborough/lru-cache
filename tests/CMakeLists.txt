@@ -29,6 +29,7 @@ set(TEST_LRU_CACHE_SOURCES
   move-awareness-test.cpp
   last-accessed-test.cpp
   iterator-test.cpp
+  cache-test.cpp
 )
 
 ########################################
