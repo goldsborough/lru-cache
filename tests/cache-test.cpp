@@ -19,6 +19,7 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,7 +30,17 @@
 
 using namespace LRU;
 
-TEST(CacheTest, IsConstructibleFromInitializerList) {
+struct CacheTest : public ::testing::Test {
+  template <typename Cache, typename Range>
+  bool is_equal_to_range(const Cache& cache, const Range& range) {
+    using std::begin;
+    return std::equal(cache.ordered_begin(), cache.ordered_end(), begin(range));
+  }
+
+  Cache<std::string, int> cache;
+};
+
+TEST(CacheConstructionTest, IsConstructibleFromInitializerList) {
   Cache<std::string, int> cache = {
       {"one", 1}, {"two", 2}, {"three", 3},
   };
@@ -41,7 +52,7 @@ TEST(CacheTest, IsConstructibleFromInitializerList) {
   EXPECT_EQ(cache["three"], 3);
 }
 
-TEST(CacheTest, IsConstructibleFromInitializerListWithCapacity) {
+TEST(CacheConstructionTest, IsConstructibleFromInitializerListWithCapacity) {
   // clang-format off
   Cache<std::string, int> cache(2, {
     {"one", 1}, {"two", 2}, {"three", 3},
@@ -55,12 +66,9 @@ TEST(CacheTest, IsConstructibleFromInitializerListWithCapacity) {
   EXPECT_EQ(cache["three"], 3);
 }
 
-TEST(CacheTest, IsConstructibleFromRange) {
-  // clang-format off
+TEST(CacheConstructionTest, IsConstructibleFromRange) {
   std::vector<std::pair<std::string, int>> range = {
-      {"one", 1}, {"two", 2}, {"three", 3}
-  };
-  // clang-format on
+      {"one", 1}, {"two", 2}, {"three", 3}};
 
   Cache<std::string, int> cache(range);
 
@@ -71,12 +79,9 @@ TEST(CacheTest, IsConstructibleFromRange) {
   EXPECT_EQ(cache["three"], 3);
 }
 
-TEST(CacheTest, IsConstructibleFromIterators) {
-  // clang-format off
+TEST(CacheConstructionTest, IsConstructibleFromIterators) {
   std::vector<std::pair<std::string, int>> range = {
-      {"one", 1}, {"two", 2}, {"three", 3}
-  };
-  // clang-format on
+      {"one", 1}, {"two", 2}, {"three", 3}};
 
   Cache<std::string, int> cache(range.begin(), range.end());
 
@@ -85,4 +90,30 @@ TEST(CacheTest, IsConstructibleFromIterators) {
   EXPECT_EQ(cache["one"], 1);
   EXPECT_EQ(cache["two"], 2);
   EXPECT_EQ(cache["three"], 3);
+}
+
+TEST_F(CacheTest, CanInsertIterators) {
+  std::vector<std::pair<std::string, int>> range = {
+      {"one", 1}, {"two", 2}, {"three", 3}};
+
+  cache.insert(range.begin(), range.end());
+  EXPECT_TRUE(is_equal_to_range(cache, range));
+}
+
+TEST_F(CacheTest, CanInsertRange) {
+  std::vector<std::pair<std::string, int>> range = {
+      {"one", 1}, {"two", 2}, {"three", 3}};
+
+  cache.insert(range);
+  EXPECT_TRUE(is_equal_to_range(cache, range));
+}
+
+TEST_F(CacheTest, CanInsertList) {
+  std::initializer_list<std::pair<std::string, int>> list = {
+      {"one", 1}, {"two", 2}, {"three", 3}};
+
+  // Do it like this, just to verify that template deduction fails if only
+  // the range function exists and no explicit overload for the initializer list
+  cache.insert({{"one", 1}, {"two", 2}, {"three", 3}});
+  EXPECT_TRUE(is_equal_to_range(cache, list));
 }

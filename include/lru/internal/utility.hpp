@@ -23,6 +23,7 @@
 #define LRU_UTILITY_HPP
 
 #include <cstddef>
+#include <iterator>
 #include <tuple>
 
 namespace LRU {
@@ -52,6 +53,10 @@ constexpr T construct_from_tuple(Args&&... args) {
 
 template <typename T>
 using enable_if_iterator = typename std::iterator_traits<T>::value_type;
+
+template <typename T>
+using enable_if_iterator_over_pair =
+    typename std::iterator_traits<T>::value_type::first_type;
 
 }  // namespace Internal
 }  // namespace LRU

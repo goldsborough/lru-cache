@@ -24,6 +24,7 @@
 
 #include <cstddef>
 #include <initializer_list>
+#include <iterator>
 #include <list>
 #include <tuple>
 #include <unordered_map>
@@ -190,9 +191,7 @@ class BaseCache {
   template <typename Iterator>
   BaseCache(size_t capacity, Iterator begin, Iterator end)
   : _capacity(capacity) {
-    for (; begin != end; ++begin) {
-      emplace(std::move(begin->first), std::move(begin->second));
-    }
+    insert(begin, end);
   }
 
   template <typename Iterator>
@@ -208,10 +207,8 @@ class BaseCache {
   }
 
   template <typename Range>
-  BaseCache(size_t capacity, Range&& range)
-  : BaseCache(capacity,
-              std::begin(std::forward<Range>(range)),
-              std::end(std::forward<Range>(range))) {
+  BaseCache(size_t capacity, Range&& range) : _capacity(capacity) {
+    insert(std::forward<Range>(range));
   }
 
   BaseCache(InitializerList list)  // NOLINT(runtime/explicit)
@@ -345,7 +342,7 @@ class BaseCache {
     return lookup(key);
   }
 
-  virtual Value& insert(const Key& key, const Value& value) {
+  virtual void insert(const Key& key, const Value& value) {
     auto iterator = _cache.find(key);
 
     // To insert, we first check if the key is already present in the cache
@@ -363,12 +360,29 @@ class BaseCache {
       assert(result.second);
 
       _last_accessed = result.first;
-
-      return _value_from_result(result);
     } else {
       _move_to_front(iterator, value);
-      return iterator->second.value;
     }
+  }
+
+  template <typename Iterator,
+            typename = Internal::enable_if_iterator_over_pair<Iterator>>
+  void insert(Iterator begin, Iterator end) {
+    for (; begin != end; ++begin) {
+      insert(begin->first, begin->second);
+    }
+  }
+
+  template <typename Range>
+  void insert(Range&& range) {
+    using std::begin;
+    using std::end;
+
+    insert(begin(std::forward<Range>(range)), end(std::forward<Range>(range)));
+  }
+
+  virtual void insert(InitializerList list) {
+    insert(list.begin(), list.end());
   }
 
   template <typename... Ks, typename... Vs>
