@@ -147,3 +147,14 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   EXPECT_EQ(ordered.key(), "one");
   EXPECT_EQ(ordered.value(), 1);
 }
+
+TEST_F(IteratorTest, OrdereredIteratorsAreOrdered) {
+  for (std::size_t i = 0; i < 100; ++i) {
+    cache.emplace(std::to_string(i), i);
+  }
+
+  auto iterator = cache.ordered_begin();
+  for (std::size_t i = 0; i < 100; ++i, ++iterator) {
+    ASSERT_EQ(iterator.value(), i);
+  }
+}
