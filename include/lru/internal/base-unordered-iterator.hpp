@@ -22,6 +22,7 @@
 #ifndef BASE_UNORDERED_ITERATOR_HPP
 #define BASE_UNORDERED_ITERATOR_HPP
 
+#include <algorithm>
 #include <iterator>
 #include <type_traits>
 
@@ -51,9 +52,22 @@ class BaseUnorderedIterator
   BaseUnorderedIterator() = default;
 
   explicit BaseUnorderedIterator(Cache& cache, UnderlyingIterator iterator)
-  : _iterator(iterator), _cache(cache) {
+  : _iterator(iterator), _cache(&cache) {
   }
 
+  void swap(BaseUnorderedIterator& other) noexcept {
+    // Enable ADL
+    using std::swap;
+
+    swap(_iterator, other._iterator);
+    swap(_pair, other._pair);
+    swap(_cache, other._cache);
+  }
+
+  friend void
+  swap(BaseUnorderedIterator& first, BaseUnorderedIterator& second) noexcept {
+    first.swap(second);
+  }
 
   template <typename AnyCache, typename AnyIterator>
   bool
@@ -111,7 +125,7 @@ class BaseUnorderedIterator
 
   UnderlyingIterator _iterator;
   Optional<Pair> _pair;
-  Cache& _cache;
+  Cache* _cache;
 };
 }  // namespace Internal
 }  // namespace LRU

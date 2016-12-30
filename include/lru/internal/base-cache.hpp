@@ -88,6 +88,8 @@ class BaseCache {
     using super = BaseUnorderedIterator<BaseCache, MapIterator>;
     friend BaseCache;
 
+    UnorderedIterator() = default;
+
     UnorderedIterator(BaseCache& cache,
                       MapIterator iterator)  // NOLINT(runtime/explicit)
         : super(cache, iterator) {
@@ -99,9 +101,11 @@ class BaseCache {
     using super = BaseUnorderedIterator<const BaseCache, MapConstIterator>;
     friend BaseCache;
 
+    UnorderedConstIterator() = default;
+
     UnorderedConstIterator(
         UnorderedIterator iterator)  // NOLINT(runtime/explicit)
-        : super(iterator._cache, iterator._iterator) {
+        : super(*iterator._cache, iterator._iterator) {
     }
 
     UnorderedConstIterator(
@@ -115,6 +119,8 @@ class BaseCache {
     using super = BaseOrderedIterator<Key, Value, BaseCache>;
     using UnderlyingIterator = typename super::UnderlyingIterator;
     friend BaseCache;
+
+    OrderedIterator() = default;
 
     OrderedIterator(
         UnorderedIterator unordered_iterator)  // NOLINT(runtime/explicit)
@@ -132,13 +138,36 @@ class BaseCache {
     using UnderlyingIterator = typename super::UnderlyingIterator;
     friend BaseCache;
 
-    OrderedConstIterator(
-        UnorderedConstIterator unordered_iterator)  // NOLINT(runtime/explicit)
+    OrderedConstIterator() = default;
+
+    OrderedConstIterator(const UnorderedIterator&
+                             unordered_iterator)  // NOLINT(runtime/explicit)
         : super(unordered_iterator) {
     }
 
-    OrderedConstIterator(OrderedIterator iterator)  // NOLINT(runtime/explicit)
+    OrderedConstIterator(const UnorderedConstIterator&
+                             unordered_iterator)  // NOLINT(runtime/explicit)
+        : super(unordered_iterator) {
+    }
+
+    OrderedConstIterator(
+        UnorderedIterator&& unordered_iterator)  // NOLINT(runtime/explicit)
+        : super(std::move(unordered_iterator)) {
+    }
+
+    OrderedConstIterator(UnorderedConstIterator&&
+                             unordered_iterator)  // NOLINT(runtime/explicit)
+        : super(std::move(unordered_iterator)) {
+    }
+
+    OrderedConstIterator(
+        const OrderedIterator& iterator)  // NOLINT(runtime/explicit)
         : super(iterator) {
+    }
+
+    OrderedConstIterator(
+        OrderedIterator&& iterator)  // NOLINT(runtime/explicit)
+        : super(std::move(iterator)) {
     }
 
     OrderedConstIterator(const BaseCache& cache, UnderlyingIterator iterator)

@@ -23,6 +23,7 @@
 #define LRU_PAIR_HPP
 
 #include <algorithm>
+#include <type_traits>
 #include <utility>
 
 namespace LRU {
@@ -32,7 +33,13 @@ struct Pair final {
   Pair(const Key& key, Value& value) : first(key), second(value) {
   }
 
-  Pair(const Pair& other) : first(other.first), second(other.second) {
+  template <typename AnyKey,
+            typename AnyValue,
+            typename =
+                std::enable_if_t<(std::is_convertible<AnyKey, Key>::value &&
+                                  std::is_convertible<AnyValue, Value>::value)>>
+  Pair(const Pair<AnyKey, AnyValue>& other)
+  : first(other.first), second(other.second) {
   }
 
   const Key& key() const noexcept {
@@ -54,4 +61,4 @@ struct Pair final {
 }  // namespace LRU
 
 
-#endif // LRU_PAIR_HPP
+#endif  // LRU_PAIR_HPP

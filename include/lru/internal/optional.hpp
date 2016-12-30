@@ -53,7 +53,7 @@ class Optional {
 
   template <typename U>
   Optional(Optional<U>&& other) {
-    if (other) emplace(*std::forward<U>(other));
+    if (other) emplace(*std::move(other));
   }
 
   Optional(Optional&& other) {

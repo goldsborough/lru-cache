@@ -22,6 +22,7 @@
 #ifndef BASE_ORDERED_ITERATOR_HPP
 #define BASE_ORDERED_ITERATOR_HPP
 
+#include <algorithm>
 #include <functional>
 #include <type_traits>
 
@@ -40,19 +41,77 @@ class BaseOrderedIterator {
   using UnderlyingIterator = typename Queue<Key>::const_iterator;
   using Pair = LRU::Internal::Pair<Key, Value>;
 
-  explicit BaseOrderedIterator(Cache& cache, UnderlyingIterator iterator)
-  : _iterator(iterator), _cache(cache) {
+  BaseOrderedIterator() = default;
+
+  BaseOrderedIterator(Cache& cache, UnderlyingIterator iterator)
+  : _iterator(iterator), _cache(&cache) {
   }
 
-  template <typename UnderlyingIterator>
-  BaseOrderedIterator(const BaseUnorderedIterator<Cache, UnderlyingIterator>&
+  template <typename OtherKey, typename OtherValue, typename OtherCache>
+  BaseOrderedIterator(
+      const BaseOrderedIterator<OtherKey, OtherValue, OtherCache>& other)
+  : _iterator(other._iterator), _pair(other._pair), _cache(other._cache) {
+  }
+
+  template <typename OtherKey, typename OtherValue, typename OtherCache>
+  BaseOrderedIterator(
+      BaseOrderedIterator<OtherKey, OtherValue, OtherCache>&& other)
+  : _iterator(std::move(other._iterator))
+  , _pair(std::move(other._pair))
+  , _cache(std::move(other._cache)) {
+  }
+
+  template <
+      typename OtherCache,
+      typename UnderlyingIterator,
+      typename = std::enable_if_t<
+          std::is_same<std::decay_t<OtherCache>, std::decay_t<Cache>>::value>>
+  BaseOrderedIterator(
+      const BaseUnorderedIterator<OtherCache, UnderlyingIterator>&
+          unordered_iterator)
+  : _cache(nullptr) {
+    // Atomicity
+    _check_if_at_end(unordered_iterator);
+    _cache = unordered_iterator._cache;
+    _pair = unordered_iterator._pair;
+    _iterator = unordered_iterator._iterator->second.order;
+  }
+
+  template <
+      typename OtherCache,
+      typename UnderlyingIterator,
+      typename = std::enable_if_t<
+          std::is_same<std::decay_t<OtherCache>, std::decay_t<Cache>>::value>>
+  BaseOrderedIterator(BaseUnorderedIterator<OtherCache, UnderlyingIterator>&&
                           unordered_iterator)
-  : _cache(unordered_iterator._cache) {
-    if (unordered_iterator == _cache.unordered_end()) {
-      throw LRU::Error::InvalidIteratorConversion();
-    } else {
-      _iterator = unordered_iterator._iterator->second.order;
-    }
+  : _cache(nullptr) {
+    // Atomicity
+    _check_if_at_end(unordered_iterator);
+    _cache = std::move(unordered_iterator._cache);
+    _pair = std::move(unordered_iterator._pair);
+    _iterator = std::move(unordered_iterator._iterator->second.order);
+  }
+
+  template <typename OtherCache, typename UnderlyingIterator>
+  BaseOrderedIterator&
+  operator=(BaseUnorderedIterator<OtherCache, UnderlyingIterator>
+                unordered_iterator) {
+    swap(unordered_iterator);
+    return *this;
+  }
+
+  void swap(BaseOrderedIterator& other) noexcept {
+    // Enable ADL
+    using std::swap;
+
+    swap(_iterator, other._iterator);
+    swap(_pair, other._pair);
+    swap(_cache, other._cache);
+  }
+
+  friend void
+  swap(BaseOrderedIterator& first, BaseOrderedIterator& second) noexcept {
+    first.swap(second);
   }
 
   bool operator==(const BaseOrderedIterator& other) const noexcept {
@@ -68,15 +127,15 @@ class BaseOrderedIterator {
   operator==(const BaseOrderedIterator& first,
              const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>&
                  second) noexcept {
-    if (&first._cache != &second._cache) return false;
+    if (first._cache != second._cache) return false;
 
     // The past-the-end iterators of the same cache should compare equal
     // This is an exceptional guarantee we make. This is also the reason
     // why we can't rely on the conversion from unordered to ordered iterators
     // because construction of an ordered iterator from the past-the-end
     // unordered iterator will fail (with an InvalidIteratorConversion error)
-    if (second == second._cache.unordered_end()) {
-      return first == first._cache.ordered_end();
+    if (second == second._cache->unordered_end()) {
+      return first == first._cache->ordered_end();
     }
 
     // Will call the other overload
@@ -150,6 +209,9 @@ class BaseOrderedIterator {
   }
 
  protected:
+  template <typename, typename, typename>
+  friend class BaseOrderedIterator;
+
   Pair& _maybe_lookup() {
     if (!_pair.has_value()) {
       _lookup();
@@ -159,13 +221,27 @@ class BaseOrderedIterator {
   }
 
   void _lookup() {
-    Value& value = _cache.lookup(key());
+    Value& value = _cache->lookup(key());
     _pair.emplace(key(), value);
   }
 
   UnderlyingIterator _iterator;
   Optional<Pair> _pair;
-  Cache& _cache;
+
+  // Pointer and not reference because it's cheap to copy
+  Cache* _cache;
+
+ private:
+  template <typename UnorderedIterator>
+  void _check_if_at_end(const UnorderedIterator& unordered_iterator) {
+    // For atomicity of the copy assignment, we assign the cache pointer only
+    // after this check in the copy/move constructor and use the iterator's
+    // cache. If an exception is thrown, the state of the ordered iterator is
+    // unchanged compared to before the assignment.
+    if (unordered_iterator == unordered_iterator._cache->unordered_end()) {
+      throw LRU::Error::InvalidIteratorConversion();
+    }
+  }
 };
 
 }  // namespace Internal

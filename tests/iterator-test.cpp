@@ -28,13 +28,70 @@ using namespace LRU;
 
 struct IteratorTest : public ::testing::Test {
   using CacheType = Cache<std::string, int>;
+  using UnorderedIterator = typename CacheType::UnorderedIterator;
+  using UnorderedConstIterator = typename CacheType::UnorderedConstIterator;
+  using OrderedIterator = typename CacheType::OrderedIterator;
+  using OrderedConstIterator = typename CacheType::OrderedConstIterator;
+
   CacheType cache;
 };
+
+TEST_F(IteratorTest, UnorderedIteratorsAreCompatibleAsExpected) {
+  cache.emplace("one", 1);
+
+  // Move construction
+  UnorderedIterator first(cache.unordered_begin());
+
+  // Copy construction
+  UnorderedIterator second(first);
+
+  // Copy assignment
+  UnorderedIterator third;
+  third = second;
+
+  // Move construction from non-const to const
+  UnorderedConstIterator first_const(std::move(first));
+
+  // Copy construction from non-const to const
+  UnorderedConstIterator second_const(second);
+
+  // Copy assignment
+  UnorderedConstIterator third_const;
+  third_const = third;
+}
+
+TEST_F(IteratorTest, OrderedIteratorsAreCompatibleAsExpected) {
+  cache.emplace("one", 1);
+
+  // Move construction
+  OrderedIterator first(cache.ordered_begin());
+
+  // Copy construction
+  OrderedIterator second(first);
+
+  // Copy assignment
+  OrderedIterator third;
+  third = second;
+
+  // Move construction from non-const to const
+  OrderedConstIterator first_const(std::move(first));
+
+  // Copy construction from non-const to const
+  OrderedConstIterator second_const(second);
+
+  // Copy assignment
+  OrderedConstIterator third_const;
+  third_const = third;
+}
 
 TEST_F(IteratorTest, OrderedAndUnorderedAreComparable) {
   cache.emplace("one", 1);
 
-  ASSERT_EQ(cache.begin(), cache.begin());
+  // Basic assumptions
+  ASSERT_EQ(cache.unordered_begin(), cache.unordered_begin());
+  ASSERT_EQ(cache.ordered_begin(), cache.ordered_begin());
+  ASSERT_EQ(cache.unordered_end(), cache.unordered_end());
+  ASSERT_EQ(cache.ordered_end(), cache.ordered_end());
 
   EXPECT_EQ(cache.unordered_begin(), cache.ordered_begin());
 
@@ -63,12 +120,12 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   cache.emplace("two", 2);
   cache.emplace("three", 3);
 
-  typename CacheType::UnorderedIterator unordered = cache.find("one");
+  UnorderedIterator unordered = cache.find("one");
 
   ASSERT_EQ(unordered.key(), "one");
   ASSERT_EQ(unordered.value(), 1);
 
-  typename CacheType::OrderedIterator ordered(unordered);
+  OrderedIterator ordered(unordered);
 
   EXPECT_EQ(ordered.key(), "one");
   EXPECT_EQ(ordered.value(), 1);
@@ -77,4 +134,16 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   ++ordered;
   EXPECT_EQ(ordered.key(), "two");
   EXPECT_EQ(ordered.value(), 2);
+
+  UnorderedConstIterator const_unordered = unordered;
+  OrderedConstIterator const_ordered(std::move(const_unordered));
+
+  EXPECT_EQ(ordered.key(), "two");
+  EXPECT_EQ(ordered.value(), 2);
+
+  --ordered;
+  const_ordered = unordered;
+
+  EXPECT_EQ(ordered.key(), "one");
+  EXPECT_EQ(ordered.value(), 1);
 }
