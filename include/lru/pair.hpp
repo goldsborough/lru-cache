@@ -29,6 +29,11 @@
 namespace LRU {
 template <typename Key, typename Value>
 struct Pair final {
+  using KeyType = Key;
+  using ValueType = Value;
+  using first_type = Key;
+  using second_type = Value;
+
   Pair(const Key& key, Value& value) : first(key), second(value) {
   }
 
@@ -39,6 +44,32 @@ struct Pair final {
                                   std::is_convertible<AnyValue, Value>::value)>>
   Pair(const Pair<AnyKey, AnyValue>& other)
   : first(other.first), second(other.second) {
+  }
+
+  bool operator==(const Pair& other) const noexcept {
+    return this->first == other.first && this->second == other.second;
+  }
+
+  template <typename First, typename Second>
+  friend bool operator==(const Pair& first,
+                         const std::pair<First, Second>& second) noexcept {
+    return first.first == second.first && first.second == second.second;
+  }
+
+  template <typename First, typename Second>
+  friend bool operator==(const std::pair<First, Second>& first,
+                         const Pair& second) noexcept {
+    return second == first;
+  }
+
+  template <typename T>
+  friend bool operator!=(const Pair& first, const T& second) noexcept {
+    return !(first == second);
+  }
+
+  template <typename T>
+  friend bool operator!=(const T& first, const Pair& second) noexcept {
+    return second != first;
   }
 
   const Key& key() const noexcept {
