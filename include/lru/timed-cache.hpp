@@ -211,7 +211,7 @@ class TimedCache
   }
 
  private:
-  using Clock = typename Internal::Clock;
+  using Clock = Internal::Clock;
 
   bool _key_is_last_accessed(const Key& key) const noexcept override {
     if (!super::_key_is_last_accessed(key)) return false;

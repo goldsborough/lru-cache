@@ -29,14 +29,12 @@
 #include "lru/pair.hpp"
 
 #define PUBLIC_BASE_ITERATOR_MEMBERS \
-  typename super::Key;               \
-  using typename super::Value;       \
-  using typename super::Pair;        \
-  using typename super::Cache;
+  typename super::Pair;              \
+  using typename super::KeyType;     \
+  using typename super::ValueType;
 
 #define PRIVATE_BASE_ITERATOR_MEMBERS \
-  typename super::UnderlyingIterator; \
-  using super::_iterator;             \
+  super::_iterator;                   \
   using super::_pair;                 \
   using super::_cache;
 
@@ -45,19 +43,16 @@ namespace LRU {
 namespace Internal {
 
 template <typename IteratorTag,
-          typename KeyType,
-          typename ValueType,
-          typename CacheType,
-          typename UnderlyingIteratorType>
-class BaseIterator
-    : public std::iterator<IteratorTag, LRU::Pair<KeyType, ValueType>> {
+          typename Key,
+          typename Value,
+          typename Cache,
+          typename UnderlyingIterator>
+class BaseIterator : public std::iterator<IteratorTag, LRU::Pair<Key, Value>> {
  public:
-  using Key = KeyType;
-  using Cache = CacheType;
-  using UnderlyingIterator = UnderlyingIteratorType;
-  using Value = std::
-      conditional_t<std::is_const<Cache>::value, const ValueType, ValueType>;
-  using Pair = LRU::Pair<Key, Value>;
+  using KeyType = Key;
+  using ValueType =
+      std::conditional_t<std::is_const<Cache>::value, const Value, Value>;
+  using Pair = LRU::Pair<KeyType, ValueType>;
 
   BaseIterator() noexcept : _cache(nullptr) {
   }
@@ -139,7 +134,7 @@ class BaseIterator
   }
 
   virtual Pair& pair() noexcept = 0;
-  virtual Value& value() noexcept = 0;
+  virtual ValueType& value() noexcept = 0;
   virtual const Key& key() noexcept = 0;
 
  protected:

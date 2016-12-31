@@ -54,7 +54,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${LRU_CACHE_BINARY_DIR})
 ## SUBDIRECTORIES
 ###########################################################
 
-add_subdirectory(memoize)
+# add_subdirectory(memoize)
 
 ########################################
 # TESTS

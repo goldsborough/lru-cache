@@ -49,11 +49,13 @@ class BaseUnorderedIterator
  protected:
   using super = BaseForBaseUnorderedIterator<Cache, UnderlyingIterator>;
   using PRIVATE_BASE_ITERATOR_MEMBERS;
+  // These are the key and value types the BaseIterator extracts
+  using Key = typename super::KeyType;
+  using Value = typename super::ValueType;
 
  public:
   using Tag = std::false_type;
   using PUBLIC_BASE_ITERATOR_MEMBERS;
-
   BaseUnorderedIterator() noexcept = default;
 
   explicit BaseUnorderedIterator(Cache& cache,

@@ -51,6 +51,7 @@ class BaseOrderedIterator
  protected:
   using super = BaseForBaseOrderedIterator<Key, Value, Cache>;
   using PRIVATE_BASE_ITERATOR_MEMBERS;
+  using UnderlyingIterator = typename Queue<Key>::const_iterator;
 
  public:
   using Tag = std::true_type;
@@ -127,11 +128,10 @@ class BaseOrderedIterator
   }
 
   template <typename OtherCache, typename OtherUnderlyingIterator>
-  friend bool
-  operator==(const BaseOrderedIterator& first,
-             const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>&
-                 second) noexcept {
-    if (first._cache != second._cache) return false;
+  bool
+  operator==(const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>&
+                 second) const noexcept {
+    if (this->_cache != second._cache) return false;
 
     // The past-the-end iterators of the same cache should compare equal
     // This is an exceptional guarantee we make. This is also the reason
@@ -139,11 +139,11 @@ class BaseOrderedIterator
     // because construction of an ordered iterator from the past-the-end
     // unordered iterator will fail (with an InvalidIteratorConversion error)
     if (second == second._cache->unordered_end()) {
-      return first == first._cache->ordered_end();
+      return *this == this->_cache->ordered_end();
     }
 
     // Will call the other overload
-    return first == static_cast<BaseOrderedIterator>(second);
+    return *this == static_cast<BaseOrderedIterator>(second);
   }
 
   template <typename OtherCache, typename OtherUnderlyingIterator>

@@ -192,7 +192,7 @@ class BaseCache {
     }
   };
 
-  using InsertionResult = InsertionResult<UnorderedIterator>;
+  using InsertionResultType = InsertionResult<UnorderedIterator>;
 
   BaseCache(size_t capacity,
             const HashFunction& hash,
@@ -424,7 +424,7 @@ class BaseCache {
     return lookup(key);
   }
 
-  virtual InsertionResult insert(const Key& key, const Value& value) {
+  virtual InsertionResultType insert(const Key& key, const Value& value) {
     auto iterator = _cache.find(key);
 
     // To insert, we first check if the key is already present in the cache
@@ -470,9 +470,9 @@ class BaseCache {
   }
 
   template <typename... Ks, typename... Vs>
-  InsertionResult emplace(std::piecewise_construct_t,
-                          const std::tuple<Ks...>& key_arguments,
-                          const std::tuple<Vs...>& value_arguments) {
+  InsertionResultType emplace(std::piecewise_construct_t,
+                              const std::tuple<Ks...>& key_arguments,
+                              const std::tuple<Vs...>& value_arguments) {
     auto key = Internal::construct_from_tuple<Key>(key_arguments);
     auto iterator = _cache.find(key);
 
@@ -503,7 +503,7 @@ class BaseCache {
   }
 
   template <typename K, typename V>
-  InsertionResult emplace(K&& key_argument, V&& value_argument) {
+  InsertionResultType emplace(K&& key_argument, V&& value_argument) {
     auto key_tuple = std::forward_as_tuple(std::forward<K>(key_argument));
     auto value_tuple = std::forward_as_tuple(std::forward<V>(value_argument));
     return emplace(std::piecewise_construct, key_tuple, value_tuple);
