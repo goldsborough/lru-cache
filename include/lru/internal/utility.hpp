@@ -62,6 +62,29 @@ template <typename T>
 using enable_if_iterator_over_pair =
     typename std::iterator_traits<T>::value_type::first_type;
 
+constexpr bool static_all_of() noexcept {
+  return true;
+}
+
+template <typename Head, typename... Tail>
+constexpr bool static_all_of(Head&& head, Tail&&... tail) {
+  return std::forward<Head>(head) && static_all_of(std::forward<Tail>(tail)...);
+}
+
+template <typename T, typename... Ts>
+constexpr bool
+    all_of_type = static_all_of(std::is_convertible<T, Ts>::value...);
+
+template <typename Function>
+void for_each(Function) noexcept {
+}
+
+template <typename Function, typename Head, typename... Tail>
+void for_each(Function function, Head&& head, Tail&&... tail) {
+  function(std::forward<Head>(head));
+  for_each(function, std::forward<Tail>(tail)...);
+}
+
 }  // namespace Internal
 }  // namespace LRU
 

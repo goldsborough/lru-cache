@@ -46,12 +46,14 @@ class Optional {
     if (other) emplace(*other);
   }
 
-  template <typename U>
+  template <typename U,
+            typename = std::enable_if_t<std::is_convertible<T, U>::value>>
   Optional(const Optional<U>& other) {
     if (other) emplace(*other);
   }
 
-  template <typename U>
+  template <typename U,
+            typename = std::enable_if_t<std::is_convertible<T, U>::value>>
   Optional(Optional<U>&& other) noexcept {
     if (other) {
       _value = std::make_unique<T>(std::move(*other));

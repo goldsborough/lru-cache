@@ -19,13 +19,55 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef LRU_HPP
-#define LRU_HPP
+#ifndef LRU_STATISTICS_MUTATOR_HPP
+#define LRU_STATISTICS_MUTATOR_HPP
 
-#include "lru/cache.hpp"
-#include "lru/error.hpp"
-#include "lru/memoize.hpp"
+#include <utility>
+
+#include "lru/internal/generalized-pointer.hpp"
+#include "lru/internal/optional.hpp"
 #include "lru/statistics.hpp"
-#include "lru/timed-cache.hpp"
 
-#endif  // LRU_HPP
+namespace LRU {
+namespace Internal {
+
+template <typename Key>
+class StatisticsMutator {
+ public:
+  StatisticsMutator() noexcept = default;
+
+  explicit StatisticsMutator(Statistics<Key>& statistics)
+  : _statistics(statistics) {
+  }
+
+  explicit StatisticsMutator(Statistics<Key>&& statistics)
+  : _statistics(std::move(statistics)) {
+  }
+
+  void register_hit(const Key& key) {
+    _statistics->_number_of_accesses += 1;
+    _statistics->_number_of_hits += 1;
+    _statistics->_hit_map[key].hits += 1;
+  }
+
+  void register_miss(const Key& key) {
+    _statistics->_number_of_accesses += 1;
+    _statistics->_hit_map[key].misses += 1;
+  }
+
+  Statistics<Key>& statistics() noexcept {
+    return *_statistics;
+  }
+
+  const Statistics<Key>& statistics() const noexcept {
+    return *_statistics;
+  }
+
+ private:
+  Internal::GeneralizedPointer<Statistics<Key>> _statistics;
+};
+
+}  // namespace Internal
+}  // namespace LRU
+
+#endif  // LRU_STATISTICS_MUTATOR_HPP

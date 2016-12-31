@@ -72,6 +72,10 @@ struct Pair final {
     return second != first;
   }
 
+  operator std::pair<const Key&, Value&>() noexcept {
+    return {first, second};
+  }
+
   const Key& key() const noexcept {
     return first;
   }

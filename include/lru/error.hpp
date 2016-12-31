@@ -61,9 +61,15 @@ struct EmptyCache : public std::runtime_error {
 struct InvalidIteratorConversion : public std::runtime_error {
   using super = std::runtime_error;
 
-  ;
   InvalidIteratorConversion()
   : super("Cannot convert past-the-end unordered to ordered iterator") {
+  }
+};
+
+struct UnmonitoredKey : public std::runtime_error {
+  using super = std::runtime_error;
+
+  UnmonitoredKey() : super("Requested statistics about unmonitored key") {
   }
 };
 

@@ -19,13 +19,25 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef LRU_HPP
-#define LRU_HPP
 
-#include "lru/cache.hpp"
-#include "lru/error.hpp"
-#include "lru/memoize.hpp"
-#include "lru/statistics.hpp"
-#include "lru/timed-cache.hpp"
+#ifndef LRU_KEY_STATISTICS_HPP
+#define LRU_KEY_STATISTICS_HPP
 
-#endif  // LRU_HPP
+#include <cstddef>
+
+namespace LRU {
+
+struct KeyStatistics {
+  using size_t = std::size_t;
+
+  explicit KeyStatistics(size_t hits_ = 0, size_t misses_ = 0)
+  : hits(hits_), misses(misses_) {
+  }
+
+  size_t hits;
+  size_t misses;
+};
+
+}  // namespace LRU
+
+#endif  // LRU_KEY_STATISTICS_HPP

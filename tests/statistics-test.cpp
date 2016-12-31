@@ -19,13 +19,36 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef LRU_HPP
-#define LRU_HPP
 
-#include "lru/cache.hpp"
-#include "lru/error.hpp"
-#include "lru/memoize.hpp"
-#include "lru/statistics.hpp"
-#include "lru/timed-cache.hpp"
+#include "gtest/gtest.h"
 
-#endif  // LRU_HPP
+#include "lru/internal/statistics-mutator.hpp"
+#include "lru/lru.hpp"
+
+using namespace LRU;
+using namespace LRU::Internal;
+
+TEST(StatisticsTest, A) {
+  // // Scenario 1: Have a statistics object, that can be shared between caches
+  // // No cache owns the stats
+  // Statistics<int> stats;
+  // cache.monitor(stats);  // track(Statistics& stats)
+  // cache2.monitor(stats);
+  //
+  // // Scenario 2: One stats object for a cache. The cache owns it
+  // cache.monitor(std::move(stats));
+  // cache.monitor(Statistics(1, 2, 3));
+  //
+  // // Scenario 3: As a shorthand for 2.1, forward arguments to the stats
+  // object
+  // cache.monitor(1, 2, 3);
+}
+
+TEST(StatisticsTest, StatisticsMutatorWorks) {
+  Statistics<int> stats;
+  StatisticsMutator<int> mutator(stats);
+
+  mutator.register_hit(1);
+
+  EXPECT_EQ(stats.hits_for(1), 1);
+}
