@@ -1,9 +1,5 @@
 # lru-cache
 
-## TODO
-
-
-
 ## rewrite-tool
 Some interesting links:
 * http://stackoverflow.com/a/33473726
