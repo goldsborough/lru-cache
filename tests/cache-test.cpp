@@ -20,6 +20,7 @@
 /// IN THE SOFTWARE.
 
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -93,8 +94,10 @@ TEST(CacheConstructionTest, IsConstructibleFromIterators) {
 }
 
 TEST(CacheConstructionTest, UsesCustomHashFunction) {
+  using MockHash = std::function<int(int)>;
+
   std::size_t mock_hash_call_count = 0;
-  const auto mock_hash = [&mock_hash_call_count](int value) {
+  MockHash mock_hash = [&mock_hash_call_count](int value) {
     mock_hash_call_count += 1;
     return value;
   };
@@ -108,8 +111,10 @@ TEST(CacheConstructionTest, UsesCustomHashFunction) {
 }
 
 TEST(CacheConstructionTest, UsesCustomKeyEqual) {
+  using MockCompare = std::function<bool(int, int)>;
+
   std::size_t mock_equal_call_count = 0;
-  const auto mock_equal = [&mock_equal_call_count](int a, int b) {
+  MockCompare mock_equal = [&mock_equal_call_count](int a, int b) {
     mock_equal_call_count += 1;
     return a == b;
   };
@@ -122,6 +127,239 @@ TEST(CacheConstructionTest, UsesCustomKeyEqual) {
   cache.insert(5, 1);
   ASSERT_TRUE(cache.contains(5));
   EXPECT_EQ(mock_equal_call_count, 1);
+}
+
+TEST_F(CacheTest, ContainsAfterInsertion) {
+  ASSERT_TRUE(cache.is_empty());
+
+  for (std::size_t i = 1; i <= 100; ++i) {
+    const auto key = std::to_string(i);
+    cache.insert(key, i);
+    EXPECT_EQ(cache.size(), i);
+    EXPECT_TRUE(cache.contains(key));
+  }
+
+  EXPECT_FALSE(cache.is_empty());
+}
+
+TEST_F(CacheTest, ContainsAfteEmplacement) {
+  ASSERT_TRUE(cache.is_empty());
+
+  for (std::size_t i = 1; i <= 100; ++i) {
+    const auto key = std::to_string(i);
+    cache.emplace(key, i);
+    EXPECT_EQ(cache.size(), i);
+    EXPECT_TRUE(cache.contains(key));
+  }
+
+  EXPECT_FALSE(cache.is_empty());
+}
+
+TEST_F(CacheTest, RemovesLRUElementWhenFull) {
+  cache.capacity(2);
+  ASSERT_EQ(cache.capacity(), 2);
+
+  cache.emplace("one", 1);
+  cache.emplace("two", 2);
+  ASSERT_EQ(cache.size(), 2);
+  ASSERT_TRUE(cache.contains("one"));
+  ASSERT_TRUE(cache.contains("two"));
+
+
+  cache.emplace("three", 3);
+  EXPECT_EQ(cache.size(), 2);
+  EXPECT_TRUE(cache.contains("two"));
+  EXPECT_TRUE(cache.contains("three"));
+  EXPECT_FALSE(cache.contains("one"));
+}
+
+TEST_F(CacheTest, LookupReturnsTheRightValue) {
+  for (std::size_t i = 1; i <= 10; ++i) {
+    const auto key = std::to_string(i);
+    cache.emplace(key, i);
+    ASSERT_EQ(cache.size(), i);
+    EXPECT_EQ(cache.lookup(key), i);
+    EXPECT_EQ(cache[key], i);
+  }
+}
+
+TEST_F(CacheTest, LookupOnlyThrowsWhenKeyNotFound) {
+  cache.emplace("one", 1);
+
+  ASSERT_EQ(cache.size(), 1);
+  EXPECT_EQ(cache.lookup("one"), 1);
+
+  EXPECT_THROW(cache.lookup("two"), LRU::Error::KeyNotFound);
+  EXPECT_THROW(cache.lookup("three"), LRU::Error::KeyNotFound);
+
+  cache.emplace("two", 2);
+  EXPECT_EQ(cache.lookup("two"), 2);
+}
+
+TEST_F(CacheTest, SizeIsUpdatedProperly) {
+  ASSERT_EQ(cache.size(), 0);
+
+  for (std::size_t i = 1; i <= 10; ++i) {
+    cache.emplace(std::to_string(i), i);
+    // Use ASSERT and not EXPECT to terminate the loop early
+    ASSERT_EQ(cache.size(), i);
+  }
+
+  for (std::size_t i = 10; i >= 1; --i) {
+    ASSERT_EQ(cache.size(), i);
+    cache.erase(std::to_string(i));
+    // Use ASSERT and not EXPECT to terminate the loop early
+  }
+
+  EXPECT_EQ(cache.size(), 0);
+}
+
+TEST_F(CacheTest, SpaceLeftWorks) {
+  cache.capacity(10);
+  ASSERT_EQ(cache.size(), 0);
+
+  for (std::size_t i = 10; i >= 1; --i) {
+    EXPECT_EQ(cache.space_left(), i);
+    cache.emplace(std::to_string(i), i);
+  }
+
+  EXPECT_EQ(cache.space_left(), 0);
+}
+
+TEST_F(CacheTest, IsEmptyWorks) {
+  ASSERT_TRUE(cache.is_empty());
+  cache.emplace("one", 1);
+  EXPECT_FALSE(cache.is_empty());
+  cache.clear();
+  EXPECT_TRUE(cache.is_empty());
+}
+
+TEST_F(CacheTest, IsFullWorks) {
+  ASSERT_FALSE(cache.is_full());
+  cache.capacity(0);
+  ASSERT_TRUE(cache.is_full());
+
+  cache.capacity(2);
+  cache.emplace("one", 1);
+  EXPECT_FALSE(cache.is_full());
+  cache.emplace("two", 1);
+  EXPECT_TRUE(cache.is_full());
+
+  cache.clear();
+  EXPECT_FALSE(cache.is_full());
+}
+
+TEST_F(CacheTest, CapacityCanBeAdjusted) {
+  cache.capacity(10);
+
+  ASSERT_EQ(cache.capacity(), 10);
+
+  for (std::size_t i = 0; i < 10; ++i) {
+    cache.emplace(std::to_string(i), i);
+  }
+
+  ASSERT_EQ(cache.size(), 10);
+
+  cache.emplace("foo", 0xdeadbeef);
+  EXPECT_EQ(cache.size(), 10);
+
+  cache.capacity(11);
+  ASSERT_EQ(cache.capacity(), 11);
+
+  cache.emplace("bar", 0xdeadbeef);
+  EXPECT_EQ(cache.size(), 11);
+
+  cache.capacity(5);
+  EXPECT_EQ(cache.capacity(), 5);
+  EXPECT_EQ(cache.size(), 5);
+
+  cache.capacity(0);
+  EXPECT_EQ(cache.capacity(), 0);
+  EXPECT_EQ(cache.size(), 0);
+
+  cache.capacity(128);
+  EXPECT_EQ(cache.capacity(), 128);
+  EXPECT_EQ(cache.size(), 0);
+}
+
+TEST_F(CacheTest, EraseErasesAndReturnsTrueWhenElementContained) {
+  cache.emplace("one", 1);
+  ASSERT_TRUE(cache.contains("one"));
+
+  EXPECT_TRUE(cache.erase("one"));
+  EXPECT_FALSE(cache.contains("one"));
+}
+
+TEST_F(CacheTest, EraseReturnsFalseWhenElementNotContained) {
+  ASSERT_FALSE(cache.contains("one"));
+  EXPECT_FALSE(cache.erase("one"));
+}
+
+TEST_F(CacheTest, ClearRemovesAllElements) {
+  ASSERT_TRUE(cache.is_empty());
+
+  cache.emplace("one", 1);
+  EXPECT_FALSE(cache.is_empty());
+
+  cache.clear();
+  EXPECT_TRUE(cache.is_empty());
+}
+
+TEST_F(CacheTest, ShrinkAdjustsSizeWell) {
+  cache.emplace("one", 1);
+  cache.emplace("two", 2);
+
+  ASSERT_EQ(cache.size(), 2);
+
+  cache.shrink(1);
+
+  EXPECT_EQ(cache.size(), 1);
+
+  cache.emplace("three", 2);
+  cache.emplace("four", 3);
+
+  ASSERT_EQ(cache.size(), 3);
+
+  cache.shrink(1);
+
+  EXPECT_EQ(cache.size(), 1);
+
+  cache.shrink(0);
+
+  EXPECT_TRUE(cache.is_empty());
+}
+
+TEST_F(CacheTest, ShrinkDoesNothingWhenRequestedSizeIsGreaterThanCurrent) {
+  cache.emplace("one", 1);
+  cache.emplace("two", 2);
+
+  ASSERT_EQ(cache.size(), 2);
+
+  cache.shrink(50);
+
+  EXPECT_EQ(cache.size(), 2);
+}
+
+TEST_F(CacheTest, ShrinkRemovesLRUElements) {
+  cache.emplace("one", 1);
+  cache.emplace("two", 2);
+  cache.emplace("three", 3);
+
+  ASSERT_EQ(cache.size(), 3);
+
+  cache.shrink(2);
+
+  EXPECT_EQ(cache.size(), 2);
+  EXPECT_FALSE(cache.contains("one"));
+  EXPECT_TRUE(cache.contains("two"));
+  EXPECT_TRUE(cache.contains("three"));
+
+  cache.shrink(1);
+
+  EXPECT_EQ(cache.size(), 1);
+  EXPECT_FALSE(cache.contains("one"));
+  EXPECT_FALSE(cache.contains("two"));
+  EXPECT_TRUE(cache.contains("three"));
 }
 
 TEST_F(CacheTest, CanInsertIterators) {
@@ -180,4 +418,39 @@ TEST_F(CacheTest, ResultIsCorrectForEmplace) {
   EXPECT_FALSE(result);
 
   EXPECT_EQ(result.iterator(), cache.begin());
+}
+
+TEST_F(CacheTest, ComparisonOperatorWorks) {
+  ASSERT_EQ(cache, cache);
+
+  auto cache2 = cache;
+  EXPECT_EQ(cache, cache2);
+
+  cache.emplace("one", 1);
+  cache2.emplace("one", 1);
+  EXPECT_EQ(cache, cache2);
+
+  cache.emplace("two", 2);
+  cache2.emplace("two", 2);
+  EXPECT_EQ(cache, cache2);
+
+  cache.erase("two");
+  EXPECT_NE(cache, cache2);
+}
+
+TEST_F(CacheTest, SwapWorks) {
+  auto cache2 = cache;
+
+  cache.emplace("one", 1);
+  cache2.emplace("two", 2);
+
+  ASSERT_TRUE(cache.contains("one"));
+  ASSERT_TRUE(cache2.contains("two"));
+
+  cache.swap(cache2);
+
+  EXPECT_FALSE(cache.contains("one"));
+  EXPECT_TRUE(cache.contains("two"));
+  EXPECT_FALSE(cache2.contains("two"));
+  EXPECT_TRUE(cache2.contains("one"));
 }

@@ -31,10 +31,6 @@
 using namespace LRU;
 using namespace std::chrono_literals;
 
-// struct TimedCacheTest : public ::testing::Test {
-//
-// };
-
 TEST(TimedCacheTest, ContainsRespectsExpiration) {
   TimedCache<int, int> cache(2ms);
 
@@ -81,7 +77,7 @@ TEST(TimedCacheTest, KnowsWhenAllKeysHaveExpired) {
   EXPECT_FALSE(cache.contains(3));
 }
 
-TEST(TimedCacheTest, CleanRemovesExpiredElements) {
+TEST(TimedCacheTest, CleanExpiredRemovesExpiredElements) {
   TimedCache<int, int> cache(2ms, 128, {{1, 2}, {2, 3}});
 
   ASSERT_EQ(cache.size(), 2);
@@ -96,7 +92,7 @@ TEST(TimedCacheTest, CleanRemovesExpiredElements) {
 
   ASSERT_EQ(cache.size(), 3);
 
-  cache.erase_expired();
+  cache.clear_expired();
 
   EXPECT_EQ(cache.size(), 1);
   EXPECT_FALSE(cache.contains(1));
@@ -105,9 +101,19 @@ TEST(TimedCacheTest, CleanRemovesExpiredElements) {
 
   std::this_thread::sleep_for(1ms);
 
-  cache.erase_expired();
+  cache.clear_expired();
 
   EXPECT_FALSE(cache.contains(3));
   EXPECT_EQ(cache.size(), 0);
   EXPECT_TRUE(cache.is_empty());
+}
+
+TEST(TimedCacheTest, LookupThrowsWhenKeyExpired) {
+  TimedCache<int, int> cache(2ms, 128, {{1, 2}});
+
+  ASSERT_EQ(cache.lookup(1), 2);
+
+  std::this_thread::sleep_for(2ms);
+
+  ASSERT_THROW(cache.lookup(1), LRU::Error::KeyExpired);
 }

@@ -46,17 +46,6 @@ struct MoveAwareBase {
     // (because we do need the copy constructor)
   }
 
-  MoveAwareBase& operator=(const MoveAwareBase& other) {
-    copy_count += 1;
-    s = other.s;
-    return *this;
-  }
-
-  MoveAwareBase& operator=(MoveAwareBase&& other) {
-    s = std::move(other.s);
-    return *this;
-  }
-
   MoveAwareBase(std::string&& s_) : s(std::move(s_)) {
     move_count += 1;
   }
@@ -79,8 +68,25 @@ struct MoveAwareBase {
     move_count += 1;
   }
 
+  virtual ~MoveAwareBase() = default;
+
+  MoveAwareBase& operator=(const MoveAwareBase& other) {
+    copy_count += 1;
+    s = other.s;
+    return *this;
+  }
+
+  MoveAwareBase& operator=(MoveAwareBase&& other) {
+    s = std::move(other.s);
+    return *this;
+  }
+
   bool operator==(const MoveAwareBase& other) const noexcept {
-    return s == other.s;
+    return this->s == other.s;
+  }
+
+  bool operator!=(const MoveAwareBase& other) const noexcept {
+    return !(*this == other);
   }
 
   std::string s;
