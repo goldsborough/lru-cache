@@ -34,6 +34,10 @@ struct KeyStatistics {
   : hits(hits_), misses(misses_) {
   }
 
+  size_t accesses() const noexcept {
+    return hits + misses;
+  }
+
   size_t hits;
   size_t misses;
 };

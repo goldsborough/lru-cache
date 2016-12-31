@@ -45,13 +45,13 @@ class StatisticsMutator {
   }
 
   void register_hit(const Key& key) {
-    _statistics->_number_of_accesses += 1;
-    _statistics->_number_of_hits += 1;
+    _statistics->_total_accesses += 1;
+    _statistics->_total_hits += 1;
     _statistics->_hit_map[key].hits += 1;
   }
 
   void register_miss(const Key& key) {
-    _statistics->_number_of_accesses += 1;
+    _statistics->_total_accesses += 1;
     _statistics->_hit_map[key].misses += 1;
   }
 

@@ -26,11 +26,11 @@ include_directories(${GTEST_INCLUDE_DIRS})
 ########################################
 
 set(TEST_LRU_CACHE_SOURCES
-  # move-awareness-test.cpp
-  # last-accessed-test.cpp
-  # iterator-test.cpp
-  # cache-test.cpp
-  # timed-cache-test.cpp
+  move-awareness-test.cpp
+  last-accessed-test.cpp
+  iterator-test.cpp
+  cache-test.cpp
+  timed-cache-test.cpp
   statistics-test.cpp
 )
 
