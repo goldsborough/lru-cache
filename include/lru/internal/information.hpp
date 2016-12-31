@@ -54,6 +54,22 @@ struct Information {
         order_, value_arguments, Internal::tuple_indices(value_arguments)) {
   }
 
+  Information(const Information& other) = default;
+  Information(Information&& other) = default;
+
+  virtual ~Information() = default;
+
+  virtual bool operator==(const Information& other) const noexcept {
+    if (this == &other) return true;
+    if (this->value != other.value) return false;
+    if (*this->order != *other.order) return false;
+    return true;
+  }
+
+  virtual bool operator!=(const Information& other) const noexcept {
+    return !(*this == other);
+  }
+
   Value value;
   QueueIterator order;
 
@@ -94,6 +110,15 @@ struct TimedInformation : public Information<Key, Value> {
   TimedInformation(const QueueIterator& order_,
                    const std::tuple<ValueArguments...>& value_arguments)
   : super(order_, value_arguments), insertion_time(Internal::Clock::now()) {
+  }
+
+  bool operator==(const TimedInformation& other) const noexcept {
+    if (super::operator!=(other)) return false;
+    return this->insertion_time == other.insertion_time;
+  }
+
+  bool operator!=(const TimedInformation& other) const noexcept {
+    return !(*this == other);
   }
 
   const Timestamp insertion_time;

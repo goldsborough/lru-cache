@@ -61,6 +61,14 @@ class BaseUnorderedIterator
   : super(cache, iterator) {
   }
 
+  // If one special member function is defined, all must be.
+  BaseUnorderedIterator(const BaseUnorderedIterator& other) = default;
+  BaseUnorderedIterator(BaseUnorderedIterator&& other) = default;
+  BaseUnorderedIterator&
+  operator=(const BaseUnorderedIterator& other) = default;
+
+  virtual ~BaseUnorderedIterator() = default;
+
   template <typename AnyCache, typename AnyIterator>
   bool
   operator==(const BaseUnorderedIterator<AnyCache, AnyIterator>& other) const

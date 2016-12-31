@@ -23,6 +23,7 @@
 #define LRU_HPP
 
 #include "lru/cache.hpp"
+#include "lru/error.hpp"
 #include "lru/memoize.hpp"
 #include "lru/timed-cache.hpp"
 

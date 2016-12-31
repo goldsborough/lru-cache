@@ -22,6 +22,7 @@
 #ifndef LRU_TIMED_CACHE_HPP
 #define LRU_TIMED_CACHE_HPP
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cstddef>
@@ -133,6 +134,17 @@ class TimedCache
         _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
+  void swap(TimedCache& other) noexcept {
+    using std::swap;
+
+    super::swap(other);
+    swap(_time_to_live, other._time_to_live);
+  }
+
+  friend void swap(TimedCache& first, TimedCache& second) noexcept {
+    first.swap(second);
+  }
+
   UnorderedIterator find(const Key& key) override {
     auto iterator = _cache.find(key);
     if (iterator != _cache.end()) {
@@ -171,7 +183,7 @@ class TimedCache
   /// Erases all expired elements from the cache.
   ///
   /// \complexity O(N)
-  size_t erase_expired() {
+  size_t clear_expired() {
     // We have to do a linear search here because linked lists do not
     // support O(log N) binary searches given their node-based nature.
     // Either way, in the worst case the entire cache has expired and

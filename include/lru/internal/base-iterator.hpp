@@ -115,6 +115,8 @@ class BaseIterator
   , _cache(std::move(other._cache)) {
   }
 
+  virtual ~BaseIterator() = default;
+
   virtual void swap(BaseIterator& other) noexcept {
     // Enable ADL
     using std::swap;

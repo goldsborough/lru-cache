@@ -103,6 +103,13 @@ class BaseOrderedIterator
     _iterator = std::move(unordered_iterator._iterator->second.order);
   }
 
+  // If one special member function is defined, all must be.
+  BaseOrderedIterator(const BaseOrderedIterator& other) = default;
+  BaseOrderedIterator& operator=(const BaseOrderedIterator& other) = default;
+  BaseOrderedIterator(BaseOrderedIterator&& other) = default;
+
+  virtual ~BaseOrderedIterator() = default;
+
   template <typename OtherCache, typename UnderlyingIterator>
   BaseOrderedIterator&
   operator=(BaseUnorderedIterator<OtherCache, UnderlyingIterator>

@@ -41,4 +41,4 @@ struct Statistics {
 };
 }
 
-#endif // LRU_STATISTICS_HPP
+#endif  // LRU_STATISTICS_HPP

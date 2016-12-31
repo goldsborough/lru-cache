@@ -22,6 +22,7 @@
 #ifndef LRU_INTERNAL_BASE_CACHE_HPP
 #define LRU_INTERNAL_BASE_CACHE_HPP
 
+#include <algorithm>
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
@@ -250,6 +251,12 @@ class BaseCache {
   : BaseCache(capacity, list.begin(), list.end(), hash, key_equal) {
   }
 
+  BaseCache(const BaseCache& other) = default;
+  BaseCache(BaseCache&& other) = default;
+  BaseCache& operator=(const BaseCache& other) = default;
+
+  virtual ~BaseCache() = default;
+
   template <typename Range, typename = Internal::enable_if_range<Range>>
   BaseCache& operator=(const Range& range) {
     clear();
@@ -272,7 +279,29 @@ class BaseCache {
     return operator=<InitializerList>(list);
   }
 
-  virtual ~BaseCache() = default;
+  virtual void swap(BaseCache& other) noexcept {
+    using std::swap;
+
+    swap(_order, other._order);
+    swap(_cache, other._cache);
+    swap(_last_accessed, other._last_accessed);
+    swap(_capacity, other._capacity);
+  }
+
+  friend void swap(BaseCache& first, BaseCache& second) noexcept {
+    first.swap(second);
+  }
+
+  bool operator==(const BaseCache& other) const noexcept {
+    if (this == &other) return true;
+    if (this->_cache != other._cache) return false;
+    if (this->_order != other._order) return false;
+    return true;
+  }
+
+  bool operator!=(const BaseCache& other) const noexcept {
+    return !(*this == other);
+  }
 
   UnorderedIterator unordered_begin() {
     return {*this, _cache.begin()};
@@ -480,26 +509,38 @@ class BaseCache {
     return emplace(std::piecewise_construct, key_tuple, value_tuple);
   }
 
-  virtual void erase(const Key& key) {
+  virtual bool erase(const Key& key) {
+    // No need to use _key_is_last_accessed here, because even
+    // if it has expired, it's no problem to erase it anyway
     if (_last_accessed == key) {
       _erase(_last_accessed.key(), _last_accessed.value());
+      return true;
     }
 
     auto iterator = _cache.find(key);
     if (iterator != _cache.end()) {
       _erase(iterator);
+      return true;
     }
+
+    return false;
   }
 
-  virtual void erase(UnorderedConstIterator iterator) {
+  virtual bool erase(UnorderedConstIterator iterator) {
     if (iterator != unordered_cend()) {
       _erase(iterator._iterator);
+      return true;
+    } else {
+      return false;
     }
   }
 
-  virtual void erase(OrderedConstIterator iterator) {
+  virtual bool erase(OrderedConstIterator iterator) {
     if (iterator != ordered_cend()) {
       _erase(_cache.find(iterator.key()));
+      return true;
+    } else {
+      return false;
     }
   }
 
@@ -509,11 +550,23 @@ class BaseCache {
     _last_accessed.invalidate();
   }
 
-  size_t size() const noexcept {
+  virtual void shrink(size_t new_size) {
+    if (new_size >= size()) return;
+    if (new_size == 0) {
+      clear();
+      return;
+    }
+
+    while (size() > new_size) {
+      _erase_lru();
+    }
+  }
+
+  virtual size_t size() const noexcept {
     return _cache.size();
   }
 
-  void capacity(size_t new_capacity) {
+  virtual void capacity(size_t new_capacity) {
     // Pop the front of the cache if we have to resize
     while (size() > new_capacity) {
       _erase_lru();
@@ -521,20 +574,28 @@ class BaseCache {
     _capacity = new_capacity;
   }
 
-  size_t capacity() const noexcept {
+  virtual size_t capacity() const noexcept {
     return _capacity;
   }
 
-  size_t space_left() const noexcept {
+  virtual size_t space_left() const noexcept {
     return _capacity - size();
   }
 
-  bool is_empty() const noexcept {
+  virtual bool is_empty() const noexcept {
     return size() == 0;
   }
 
-  bool is_full() const noexcept {
+  virtual bool is_full() const noexcept {
     return size() == _capacity;
+  }
+
+  virtual HashFunction hash_function() const {
+    return _cache.hash_function();
+  }
+
+  virtual KeyEqual key_equal() const {
+    return _cache.key_eq();
   }
 
  protected:

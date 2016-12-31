@@ -22,6 +22,7 @@
 #ifndef LRU_INTERNAL_LAST_ACCESSED_HPP
 #define LRU_INTERNAL_LAST_ACCESSED_HPP
 
+#include <algorithm>
 #include <functional>
 #include <iterator>
 
