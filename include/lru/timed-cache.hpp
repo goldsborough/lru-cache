@@ -47,6 +47,19 @@ using TimedCacheBase =
     BaseCache<Key, Value, Internal::TimedInformation, HashFunction, KeyEqual>;
 }
 
+
+/// A timed LRU cache.
+///
+/// A timed LRU cache behaves like a regular LRU cache, but adds the concept of
+/// "expiration". The cache now not only remembers the order of insertion, but
+/// also the point in time at which each element was inserted into the cache.
+/// The cache then has an additional "time to live" property, which designates
+/// the time after which a key in the cache is said to be "expired". Once a key
+/// has expired, the cache will behave as if the key were not present in the
+/// cache at all and, for example, return false on calls to `contains()` or
+/// throw on calls to `lookup()`.
+///
+/// \see LRU::Cache
 template <typename Key,
           typename Value,
           typename Duration = std::chrono::duration<double, std::milli>,
@@ -62,6 +75,8 @@ class TimedCache
   using PUBLIC_BASE_CACHE_MEMBERS;
   using typename super::size_t;
 
+  /// \param time_to_live The time to live for keys in the cache.
+  /// \copydoc BaseCache(size_t,const HashFunction&,const KeyEqual&)
   template <typename AnyDurationType = Duration>
   explicit TimedCache(const AnyDurationType& time_to_live,
                       size_t capacity = Internal::DEFAULT_CAPACITY,
@@ -71,6 +86,9 @@ class TimedCache
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
+  /// \param time_to_live The time to live for keys in the cache.
+  /// \copydoc BaseCache(size_t,Iterator,Iterator,const HashFunction&,const
+  /// KeyEqual&)
   template <typename Iterator, typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
              size_t capacity,
@@ -82,6 +100,9 @@ class TimedCache
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
+  /// \param time_to_live The time to live for keys in the cache.
+  /// \copydoc BaseCache(Iterator,Iterator,const HashFunction&,const
+  /// KeyEqual&)
   template <typename Iterator, typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
              Iterator begin,
@@ -92,17 +113,9 @@ class TimedCache
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
-  template <typename Range,
-            typename AnyDurationType = Duration,
-            typename = Internal::enable_if_range<Range>>
-  explicit TimedCache(const AnyDurationType& time_to_live,
-                      Range&& range,
-                      const HashFunction& hash = HashFunction(),
-                      const KeyEqual& equal = KeyEqual())
-  : super(std::forward<Range>(range), hash, equal)
-  , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
-  }
-
+  /// \param time_to_live The time to live for keys in the cache.
+  /// \copydoc BaseCache(Range,size_t,const HashFunction&,const
+  /// KeyEqual&)
   template <typename Range,
             typename AnyDurationType = Duration,
             typename = Internal::enable_if_range<Range>>
@@ -115,6 +128,23 @@ class TimedCache
   , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
+  /// \param time_to_live The time to live for keys in the cache.
+  /// \copydoc BaseCache(Range,const HashFunction&,const
+  /// KeyEqual&)
+  template <typename Range,
+            typename AnyDurationType = Duration,
+            typename = Internal::enable_if_range<Range>>
+  explicit TimedCache(const AnyDurationType& time_to_live,
+                      Range&& range,
+                      const HashFunction& hash = HashFunction(),
+                      const KeyEqual& equal = KeyEqual())
+  : super(std::forward<Range>(range), hash, equal)
+  , _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
+  }
+
+  /// \param time_to_live The time to live for keys in the cache.
+  /// \copydoc BaseCache(InitializerList,const HashFunction&,const
+  /// KeyEqual&)
   template <typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
              InitializerList list,
@@ -124,6 +154,9 @@ class TimedCache
         _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
+  /// \param time_to_live The time to live for keys in the cache.
+  /// \copydoc BaseCache(InitializerList,size_t,const HashFunction&,const
+  /// KeyEqual&)
   template <typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
              size_t capacity,
@@ -134,6 +167,7 @@ class TimedCache
         _time_to_live(std::chrono::duration_cast<Duration>(time_to_live)) {
   }
 
+  /// \copydoc BaseCache::swap
   void swap(TimedCache& other) noexcept {
     using std::swap;
 
@@ -141,10 +175,15 @@ class TimedCache
     swap(_time_to_live, other._time_to_live);
   }
 
+  /// Swaps the contents of one cache with another cache.
+  ///
+  /// \param first The first cache to swap.
+  /// \param second The second cache to swap.
   friend void swap(TimedCache& first, TimedCache& second) noexcept {
     first.swap(second);
   }
 
+  /// \copydoc BaseCache::find(const Key&)
   UnorderedIterator find(const Key& key) override {
     auto iterator = _map.find(key);
     if (iterator != _map.end()) {
@@ -160,6 +199,7 @@ class TimedCache
     return end();
   }
 
+  /// \copydoc BaseCache::find(const Key&) const
   UnorderedConstIterator find(const Key& key) const override {
     auto iterator = _map.find(key);
     if (iterator != _map.end()) {
@@ -175,13 +215,15 @@ class TimedCache
     return cend();
   }
 
-  // no front() because we may have to erase the entire cache if everything
-  // happens to be expired
+  // no front() because we may have to erase the
+  // entire cache if everything happens to be expired
 
+  /// \returns True if all keys in the cache have expired, else false.
   bool all_expired() const {
     // By the laws of predicate logic, any statement about any empty set is true
     if (is_empty()) return true;
 
+    /// If the most-recently inserted key has expired, all others must have too.
     auto latest = _map.find(_order.back());
     return _has_expired(latest->second);
   }
@@ -189,6 +231,7 @@ class TimedCache
   /// Erases all expired elements from the cache.
   ///
   /// \complexity O(N)
+  /// \returns The number of elements erased.
   size_t clear_expired() {
     // We have to do a linear search here because linked lists do not
     // support O(log N) binary searches given their node-based nature.
@@ -219,11 +262,15 @@ class TimedCache
  private:
   using Clock = Internal::Clock;
 
-  bool _key_is_last_accessed(const Key& key) const noexcept override {
-    if (!super::_key_is_last_accessed(key)) return false;
+  /// \returns True if the last accessed object is valid.
+  /// \detail Next to performing the base cache's action, this method also
+  /// checks for expiration of the last accessed key.
+  bool _last_accessed_is_ok(const Key& key) const noexcept override {
+    if (!super::_last_accessed_is_ok(key)) return false;
     return !_has_expired(_last_accessed.value());
   }
 
+  /// \copydoc _value_for_last_accessed() const
   Value& _value_for_last_accessed() override {
     auto& information = _last_accessed.value();
     if (_has_expired(information)) {
@@ -233,6 +280,9 @@ class TimedCache
     }
   }
 
+  /// Attempts to access the last accessed key's value.
+  /// \throws LRU::Error::KeyExpired if the key has expired.
+  /// \returns The value of the last accessed key.
   const Value& _value_for_last_accessed() const override {
     const auto& information = _last_accessed.value();
     if (_has_expired(information)) {
@@ -242,11 +292,16 @@ class TimedCache
     }
   }
 
+  /// Checks if a key has expired, given its information.
+  ///
+  /// \param information The information to check expiration with.
+  /// \returns True if the key has expired, else false.
   bool _has_expired(const Information& information) const noexcept {
     auto elapsed = Clock::now() - information.insertion_time;
     return std::chrono::duration_cast<Duration>(elapsed) > _time_to_live;
   }
 
+  /// The duration after which a key is said to be expired.
   Duration _time_to_live;
 };
 }  // namespace LRU

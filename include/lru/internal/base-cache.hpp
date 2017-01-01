@@ -81,7 +81,7 @@ namespace Internal {
   using super::_erase_lru;                   \
   using super::_move_to_front;               \
   using super::_value_from_result;           \
-  using super::_key_is_last_accessed;        \
+  using super::_last_accessed_is_ok;         \
   using super::_register_miss_if_monitoring; \
   using super::_register_hit_if_monitoring;
 
@@ -633,9 +633,13 @@ class BaseCache {
   /// \returns True if the key's value may be accessed via `lookup()` without an
   /// error, else false.
   virtual bool contains(const Key& key) const {
-    if (_key_is_last_accessed(key)) {
-      _register_hit_if_monitoring(key);
-      return true;
+    if (key == _last_accessed) {
+      if (_last_accessed_is_ok(key)) {
+        _register_hit_if_monitoring(key);
+        return true;
+      } else {
+        return false;
+      }
     }
 
     auto iterator = find(key);
@@ -903,7 +907,7 @@ class BaseCache {
   /// \param key The key to erase.
   /// \returns True if the key was erased, else false.
   virtual bool erase(const Key& key) {
-    // No need to use _key_is_last_accessed here, because even
+    // No need to use _last_accessed_is_ok here, because even
     // if it has expired, it's no problem to erase it anyway
     if (_last_accessed == key) {
       _erase(_last_accessed.key(), _last_accessed.value());
@@ -1171,16 +1175,14 @@ class BaseCache {
     return result.first->second.value;
   }
 
-  /// \returns True if the key may be assumed to be the one last accessed.
-  ///
   /// The main use of this method is that it may be override by a base class if
   /// there are any stronger constraints (such as time expiration) as to when
   /// the last-accessed object may be used to access a key.
   ///
   /// \param key The key to compare the last accessed object against.
-  /// \returns True if the last-accessed object may be used.
-  virtual bool _key_is_last_accessed(const Key& key) const noexcept {
-    return _last_accessed == key;
+  /// \returns True if the last-accessed object is valid.
+  virtual bool _last_accessed_is_ok(const Key& key) const noexcept {
+    return true;
   }
 
   /// \copydoc _value_for_last_accessed() const
@@ -1188,6 +1190,7 @@ class BaseCache {
     return _last_accessed.value().value;
   }
 
+  /// Attempts to access the last accessed key's value.
   /// \returns The value of the last accessed object.
   /// \detail This method exists so that derived classes may perform additional
   /// checks (and possibly throw exceptions) or perform other operations to
