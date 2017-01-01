@@ -34,7 +34,6 @@
 
 namespace LRU {
 namespace Internal {
-
 template <typename Cache, typename UnderlyingIterator>
 using BaseForBaseUnorderedIterator =
     BaseIterator<std::forward_iterator_tag,
@@ -43,6 +42,14 @@ using BaseForBaseUnorderedIterator =
                  Cache,
                  UnderlyingIterator>;
 
+/// The base class for all const and non-const unordered iterators.
+///
+/// An unordered iterator is a wrapper around an `unordered_map` iterator with
+/// ForwardIterator category. As such, it is (nearly) as fast to access the pair
+/// as through the unordered iterator as through the map iterato directly.
+/// However, the order of keys is unspecified. For this reason, unordered
+/// iterators have the special property that they may be used to construct
+/// ordered iterators, after which the order of insertion is respected.
 template <typename Cache, typename UnderlyingIterator>
 class BaseUnorderedIterator
     : public BaseForBaseUnorderedIterator<Cache, UnderlyingIterator> {
@@ -57,25 +64,37 @@ class BaseUnorderedIterator
   using Tag = std::false_type;
   using PUBLIC_BASE_ITERATOR_MEMBERS;
 
+  /// Constructor.
   BaseUnorderedIterator() noexcept = default;
 
+  /// \copydoc BaseIterator::BaseIterator(Cache,UnderlyingIterator)
   explicit BaseUnorderedIterator(Cache& cache,
                                  const UnderlyingIterator& iterator)
   : super(cache, iterator) {
   }
 
+  /// Generalized copy constructor.
+  ///
+  /// Useful mainly for non-const to const conversion.
+  ///
+  /// \param other The iterator to copy from.
   template <typename AnyCache, typename AnyUnderlyingIterator>
   BaseUnorderedIterator(
       const BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>& other)
   : super(other) {
   }
 
-  // If one special member function is defined, all must be.
+  /// Copy constructor.
   BaseUnorderedIterator(const BaseUnorderedIterator& other) = default;
+
+  /// Move constructor.
   BaseUnorderedIterator(BaseUnorderedIterator&& other) = default;
+
+  /// Copy assignment operator.
   BaseUnorderedIterator&
   operator=(const BaseUnorderedIterator& other) = default;
 
+  /// Move assignment operator.
   template <typename AnyCache, typename AnyUnderlyingIterator>
   BaseUnorderedIterator&
   operator=(BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>
@@ -84,8 +103,13 @@ class BaseUnorderedIterator
     return *this;
   }
 
+  /// Destructor.
   virtual ~BaseUnorderedIterator() = default;
 
+  /// Compares this iterator for equality with another unordered iterator.
+  ///
+  /// \param other Another unordered iterator.
+  /// \returns True if both iterators point to the same entry, else false.
   template <typename AnyCache, typename AnyIterator>
   bool
   operator==(const BaseUnorderedIterator<AnyCache, AnyIterator>& other) const
@@ -93,6 +117,10 @@ class BaseUnorderedIterator
     return this->_iterator == other._iterator;
   }
 
+  /// Compares this iterator for inequality with another unordered iterator.
+  ///
+  /// \param other Another unordered iterator.
+  /// \returns True if the iterators point to different entries, else false.
   template <typename AnyCache, typename AnyIterator>
   bool
   operator!=(const BaseUnorderedIterator<AnyCache, AnyIterator>& other) const
@@ -100,18 +128,32 @@ class BaseUnorderedIterator
     return !(*this == other);
   }
 
+  /// Increments the iterator to the next entry.
+  ///
+  /// If the iterator already pointed to the end any number of increments
+  /// before, behavior is undefined.
+  ///
+  /// \returns The resulting iterator.
   BaseUnorderedIterator& operator++() {
     ++_iterator;
     _entry.reset();
     return *this;
   }
 
+  /// Increments the iterator and returns a copy of the previous one.
+  ///
+  /// If the iterator already pointed to the end any number of increments
+  /// before, behavior is undefined.
+  ///
+  /// \returns A copy of the previous iterator.
   BaseUnorderedIterator operator++(int) {
     auto previous = *this;
     ++*this;
     return previous;
   }
 
+  /// \returns A reference to the entry the iterator points to.
+  /// \detail If the iterator is invalid, behavior is undefined.
   Entry& entry() noexcept override {
     if (!_entry.has_value()) {
       _entry.emplace(key(), value());
@@ -120,10 +162,14 @@ class BaseUnorderedIterator
     return *_entry;
   }
 
+  /// \returns A reference to the value the iterator points to.
+  /// \detail If the iterator is invalid, behavior is undefined.
   Value& value() noexcept override {
     return _iterator->second.value;
   }
 
+  /// \returns A reference to the key the iterator points to.
+  /// \detail If the iterator is invalid, behavior is undefined.
   const Key& key() noexcept override {
     return _iterator->first;
   }

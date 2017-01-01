@@ -30,55 +30,106 @@
 namespace LRU {
 namespace Internal {
 
+/// Generates an index sequence for a tuple.
+///
+/// \tparam Ts The types of the tuple (to deduce the size).
 template <typename... Ts>
 constexpr auto tuple_indices(const std::tuple<Ts...>&) {
   return std::make_index_sequence<sizeof...(Ts)>();
 }
 
+/// Applies (in the functional sense) a tuple to the constructor of a class.
+///
+/// \tparam T The type to construct.
+/// \tparam Indices The indices into the tuple (generated from an index
+///                 sequence).
+/// \param args The tuple of arguments to construct the object with.
 template <typename T, typename... Args, std::size_t... Indices>
-constexpr T construct_from_tuple(const std::tuple<Args...>& args,
+constexpr T construct_from_tuple(const std::tuple<Args...>& arguments,
                                  std::index_sequence<Indices...>) {
-  return T(std::forward<Args>(std::get<Indices>(args))...);
+  return T(std::forward<Args>(std::get<Indices>(arguments))...);
 }
 
+/// Applies (in the functional sense) a tuple to the constructor of a class.
+///
+/// \tparam T The type to construct.
+/// \param args The tuple of arguments to construct the object with.
 template <typename T, typename... Args>
 constexpr T construct_from_tuple(const std::tuple<Args...>& args) {
   return construct_from_tuple<T>(args, tuple_indices(args));
 }
 
+/// Forwards the given arguments to the constructor of a class.
+///
+/// \tparam T The type to construct.
+/// \param args The arguments to construct the object with.
 template <typename T, typename... Args>
 constexpr T construct_from_tuple(Args&&... args) {
   return construct_from_tuple<T>(
       std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
+/// A type trait that disables a template overload if a type is not an iterator.
+///
+/// \tparam T the type to check.
 template <typename T>
 using enable_if_iterator = typename std::iterator_traits<T>::value_type;
 
+/// A type trait that disables a template overload if a type is not a range.
+///
+/// \tparam T the type to check.
 template <typename T>
-using enable_if_range = enable_if_iterator<decltype(std::declval<T>().begin())>;
+using enable_if_range = std::pair<decltype(std::declval<T>().begin()),
+                                  decltype(std::declval<T>().end())>;
 
+/// A type trait that disables a template overload if a type is not an iterator
+/// over a pair.
+///
+/// \tparam T the type to check.
 template <typename T>
 using enable_if_iterator_over_pair =
-    typename std::iterator_traits<T>::value_type::first_type;
+    std::pair<typename std::iterator_traits<T>::value_type::first_type,
+              typename std::iterator_traits<T>::value_type::first_type>;
 
+#if __cplusplus > 201402L
+template <typename... Ts>
+constexpr bool static_all_of(Ts&&... ts) {
+  return (ts && ...);
+}
+#else
+/// Base case for `static_all_of` (an empty set of boolean is always true).
 constexpr bool static_all_of() noexcept {
   return true;
 }
 
+/// Checks if all the given parameters evaluate to true.
+///
+/// \param head The first expression to check.
+/// \param tail The remaining expression to check.
 template <typename Head, typename... Tail>
 constexpr bool static_all_of(Head&& head, Tail&&... tail) {
   return std::forward<Head>(head) && static_all_of(std::forward<Tail>(tail)...);
 }
+#endif
 
+/// Checks if all the given types are convertible to the first type.
+///
+/// \tparam T the first type.
+/// \tparam Ts The types to check against the first.
 template <typename T, typename... Ts>
 constexpr bool
     all_of_type = static_all_of(std::is_convertible<T, Ts>::value...);
 
+/// Base case for `for_each`.
 template <typename Function>
 void for_each(Function) noexcept {
 }
 
+/// Calls a function for each of the given variadic arguments.
+///
+/// \param function The function to call for each argument.
+/// \param head The first value to call the function with.
+/// \parm tail The remaining values to call the function with.
 template <typename Function, typename Head, typename... Tail>
 void for_each(Function function, Head&& head, Tail&&... tail) {
   function(std::forward<Head>(head));

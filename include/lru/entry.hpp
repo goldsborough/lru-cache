@@ -64,9 +64,8 @@ struct Entry final {
   /// \param first The first entry to compare.
   /// \param second The second entry to compare.
   /// \returns True if the firest entry equals the second, else false.
-  template <typename OtherEntry, typename = typename OtherEntry::first_type>
-  friend bool
-  operator==(const Entry& first, const OtherEntry& second) noexcept {
+  template <typename Pair, typename = typename Pair::first_type>
+  friend bool operator==(const Entry& first, const Pair& second) noexcept {
     return first.first == second.first && first.second == second.second;
   }
 
@@ -75,9 +74,8 @@ struct Entry final {
   /// \param first The first entry to compare.
   /// \param second The second entry to compare.
   /// \returns True if the first entry equals the second, else false.
-  template <typename OtherEntry, typename = typename OtherEntry::first_type>
-  friend bool
-  operator==(const OtherEntry& first, const Entry& second) noexcept {
+  template <typename Pair, typename = typename Pair::first_type>
+  friend bool operator==(const Pair& first, const Entry& second) noexcept {
     return second == first;
   }
 
@@ -86,9 +84,8 @@ struct Entry final {
   /// \param first The first entry to compare.
   /// \param second The second entry to compare.
   /// \returns True if the first entry does not equal the second, else false.
-  template <typename OtherEntry, typename = typename OtherEntry::first_type>
-  friend bool
-  operator!=(const Entry& first, const OtherEntry& second) noexcept {
+  template <typename Pair, typename = typename Pair::first_type>
+  friend bool operator!=(const Entry& first, const Pair& second) noexcept {
     return !(first == second);
   }
 
@@ -97,9 +94,8 @@ struct Entry final {
   /// \param first The first entry to compare.
   /// \param second The second entry to compare.fdas
   /// \returns True if the first entry does not equal the second, else false.
-  template <typename OtherEntry, typename = typename OtherEntry::first_type>
-  friend bool
-  operator!=(const OtherEntry& first, const Entry& second) noexcept {
+  template <typename Pair, typename = typename Pair::first_type>
+  friend bool operator!=(const Pair& first, const Entry& second) noexcept {
     return second != first;
   }
 

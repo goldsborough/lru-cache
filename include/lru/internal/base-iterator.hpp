@@ -66,13 +66,10 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Entry<Key, Value>> {
 
   /// Constructor.
   ///
-  /// \param cache The cahe to keep a reference to.
+  /// \param cache The cache this iterator points into.
   /// \param iterator The underlying iterator to adapt.
-  /// \param entry Optioanlly, an initial value for the stored one.
-  BaseIterator(Cache& cache,
-               const UnderlyingIterator& iterator,
-               const Optional<Entry>& entry = Optional<Entry>())
-  : _iterator(iterator), _entry(entry), _cache(&cache) {
+  BaseIterator(Cache& cache, const UnderlyingIterator& iterator)
+  : _iterator(iterator), _cache(&cache) {
   }
 
   /// Copy constructor.
