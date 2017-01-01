@@ -27,27 +27,44 @@
 #include <utility>
 
 namespace LRU {
+
+/// The result of an insertion into a cache.
+///
+/// This is a semantically nicer alternative to a generic `std::pair`, as is
+/// returned by `std::unordered_map` or so. It still has the same static
+/// interface as the `std::pair` (with `first` and `second` members), but adds
+/// nicer `was_inserted()` and `iterator()` accessors.
 template <typename Iterator>
 struct InsertionResult final {
   using IteratorType = Iterator;
 
+  /// Constructor.
+  ///
+  /// \param result Whether the result was successful.
+  /// \param iterator The iterator pointing to the inserted or updated key.
   InsertionResult(bool result, Iterator iterator)
   : first(result), second(iterator) {
   }
 
+  /// \returns True if the key was newly inserted, false if it was only updated.
   bool was_inserted() const noexcept {
     return first;
   }
 
+  /// \returns The iterator pointing to the inserted or updated key.
   Iterator iterator() const noexcept {
     return second;
   }
 
+  /// \copydoc was_inserted
   explicit operator bool() const noexcept {
     return was_inserted();
   }
 
+  /// Whether the result was successful.
   bool first;
+
+  /// The iterator pointing to the inserted or updated key.
   Iterator second;
 };
 

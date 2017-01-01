@@ -27,6 +27,10 @@
 #include <utility>
 
 namespace LRU {
+
+/// A pair of references to the key and value of an entry in a cache.
+///
+/// Instances of this class are usually the result of dereferencing an iterator.
 template <typename Key, typename Value>
 struct Pair final {
   using KeyType = Key;
@@ -34,9 +38,18 @@ struct Pair final {
   using first_type = Key;
   using second_type = Value;
 
+  /// Constructor.
+  ///
+  /// \param key The key of the pair.
+  /// \param value The value of the pair.
   Pair(const Key& key, Value& value) : first(key), second(value) {
   }
 
+  /// Generalized copy constructor.
+  ///
+  /// Mainly for conversion from non-const values to const values.
+  ///
+  /// \param other The pair to construct from.
   template <typename AnyKey,
             typename AnyValue,
             typename =
@@ -46,49 +59,70 @@ struct Pair final {
   : first(other.first), second(other.second) {
   }
 
-  bool operator==(const Pair& other) const noexcept {
-    return this->first == other.first && this->second == other.second;
-  }
-
-  template <typename First, typename Second>
-  friend bool operator==(const Pair& first,
-                         const std::pair<First, Second>& second) noexcept {
+  /// Compares two pairs for equality.
+  ///
+  /// \param first The first pair to compare.
+  /// \param second The second pair to compare.
+  /// \returns True if the firest pair equals the second, else false.
+  template <typename OtherPair, typename = typename OtherPair::first_type>
+  friend bool operator==(const Pair& first, const OtherPair& second) noexcept {
     return first.first == second.first && first.second == second.second;
   }
 
-  template <typename First, typename Second>
-  friend bool operator==(const std::pair<First, Second>& first,
-                         const Pair& second) noexcept {
+  /// Compares two pairs for equality.
+  ///
+  /// \param first The first pair to compare.
+  /// \param second The second pair to compare.
+  /// \returns True if the first pair equals the second, else false.
+  template <typename OtherPair, typename = typename OtherPair::first_type>
+  friend bool operator==(const OtherPair& first, const Pair& second) noexcept {
     return second == first;
   }
 
-  template <typename T>
-  friend bool operator!=(const Pair& first, const T& second) noexcept {
+  /// Compares two pairs for inequality.
+  ///
+  /// \param first The first pair to compare.
+  /// \param second The second pair to compare.
+  /// \returns True if the first pair does not equal the second, else false.
+  template <typename OtherPair, typename = typename OtherPair::first_type>
+  friend bool operator!=(const Pair& first, const OtherPair& second) noexcept {
     return !(first == second);
   }
 
-  template <typename T>
-  friend bool operator!=(const T& first, const Pair& second) noexcept {
+  /// Compares two pairs for inequality.
+  ///
+  /// \param first The first pair to compare.
+  /// \param second The second pair to compare.
+  /// \returns True if the first pair does not equal the second, else false.
+  template <typename OtherPair, typename = typename OtherPair::first_type>
+  friend bool operator!=(const OtherPair& first, const Pair& second) noexcept {
     return second != first;
   }
 
+  /// \returns A `std::pair` instance with the key and value of this pair.
   operator std::pair<const Key&, Value&>() noexcept {
     return {first, second};
   }
 
+  /// \returns The key of the pair (`first`).
   const Key& key() const noexcept {
     return first;
   }
 
+  /// \returns The value of the pair (`second`).
   Value& value() noexcept {
     return second;
   }
 
+  /// \returns The value of the pair (`second`).
   const Value& value() const noexcept {
     return second;
   }
 
+  /// The key of the pair.
   const Key& first;
+
+  /// The value of the pair.
   Value& second;
 };
 }  // namespace LRU
