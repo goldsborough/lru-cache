@@ -74,6 +74,7 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Pair<Key, Value>> {
     if (this != &other) {
       _iterator = other._iterator;
       _cache = other._cache;
+      _pair.reset();
     }
     return *this;
   }
@@ -144,7 +145,9 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Pair<Key, Value>> {
   UnderlyingIterator _iterator;
   Optional<Pair> _pair;
 
-  // Pointer and not reference because it's cheap to copy
+  /// Pointer and not reference because it's cheap to copy.
+  /// Pointer and not `std::reference_wrapper` because the class needs to be
+  /// default-constructible.
   Cache* _cache;
 };
 }  // namespace Internal

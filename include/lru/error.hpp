@@ -64,6 +64,12 @@ struct InvalidIteratorConversion : public std::runtime_error {
   }
 };
 
+struct InvalidIterator : public std::runtime_error {
+  using super = std::runtime_error;
+  InvalidIterator() : super("Past-the-end iterator is invalid here") {
+  }
+};
+
 struct UnmonitoredKey : public std::runtime_error {
   using super = std::runtime_error;
   UnmonitoredKey() : super("Requested statistics for unmonitored key") {

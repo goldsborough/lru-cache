@@ -48,3 +48,5 @@ CTestTestfile.cmake
 ### Other ###
 build/
 *.dSYM/
+docs/html/
+docs/latex/

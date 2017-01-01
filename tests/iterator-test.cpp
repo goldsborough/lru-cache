@@ -126,6 +126,7 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   ASSERT_EQ(unordered.value(), 1);
 
   OrderedIterator ordered(unordered);
+  ordered = unordered;
 
   EXPECT_EQ(ordered.key(), "one");
   EXPECT_EQ(ordered.value(), 1);
@@ -136,12 +137,18 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   EXPECT_EQ(ordered.value(), 2);
 
   UnorderedConstIterator const_unordered = unordered;
+  const_unordered = unordered;
+
   OrderedConstIterator const_ordered(std::move(const_unordered));
+  const_ordered = std::move(const_unordered);
 
   EXPECT_EQ(ordered.key(), "two");
   EXPECT_EQ(ordered.value(), 2);
 
   --ordered;
+
+  // Just making sure this compiles
+  const_ordered = ordered;
   const_ordered = unordered;
 
   EXPECT_EQ(ordered.key(), "one");

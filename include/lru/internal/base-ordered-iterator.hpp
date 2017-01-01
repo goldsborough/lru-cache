@@ -63,39 +63,36 @@ class BaseOrderedIterator
   : super(cache, iterator) {
   }
 
-  template <typename OtherKey, typename OtherValue, typename OtherCache>
+  template <typename AnyKey, typename AnyValue, typename AnyCache>
   BaseOrderedIterator(
-      const BaseOrderedIterator<OtherKey, OtherValue, OtherCache>& other)
+      const BaseOrderedIterator<AnyKey, AnyValue, AnyCache>& other)
   : super(other) {
   }
 
-  template <typename OtherKey, typename OtherValue, typename OtherCache>
-  BaseOrderedIterator(
-      BaseOrderedIterator<OtherKey, OtherValue, OtherCache>&& other)
+  template <typename AnyKey, typename AnyValue, typename AnyCache>
+  BaseOrderedIterator(BaseOrderedIterator<AnyKey, AnyValue, AnyCache>&& other)
   : super(std::move(other)) {
   }
 
   template <
-      typename OtherCache,
+      typename AnyCache,
       typename UnderlyingIterator,
       typename = std::enable_if_t<
-          std::is_same<std::decay_t<OtherCache>, std::decay_t<Cache>>::value>>
-  BaseOrderedIterator(
-      const BaseUnorderedIterator<OtherCache, UnderlyingIterator>&
-          unordered_iterator) {
+          std::is_same<std::decay_t<AnyCache>, std::decay_t<Cache>>::value>>
+  BaseOrderedIterator(const BaseUnorderedIterator<AnyCache, UnderlyingIterator>&
+                          unordered_iterator) {
     // Atomicity
     _check_if_at_end(unordered_iterator);
     _cache = unordered_iterator._cache;
-    _pair = unordered_iterator._pair;
     _iterator = unordered_iterator._iterator->second.order;
   }
 
   template <
-      typename OtherCache,
+      typename AnyCache,
       typename UnderlyingIterator,
       typename = std::enable_if_t<
-          std::is_same<std::decay_t<OtherCache>, std::decay_t<Cache>>::value>>
-  BaseOrderedIterator(BaseUnorderedIterator<OtherCache, UnderlyingIterator>&&
+          std::is_same<std::decay_t<AnyCache>, std::decay_t<Cache>>::value>>
+  BaseOrderedIterator(BaseUnorderedIterator<AnyCache, UnderlyingIterator>&&
                           unordered_iterator) {
     // Atomicity
     _check_if_at_end(unordered_iterator);
@@ -111,14 +108,6 @@ class BaseOrderedIterator
 
   virtual ~BaseOrderedIterator() = default;
 
-  template <typename OtherCache, typename UnderlyingIterator>
-  BaseOrderedIterator&
-  operator=(BaseUnorderedIterator<OtherCache, UnderlyingIterator>
-                unordered_iterator) {
-    swap(unordered_iterator);
-    return *this;
-  }
-
   bool operator==(const BaseOrderedIterator& other) const noexcept {
     return this->_iterator == other._iterator;
   }
@@ -127,10 +116,9 @@ class BaseOrderedIterator
     return !(*this == other);
   }
 
-  template <typename OtherCache, typename OtherUnderlyingIterator>
-  bool
-  operator==(const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>&
-                 second) const noexcept {
+  template <typename AnyCache, typename AnyUnderlyingIterator>
+  bool operator==(const BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>&
+                      second) const noexcept {
     if (this->_cache != second._cache) return false;
 
     // The past-the-end iterators of the same cache should compare equal
@@ -146,24 +134,24 @@ class BaseOrderedIterator
     return *this == static_cast<BaseOrderedIterator>(second);
   }
 
-  template <typename OtherCache, typename OtherUnderlyingIterator>
+  template <typename AnyCache, typename AnyUnderlyingIterator>
   friend bool operator==(
-      const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>& first,
+      const BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>& first,
       const BaseOrderedIterator& second) noexcept {
     return second == first;
   }
 
-  template <typename OtherCache, typename OtherUnderlyingIterator>
+  template <typename AnyCache, typename AnyUnderlyingIterator>
   friend bool
   operator!=(const BaseOrderedIterator& first,
-             const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>&
+             const BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>&
                  second) noexcept {
     return !(first == second);
   }
 
-  template <typename OtherCache, typename OtherUnderlyingIterator>
+  template <typename AnyCache, typename AnyUnderlyingIterator>
   friend bool operator!=(
-      const BaseUnorderedIterator<OtherCache, OtherUnderlyingIterator>& first,
+      const BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>& first,
       const BaseOrderedIterator& second) noexcept {
     return second != first;
   }

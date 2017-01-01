@@ -112,8 +112,8 @@ class Cache
   }
 
   UnorderedIterator find(const Key& key) override {
-    auto iterator = _cache.find(key);
-    if (iterator != _cache.end()) {
+    auto iterator = _map.find(key);
+    if (iterator != _map.end()) {
       _register_hit_if_monitoring(key);
       _last_accessed = iterator;
     } else {
@@ -124,8 +124,8 @@ class Cache
   }
 
   UnorderedConstIterator find(const Key& key) const override {
-    auto iterator = _cache.find(key);
-    if (iterator != _cache.end()) {
+    auto iterator = _map.find(key);
+    if (iterator != _map.end()) {
       _register_hit_if_monitoring(key);
       _last_accessed = iterator;
     } else {

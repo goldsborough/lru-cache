@@ -146,25 +146,31 @@ class TimedCache
   }
 
   UnorderedIterator find(const Key& key) override {
-    auto iterator = _cache.find(key);
-    if (iterator != _cache.end()) {
+    auto iterator = _map.find(key);
+    if (iterator != _map.end()) {
       if (!_has_expired(iterator->second)) {
+        _register_hit_if_monitoring(key);
         _last_accessed = iterator;
         return {*this, iterator};
       }
     }
+
+    _register_miss_if_monitoring(key);
 
     return end();
   }
 
   UnorderedConstIterator find(const Key& key) const override {
-    auto iterator = _cache.find(key);
-    if (iterator != _cache.end()) {
+    auto iterator = _map.find(key);
+    if (iterator != _map.end()) {
       if (!_has_expired(iterator->second)) {
+        _register_hit_if_monitoring(key);
         _last_accessed = iterator;
         return {*this, iterator};
       }
     }
+
+    _register_hit_if_monitoring(key);
 
     return cend();
   }
@@ -176,7 +182,7 @@ class TimedCache
     // By the laws of predicate logic, any statement about any empty set is true
     if (is_empty()) return true;
 
-    auto latest = _cache.find(_order.back());
+    auto latest = _map.find(_order.back());
     return _has_expired(latest->second);
   }
 
@@ -195,7 +201,7 @@ class TimedCache
     size_t number_of_erasures = 0;
 
     while (iterator != _order.end()) {
-      auto map_iterator = _cache.find(*iterator);
+      auto map_iterator = _map.find(*iterator);
 
       // If the current element hasn't expired, also all elements inserted
       // after will not have, so we can stop.

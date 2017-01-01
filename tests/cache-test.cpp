@@ -363,11 +363,20 @@ TEST_F(CacheTest, ShrinkRemovesLRUElements) {
 }
 
 TEST_F(CacheTest, CanInsertIterators) {
-  std::vector<std::pair<std::string, int>> range = {
-      {"one", 1}, {"two", 2}, {"three", 3}};
+  using Range = std::vector<std::pair<std::string, int>>;
+  Range range = {{"one", 1}, {"two", 2}, {"three", 3}};
 
-  cache.insert(range.begin(), range.end());
+  EXPECT_EQ(cache.insert(range.begin(), range.end()), 3);
   EXPECT_TRUE(is_equal_to_range(cache, range));
+
+  Range range2 = {{"one", 1}, {"four", 4}};
+
+  EXPECT_EQ(cache.insert(range2.begin(), range2.end()), 1);
+  // clang-format off
+  EXPECT_TRUE(is_equal_to_range(cache, Range({
+    {"two", 2}, {"three", 3}, {"one", 1}, {"four", 4}
+  })));
+  // clang-format on
 }
 
 TEST_F(CacheTest, CanInsertRange) {
@@ -448,9 +457,8 @@ TEST_F(CacheTest, SwapWorks) {
   ASSERT_TRUE(cache2.contains("two"));
 
   cache.swap(cache2);
-  dfa
 
-      EXPECT_FALSE(cache.contains("one"));
+  EXPECT_FALSE(cache.contains("one"));
   EXPECT_TRUE(cache.contains("two"));
   EXPECT_FALSE(cache2.contains("two"));
   EXPECT_TRUE(cache2.contains("one"));

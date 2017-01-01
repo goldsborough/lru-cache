@@ -56,6 +56,7 @@ class BaseUnorderedIterator
  public:
   using Tag = std::false_type;
   using PUBLIC_BASE_ITERATOR_MEMBERS;
+
   BaseUnorderedIterator() noexcept = default;
 
   explicit BaseUnorderedIterator(Cache& cache,
@@ -63,11 +64,25 @@ class BaseUnorderedIterator
   : super(cache, iterator) {
   }
 
+  template <typename AnyCache, typename AnyUnderlyingIterator>
+  BaseUnorderedIterator(
+      const BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>& other)
+  : super(other) {
+  }
+
   // If one special member function is defined, all must be.
   BaseUnorderedIterator(const BaseUnorderedIterator& other) = default;
   BaseUnorderedIterator(BaseUnorderedIterator&& other) = default;
   BaseUnorderedIterator&
   operator=(const BaseUnorderedIterator& other) = default;
+
+  template <typename AnyCache, typename AnyUnderlyingIterator>
+  BaseUnorderedIterator&
+  operator=(BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>
+                unordered_iterator) {
+    swap(unordered_iterator);
+    return *this;
+  }
 
   virtual ~BaseUnorderedIterator() = default;
 
