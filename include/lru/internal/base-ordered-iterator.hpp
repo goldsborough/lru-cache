@@ -27,12 +27,12 @@
 #include <iterator>
 #include <type_traits>
 
+#include "lru/entry.hpp"
 #include "lru/error.hpp"
 #include "lru/internal/base-iterator.hpp"
 #include "lru/internal/base-unordered-iterator.hpp"
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/optional.hpp"
-#include "lru/pair.hpp"
 
 namespace LRU {
 namespace Internal {
@@ -97,7 +97,7 @@ class BaseOrderedIterator
     // Atomicity
     _check_if_at_end(unordered_iterator);
     _cache = std::move(unordered_iterator._cache);
-    _pair = std::move(unordered_iterator._pair);
+    _entry = std::move(unordered_iterator._entry);
     _iterator = std::move(unordered_iterator._iterator->second.order);
   }
 
@@ -158,7 +158,7 @@ class BaseOrderedIterator
 
   BaseOrderedIterator& operator++() {
     ++_iterator;
-    _pair.reset();
+    _entry.reset();
     return *this;
   }
 
@@ -170,7 +170,7 @@ class BaseOrderedIterator
 
   BaseOrderedIterator& operator--() {
     --_iterator;
-    _pair.reset();
+    _entry.reset();
     return *this;
   }
 
@@ -180,7 +180,7 @@ class BaseOrderedIterator
     return previous;
   }
 
-  Pair& pair() noexcept override {
+  Entry& entry() noexcept override {
     return _maybe_lookup();
   }
 
@@ -196,17 +196,17 @@ class BaseOrderedIterator
   template <typename, typename, typename>
   friend class BaseOrderedIterator;
 
-  Pair& _maybe_lookup() {
-    if (!_pair.has_value()) {
+  Entry& _maybe_lookup() {
+    if (!_entry.has_value()) {
       _lookup();
     }
 
-    return *_pair;
+    return *_entry;
   }
 
   void _lookup() {
     Value& value = _cache->lookup(key());
-    _pair.emplace(key(), value);
+    _entry.emplace(key(), value);
   }
 
  private:

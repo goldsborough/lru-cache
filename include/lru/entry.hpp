@@ -28,11 +28,11 @@
 
 namespace LRU {
 
-/// A pair of references to the key and value of an entry in a cache.
+/// A entry of references to the key and value of an entry in a cache.
 ///
 /// Instances of this class are usually the result of dereferencing an iterator.
 template <typename Key, typename Value>
-struct Pair final {
+struct Entry final {
   using KeyType = Key;
   using ValueType = Value;
   using first_type = Key;
@@ -40,89 +40,93 @@ struct Pair final {
 
   /// Constructor.
   ///
-  /// \param key The key of the pair.
-  /// \param value The value of the pair.
-  Pair(const Key& key, Value& value) : first(key), second(value) {
+  /// \param key The key of the entry.
+  /// \param value The value of the entry.
+  Entry(const Key& key, Value& value) : first(key), second(value) {
   }
 
   /// Generalized copy constructor.
   ///
   /// Mainly for conversion from non-const values to const values.
   ///
-  /// \param other The pair to construct from.
+  /// \param other The entry to construct from.
   template <typename AnyKey,
             typename AnyValue,
             typename =
                 std::enable_if_t<(std::is_convertible<AnyKey, Key>::value &&
                                   std::is_convertible<AnyValue, Value>::value)>>
-  Pair(const Pair<AnyKey, AnyValue>& other)
+  Entry(const Entry<AnyKey, AnyValue>& other)
   : first(other.first), second(other.second) {
   }
 
-  /// Compares two pairs for equality.
+  /// Compares two entrys for equality.
   ///
-  /// \param first The first pair to compare.
-  /// \param second The second pair to compare.
-  /// \returns True if the firest pair equals the second, else false.
-  template <typename OtherPair, typename = typename OtherPair::first_type>
-  friend bool operator==(const Pair& first, const OtherPair& second) noexcept {
+  /// \param first The first entry to compare.
+  /// \param second The second entry to compare.
+  /// \returns True if the firest entry equals the second, else false.
+  template <typename OtherEntry, typename = typename OtherEntry::first_type>
+  friend bool
+  operator==(const Entry& first, const OtherEntry& second) noexcept {
     return first.first == second.first && first.second == second.second;
   }
 
-  /// Compares two pairs for equality.
+  /// Compares two entrys for equality.
   ///
-  /// \param first The first pair to compare.
-  /// \param second The second pair to compare.
-  /// \returns True if the first pair equals the second, else false.
-  template <typename OtherPair, typename = typename OtherPair::first_type>
-  friend bool operator==(const OtherPair& first, const Pair& second) noexcept {
+  /// \param first The first entry to compare.
+  /// \param second The second entry to compare.
+  /// \returns True if the first entry equals the second, else false.
+  template <typename OtherEntry, typename = typename OtherEntry::first_type>
+  friend bool
+  operator==(const OtherEntry& first, const Entry& second) noexcept {
     return second == first;
   }
 
-  /// Compares two pairs for inequality.
+  /// Compares two entrys for inequality.
   ///
-  /// \param first The first pair to compare.
-  /// \param second The second pair to compare.
-  /// \returns True if the first pair does not equal the second, else false.
-  template <typename OtherPair, typename = typename OtherPair::first_type>
-  friend bool operator!=(const Pair& first, const OtherPair& second) noexcept {
+  /// \param first The first entry to compare.
+  /// \param second The second entry to compare.
+  /// \returns True if the first entry does not equal the second, else false.
+  template <typename OtherEntry, typename = typename OtherEntry::first_type>
+  friend bool
+  operator!=(const Entry& first, const OtherEntry& second) noexcept {
     return !(first == second);
   }
 
-  /// Compares two pairs for inequality.
+  /// Compares two entrys for inequality.
   ///
-  /// \param first The first pair to compare.
-  /// \param second The second pair to compare.
-  /// \returns True if the first pair does not equal the second, else false.
-  template <typename OtherPair, typename = typename OtherPair::first_type>
-  friend bool operator!=(const OtherPair& first, const Pair& second) noexcept {
+  /// \param first The first entry to compare.
+  /// \param second The second entry to compare.fdas
+  /// \returns True if the first entry does not equal the second, else false.
+  template <typename OtherEntry, typename = typename OtherEntry::first_type>
+  friend bool
+  operator!=(const OtherEntry& first, const Entry& second) noexcept {
     return second != first;
   }
 
-  /// \returns A `std::pair` instance with the key and value of this pair.
+  /// \returns A `std::pair` instance with the key and value of this entry.
   operator std::pair<const Key&, Value&>() noexcept {
     return {first, second};
   }
 
-  /// \returns The key of the pair (`first`).
+  /// \returns The key of the entry (`first`).
   const Key& key() const noexcept {
     return first;
   }
 
-  /// \returns The value of the pair (`second`).
+  /// \returns The value of the entry (`second`).
   Value& value() noexcept {
     return second;
   }
 
-  /// \returns The value of the pair (`second`).
+  /// \returns The value of the entry (`second`).
   const Value& value() const noexcept {
     return second;
   }
 
-  /// The key of the pair.
+  /// The key of the entry.
   const Key& first;
 
-  /// The value of the pair.
+  /// The value of the entry.
   Value& second;
 };
 }  // namespace LRU

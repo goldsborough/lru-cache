@@ -26,10 +26,10 @@
 #include <iterator>
 #include <type_traits>
 
+#include "lru/entry.hpp"
 #include "lru/internal/base-iterator.hpp"
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/optional.hpp"
-#include "lru/pair.hpp"
 
 
 namespace LRU {
@@ -102,7 +102,7 @@ class BaseUnorderedIterator
 
   BaseUnorderedIterator& operator++() {
     ++_iterator;
-    _pair.reset();
+    _entry.reset();
     return *this;
   }
 
@@ -112,12 +112,12 @@ class BaseUnorderedIterator
     return previous;
   }
 
-  Pair& pair() noexcept override {
-    if (!_pair.has_value()) {
-      _pair.emplace(key(), value());
+  Entry& entry() noexcept override {
+    if (!_entry.has_value()) {
+      _entry.emplace(key(), value());
     }
 
-    return *_pair;
+    return *_entry;
   }
 
   Value& value() noexcept override {

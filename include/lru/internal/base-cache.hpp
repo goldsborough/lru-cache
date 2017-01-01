@@ -40,7 +40,6 @@
 #include "lru/internal/optional.hpp"
 #include "lru/internal/statistics-mutator.hpp"
 #include "lru/internal/utility.hpp"
-#include "lru/pair.hpp"
 #include "lru/statistics.hpp"
 
 namespace LRU {

@@ -25,64 +25,96 @@
 #include <algorithm>
 #include <iterator>
 
+#include "lru/entry.hpp"
 #include "lru/internal/optional.hpp"
-#include "lru/pair.hpp"
 
 #define PUBLIC_BASE_ITERATOR_MEMBERS \
-  typename super::Pair;              \
+  typename super::Entry;             \
   using typename super::KeyType;     \
   using typename super::ValueType;
 
 #define PRIVATE_BASE_ITERATOR_MEMBERS \
   super::_iterator;                   \
-  using super::_pair;                 \
+  using super::_entry;                \
   using super::_cache;
 
 
 namespace LRU {
 namespace Internal {
 
+/// The base class for all (ordered and unordered) iterators.
+///
+/// All iterators over our LRU caches store a reference to the cache they point
+/// into, an underlying iterator they adapt (e.g. a map iterator or list
+/// iterator) as well as a entry, a reference to which is returned when
+/// dereferencing the iterator.
 template <typename IteratorTag,
           typename Key,
           typename Value,
           typename Cache,
           typename UnderlyingIterator>
-class BaseIterator : public std::iterator<IteratorTag, LRU::Pair<Key, Value>> {
+class BaseIterator : public std::iterator<IteratorTag, LRU::Entry<Key, Value>> {
  public:
   using KeyType = Key;
   using ValueType =
       std::conditional_t<std::is_const<Cache>::value, const Value, Value>;
-  using Pair = LRU::Pair<KeyType, ValueType>;
+  using Entry = LRU::Entry<KeyType, ValueType>;
 
+  /// Default constructor.
   BaseIterator() noexcept : _cache(nullptr) {
   }
 
+  /// Constructor.
+  ///
+  /// \param cache The cahe to keep a reference to.
+  /// \param iterator The underlying iterator to adapt.
+  /// \param entry Optioanlly, an initial value for the stored one.
   BaseIterator(Cache& cache,
                const UnderlyingIterator& iterator,
-               const Optional<Pair>& pair = Optional<Pair>())
-  : _iterator(iterator), _pair(pair), _cache(&cache) {
+               const Optional<Entry>& entry = Optional<Entry>())
+  : _iterator(iterator), _entry(entry), _cache(&cache) {
   }
 
+  /// Copy constructor.
+  ///
+  /// Differs from the default copy constructor in that it does not copy the
+  /// entry.
+  ///
+  /// \param other The base iterator to copy.
   BaseIterator(const BaseIterator& other) noexcept
   : _iterator(other._iterator), _cache(other._cache) {
-    // Note: we do not copy the pair, as it would require a new allocation.
+    // Note: we do not copy the entry, as it would require a new allocation.
     // Since iterators are often taken by value, this may incur a high cost.
-    // As such we delay the retrieval of the pair to the first call to pair().
+    // As such we delay the retrieval of the entry to the first call to entry().
   }
 
+  /// Copy assignment operator.
+  ///
+  /// Differs from the default copy assignment
+  /// operator in that it does not copy the entry.
+  ///
+  /// \param other The base iterator to copy.
+  /// \return The base iterator instance.
   BaseIterator& operator=(const BaseIterator& other) noexcept {
     if (this != &other) {
       _iterator = other._iterator;
       _cache = other._cache;
-      _pair.reset();
+      _entry.reset();
     }
     return *this;
   }
 
-  // If one special member function is defined, all must be.
+  /// Move constructor.
   BaseIterator(BaseIterator&& other) = default;
+
+  /// Move assignment operator.
   BaseIterator& operator=(BaseIterator&& other) noexcept = default;
 
+  /// Generalized copy constructor.
+  ///
+  /// Mainly necessary for non-const to const conversion.
+  ///
+  /// \param other The base iterator to copy from.
   template <typename AnyIteratorTag,
             typename AnyKeyType,
             typename AnyValueType,
@@ -93,9 +125,14 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Pair<Key, Value>> {
                                   AnyValueType,
                                   AnyCacheType,
                                   AnyUnderlyingIteratorType>& other)
-  : _iterator(other._iterator), _pair(other._pair), _cache(other._cache) {
+  : _iterator(other._iterator), _entry(other._entry), _cache(other._cache) {
   }
 
+  /// Generalized move constructor.
+  ///
+  /// Mainly necessary for non-const to const conversion.
+  ///
+  /// \param other The base iterator to move into this one.
   template <typename AnyIteratorTag,
             typename AnyKeyType,
             typename AnyValueType,
@@ -107,44 +144,65 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Pair<Key, Value>> {
                             AnyCacheType,
                             AnyUnderlyingIteratorType>&& other)
   : _iterator(std::move(other._iterator))
-  , _pair(std::move(other._pair))
+  , _entry(std::move(other._entry))
   , _cache(std::move(other._cache)) {
   }
 
+  /// Destructor.
   virtual ~BaseIterator() = default;
 
-  virtual void swap(BaseIterator& other) noexcept {
+  /// Swaps this base iterator with another one.
+  ///
+  /// \param other The other iterator to swap with.
+  void swap(BaseIterator& other) noexcept {
     // Enable ADL
     using std::swap;
 
     swap(_iterator, other._iterator);
-    swap(_pair, other._pair);
+    swap(_entry, other._entry);
     swap(_cache, other._cache);
   }
 
+  /// Swaps two base iterator.
+  ///
+  /// \parm first The first iterator to swap.
+  /// \parm second The second iterator to swap.
   friend void swap(BaseIterator& first, BaseIterator& second) noexcept {
     first.swap(second);
   }
 
-  Pair& operator*() noexcept {
-    return pair();
+  /// \returns A reference to the current entry pointed to by the iterator.
+  Entry& operator*() noexcept {
+    return entry();
   }
 
-  Pair* operator->() noexcept {
+  /// \returns A pointer to the current entry pointed to by the iterator.
+  Entry* operator->() noexcept {
     return &(**this);
   }
 
-  virtual Pair& pair() noexcept = 0;
+  /// \copydoc operator*()
+  virtual Entry& entry() noexcept = 0;
+
+  /// \returns A reference to the value of the entry currently pointed to by the
+  /// iterator.
   virtual ValueType& value() noexcept = 0;
+
+  /// \returns A reference to the key of the entry currently pointed to by the
+  /// iterator.
   virtual const Key& key() noexcept = 0;
 
  protected:
   template <typename, typename, typename, typename, typename>
   friend class BaseIterator;
 
+  /// The underlying iterator this iterator class adapts.
   UnderlyingIterator _iterator;
-  Optional<Pair> _pair;
 
+  /// The entry optionally being stored.
+  Optional<Entry> _entry;
+
+  /// A pointer to the cache this iterator points into.
   /// Pointer and not reference because it's cheap to copy.
   /// Pointer and not `std::reference_wrapper` because the class needs to be
   /// default-constructible.
