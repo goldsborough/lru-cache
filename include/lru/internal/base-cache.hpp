@@ -37,8 +37,10 @@
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/last-accessed.hpp"
 #include "lru/internal/optional.hpp"
+#include "lru/internal/statistics-mutator.hpp"
 #include "lru/internal/utility.hpp"
 #include "lru/pair.hpp"
+#include "lru/statistics.hpp"
 
 namespace LRU {
 namespace Internal {
@@ -64,21 +66,23 @@ namespace Internal {
   using typename super::OrderedConstIterator;   \
   using typename super::InitializerList;
 
-#define PRIVATE_BASE_CACHE_MEMBERS        \
-  super::_cache;                          \
-  using typename super::Map;              \
-  using typename super::MapIterator;      \
-  using typename super::MapConstIterator; \
-  using typename super::Queue;            \
-  using typename super::QueueIterator;    \
-  using super::_order;                    \
-  using super::_last_accessed;            \
-  using super::_capacity;                 \
-  using super::_erase;                    \
-  using super::_erase_lru;                \
-  using super::_move_to_front;            \
-  using super::_value_from_result;        \
-  using super::_key_is_last_accessed
+#define PRIVATE_BASE_CACHE_MEMBERS           \
+  super::_cache;                             \
+  using typename super::Map;                 \
+  using typename super::MapIterator;         \
+  using typename super::MapConstIterator;    \
+  using typename super::Queue;               \
+  using typename super::QueueIterator;       \
+  using super::_order;                       \
+  using super::_last_accessed;               \
+  using super::_capacity;                    \
+  using super::_erase;                       \
+  using super::_erase_lru;                   \
+  using super::_move_to_front;               \
+  using super::_value_from_result;           \
+  using super::_key_is_last_accessed;        \
+  using super::_register_miss_if_monitoring; \
+  using super::_register_hit_if_monitoring;
 
 template <typename Key,
           typename Value,
@@ -376,7 +380,10 @@ class BaseCache {
   }
 
   virtual bool contains(const Key& key) const {
-    if (_key_is_last_accessed(key)) return true;
+    if (_key_is_last_accessed(key)) {
+      _register_hit_if_monitoring(key);
+      return true;
+    }
 
     auto iterator = find(key);
     if (iterator != end()) {
@@ -389,6 +396,7 @@ class BaseCache {
 
   virtual const Value& lookup(const Key& key) const {
     if (key == _last_accessed) {
+      _register_hit_if_monitoring(key);
       return _value_for_last_accessed();
     }
 
@@ -402,6 +410,7 @@ class BaseCache {
 
   virtual Value& lookup(const Key& key) {
     if (key == _last_accessed) {
+      _register_hit_if_monitoring(key);
       return _value_for_last_accessed();
     }
 
@@ -598,6 +607,43 @@ class BaseCache {
     return _cache.key_eq();
   }
 
+
+  /// Statistics interface
+  virtual void monitor(Statistics<Key>& statistics) {
+    _stats = statistics;
+  }
+
+  virtual void monitor(Statistics<Key>&& statistics) {
+    _stats = std::move(statistics);
+  }
+
+  template <typename... Args>
+  void monitor(Args&&... args) {
+    _stats = Statistics<Key>(std::forward<Args>(args)...);
+  }
+
+  virtual void stop_monitoring() {
+    _stats.reset();
+  }
+
+  bool is_monitoring() const noexcept {
+    return _stats.has_statistics();
+  }
+
+  virtual Statistics<Key>& statistics() {
+    if (!is_monitoring()) {
+      throw LRU::Error::NotMonitoring();
+    }
+    return _stats.get();
+  }
+
+  virtual const Statistics<Key>& statistics() const {
+    if (!is_monitoring()) {
+      throw LRU::Error::NotMonitoring();
+    }
+    return _stats.get();
+  }
+
  protected:
   using MapInsertionResult = decltype(Map().emplace());
   using LastAccessed =
@@ -658,9 +704,22 @@ class BaseCache {
     return _last_accessed.value().value;
   }
 
+  virtual void _register_hit_if_monitoring(const Key& key) const {
+    if (is_monitoring()) {
+      _stats.register_hit(key);
+    }
+  }
+
+  virtual void _register_miss_if_monitoring(const Key& key) const {
+    if (is_monitoring()) {
+      _stats.register_miss(key);
+    }
+  }
+
   Map _cache;
   Queue _order;
 
+  mutable StatisticsMutator<Key> _stats;
   mutable LastAccessed _last_accessed;
 
   size_t _capacity;

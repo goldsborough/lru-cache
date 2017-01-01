@@ -66,12 +66,18 @@ class GeneralizedPointer {
 
   GeneralizedPointer(GeneralizedPointer&& other) noexcept
   : _is_owning(other._is_owning), _pointer(other._pointer) {
+    // IMPORTANT! Otherwise the other pointer will delete the object as well.
+    other._is_owning = false;
+    other._pointer = nullptr;
   }
 
   template <typename U,
             typename = std::enable_if_t<std::is_convertible<T, U>::value>>
   GeneralizedPointer(GeneralizedPointer<U>&& other) noexcept
   : _is_owning(other._is_owning), _pointer(other._pointer) {
+    // IMPORTANT! Otherwise the other pointer will delete the object as well.
+    other._is_owning = false;
+    other._pointer = nullptr;
   }
 
   GeneralizedPointer& operator=(GeneralizedPointer other) {
@@ -93,9 +99,16 @@ class GeneralizedPointer {
 
   ~GeneralizedPointer() {
     if (_is_owning) {
-      std::cout << "delete" << std::endl;
       delete _pointer;
     }
+  }
+
+  bool operator==(std::nullptr_t) const noexcept {
+    return is_null();
+  }
+
+  bool operator!=(std::nullptr_t) const noexcept {
+    return !is_null();
   }
 
   T& operator*() noexcept {
@@ -140,6 +153,14 @@ class GeneralizedPointer {
 
   bool is_owning() const noexcept {
     return _is_owning;
+  }
+
+  void reset() {
+    if (_is_owning) {
+      delete _pointer;
+    }
+    _pointer = nullptr;
+    _is_owning = false;
   }
 
  private:

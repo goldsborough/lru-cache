@@ -52,7 +52,6 @@ struct KeyExpired : public std::runtime_error {
 
 struct EmptyCache : public std::runtime_error {
   using super = std::runtime_error;
-
   explicit EmptyCache(const std::string& what_was_expected)
   : super("Requested " + what_was_expected + " of empty cache") {
   }
@@ -60,7 +59,6 @@ struct EmptyCache : public std::runtime_error {
 
 struct InvalidIteratorConversion : public std::runtime_error {
   using super = std::runtime_error;
-
   InvalidIteratorConversion()
   : super("Cannot convert past-the-end unordered to ordered iterator") {
   }
@@ -68,8 +66,13 @@ struct InvalidIteratorConversion : public std::runtime_error {
 
 struct UnmonitoredKey : public std::runtime_error {
   using super = std::runtime_error;
+  UnmonitoredKey() : super("Requested statistics for unmonitored key") {
+  }
+};
 
-  UnmonitoredKey() : super("Requested statistics about unmonitored key") {
+struct NotMonitoring : public std::runtime_error {
+  using super = std::runtime_error;
+  NotMonitoring() : super("Statistics monitoring not enabled for this cache") {
   }
 };
 

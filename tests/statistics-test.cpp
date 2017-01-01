@@ -21,9 +21,9 @@
 
 #include <vector>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "lru/error.hpp"
 #include "lru/internal/statistics-mutator.hpp"
 #include "lru/lru.hpp"
 
@@ -79,7 +79,7 @@ TEST(StatisticsTest, EmptyPreconditions) {
 }
 
 TEST(StatisticsTest, StatisticsMutatorCanRegisterHits) {
-  Statistics<int> stats(1);
+  Statistics<int> stats({1, 2});
 
   StatisticsMutator<int> mutator(stats);
 
@@ -110,7 +110,7 @@ TEST(StatisticsTest, StatisticsMutatorCanRegisterHits) {
 }
 
 TEST(StatisticsTest, StatisticsMutatorCanRegisterMisses) {
-  Statistics<int> stats(1);
+  Statistics<int> stats({1, 2});
 
   StatisticsMutator<int> mutator(stats);
 
@@ -221,4 +221,151 @@ TEST(StatisticsTest, CanShareStatistics) {
   EXPECT_EQ(stats.misses_for(1), 0);
   EXPECT_EQ(stats.hits_for(2), 0);
   EXPECT_EQ(stats.misses_for(2), 1);
+}
+
+struct CacheWithStatisticsTest : public ::testing::Test {
+  void assert_total_statistics(int accesses, int hits, int misses) {
+    ASSERT_EQ(cache.statistics().total_accesses(), accesses);
+    ASSERT_EQ(cache.statistics().total_hits(), hits);
+    ASSERT_EQ(cache.statistics().total_misses(), misses);
+  }
+
+  void expect_total_statistics(int accesses, int hits, int misses) {
+    EXPECT_EQ(cache.statistics().total_accesses(), accesses);
+    EXPECT_EQ(cache.statistics().total_hits(), hits);
+    EXPECT_EQ(cache.statistics().total_misses(), misses);
+  }
+
+  Cache<int, int> cache;
+};
+
+TEST_F(CacheWithStatisticsTest,
+       RequestForCacheStatisticsThrowsWhenNoneRegistered) {
+  EXPECT_THROW(cache.statistics(), LRU::Error::NotMonitoring);
+}
+
+TEST_F(CacheWithStatisticsTest, CanRegisterLValueStatistics) {
+  Statistics<int> stats;
+  cache.monitor(stats);
+
+  EXPECT_TRUE(cache.is_monitoring());
+
+  // This is a strong constraint, but must hold for lvalue statistics object
+  EXPECT_EQ(&cache.statistics(), &stats);
+
+  cache.contains(1);
+  EXPECT_EQ(cache.statistics().total_accesses(), 1);
+  EXPECT_EQ(cache.statistics().total_misses(), 1);
+
+  cache.emplace(1, 2);
+
+  cache.contains(1);
+  EXPECT_EQ(cache.statistics().total_accesses(), 2);
+  EXPECT_EQ(cache.statistics().total_misses(), 1);
+  EXPECT_EQ(cache.statistics().total_hits(), 1);
+}
+
+TEST_F(CacheWithStatisticsTest, CanRegisterRValueStatistics) {
+  cache.monitor(Statistics<int>{});
+
+  EXPECT_TRUE(cache.is_monitoring());
+
+  cache.contains(1);
+  EXPECT_EQ(cache.statistics().total_accesses(), 1);
+  EXPECT_EQ(cache.statistics().total_misses(), 1);
+
+  cache.emplace(1, 2);
+
+  cache.contains(1);
+  EXPECT_EQ(cache.statistics().total_accesses(), 2);
+  EXPECT_EQ(cache.statistics().total_misses(), 1);
+  EXPECT_EQ(cache.statistics().total_hits(), 1);
+}
+
+TEST_F(CacheWithStatisticsTest, CanConstructItsOwnStatistics) {
+  cache.monitor(1, 2, 3);
+
+  EXPECT_TRUE(cache.is_monitoring());
+  EXPECT_TRUE(cache.statistics().is_monitoring(1));
+  EXPECT_TRUE(cache.statistics().is_monitoring(2));
+  EXPECT_TRUE(cache.statistics().is_monitoring(3));
+
+  cache.contains(1);
+  EXPECT_EQ(cache.statistics().total_accesses(), 1);
+  EXPECT_EQ(cache.statistics().total_misses(), 1);
+
+  cache.emplace(1, 2);
+
+  cache.contains(1);
+  EXPECT_EQ(cache.statistics().total_accesses(), 2);
+  EXPECT_EQ(cache.statistics().total_misses(), 1);
+  EXPECT_EQ(cache.statistics().total_hits(), 1);
+}
+
+TEST_F(CacheWithStatisticsTest, KnowsWhenItIsMonitoring) {
+  EXPECT_FALSE(cache.is_monitoring());
+
+  cache.monitor();
+
+  EXPECT_TRUE(cache.is_monitoring());
+
+  cache.stop_monitoring();
+
+  EXPECT_FALSE(cache.is_monitoring());
+}
+
+TEST_F(CacheWithStatisticsTest, StatisticsWorkWithCache) {
+  cache.monitor(1);
+  ASSERT_TRUE(cache.is_monitoring());
+  assert_total_statistics(0, 0, 0);
+
+  // contains
+  cache.contains(1);
+  expect_total_statistics(1, 0, 1);
+
+  // An access should only occur for lookup(), find(), contains() and operator[]
+  cache.emplace(1, 1);
+  expect_total_statistics(1, 0, 1);
+
+  cache.contains(1);
+  expect_total_statistics(2, 1, 1);
+
+  // find
+  cache.find(2);
+  expect_total_statistics(3, 1, 2);
+
+  cache.emplace(2, 2);
+
+  cache.find(2);
+  expect_total_statistics(4, 2, 2);
+
+  EXPECT_THROW(cache.lookup(3), LRU::Error::KeyNotFound);
+  expect_total_statistics(5, 2, 3);
+
+  cache.emplace(3, 3);
+
+  ASSERT_EQ(cache.lookup(3), 3);
+  expect_total_statistics(6, 3, 3);
+
+  EXPECT_THROW(cache[4], LRU::Error::KeyNotFound);
+  expect_total_statistics(7, 3, 4);
+
+  cache.emplace(4, 4);
+
+  ASSERT_EQ(cache[4], 4);
+  expect_total_statistics(8, 4, 4);
+}
+
+TEST_F(CacheWithStatisticsTest, StopsMonitoringWhenAsked) {
+  Statistics<int> stats(1);
+  cache.monitor(stats);
+  cache.emplace(1, 1);
+
+  ASSERT_TRUE(cache.contains(1));
+  ASSERT_EQ(stats.hits_for(1), 1);
+
+  cache.stop_monitoring();
+
+  ASSERT_TRUE(cache.contains(1));
+  EXPECT_EQ(stats.hits_for(1), 1);
 }

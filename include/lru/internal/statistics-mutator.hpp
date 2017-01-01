@@ -22,6 +22,7 @@
 #ifndef LRU_STATISTICS_MUTATOR_HPP
 #define LRU_STATISTICS_MUTATOR_HPP
 
+#include <cstddef>
 #include <utility>
 
 #include "lru/internal/generalized-pointer.hpp"
@@ -36,31 +37,50 @@ class StatisticsMutator {
  public:
   StatisticsMutator() noexcept = default;
 
-  explicit StatisticsMutator(Statistics<Key>& statistics)
-  : _statistics(statistics) {
+  StatisticsMutator(Statistics<Key>& statistics)  // NOLINT(runtime/explicit)
+      : _statistics(statistics) {
   }
 
-  explicit StatisticsMutator(Statistics<Key>&& statistics)
-  : _statistics(std::move(statistics)) {
+  StatisticsMutator(Statistics<Key>&& statistics)  // NOLINT(runtime/explicit)
+      : _statistics(std::move(statistics)) {
   }
 
   void register_hit(const Key& key) {
     _statistics->_total_accesses += 1;
     _statistics->_total_hits += 1;
-    _statistics->_hit_map[key].hits += 1;
+
+    auto iterator = _statistics->_hit_map.find(key);
+    if (iterator != _statistics->_hit_map.end()) {
+      iterator->second.hits += 1;
+    }
   }
 
   void register_miss(const Key& key) {
     _statistics->_total_accesses += 1;
-    _statistics->_hit_map[key].misses += 1;
+    auto iterator = _statistics->_hit_map.find(key);
+    if (iterator != _statistics->_hit_map.end()) {
+      iterator->second.misses += 1;
+    }
   }
 
-  Statistics<Key>& statistics() noexcept {
+  Statistics<Key>& get() noexcept {
     return *_statistics;
   }
 
-  const Statistics<Key>& statistics() const noexcept {
+  const Statistics<Key>& get() const noexcept {
     return *_statistics;
+  }
+
+  bool has_statistics() const noexcept {
+    return !_statistics.is_null();
+  }
+
+  explicit operator bool() const noexcept {
+    return has_statistics();
+  }
+
+  void reset() {
+    _statistics.reset();
   }
 
  private:

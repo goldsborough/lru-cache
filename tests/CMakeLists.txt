@@ -12,8 +12,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/googletest)
 
 set(GTEST_INCLUDE_DIRS
   ${gtest_SOURCE_DIR}/include
-  ${gtest_SOURCE_DIR}
-  PARENT_SCOPE)
+  ${gtest_SOURCE_DIR})
 
 ########################################
 # INCLUDES
@@ -40,7 +39,7 @@ set(TEST_LRU_CACHE_SOURCES
 
 add_executable(lru-cache-test ${TEST_LRU_CACHE_SOURCES})
 
-target_link_libraries(lru-cache-test gtest gtest_main)
+target_link_libraries(lru-cache-test gtest gmock gtest_main)
 
 add_test(
   NAME lru-cache-test
