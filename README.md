@@ -1,9 +1,5 @@
 # lru-cache
 
-## TODO
-
-integrate Statistics with Cache
-
 ## rewrite-tool
 Some interesting links:
 * http://stackoverflow.com/a/33473726

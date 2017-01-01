@@ -24,8 +24,8 @@
 
 #include "lru/cache.hpp"
 #include "lru/error.hpp"
-#include "lru/memoize.hpp"
 #include "lru/statistics.hpp"
 #include "lru/timed-cache.hpp"
+#include "lru/wrap.hpp"
 
 #endif  // LRU_HPP

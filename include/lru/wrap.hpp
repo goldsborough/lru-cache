@@ -19,30 +19,26 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef LRU_MEMOIZE_HPP
-#define LRU_MEMOIZE_HPP
+#ifndef LRU_WRAP_HPP
+#define LRU_WRAP_HPP
 
 #include <cstddef>
 #include <tuple>
-#include <unordered_map>
 #include <utility>
 
 #include "lru/cache.hpp"
-#include "lru/error.hpp"
-#include "lru/internal/definitions.hpp"
 #include "lru/internal/hash.hpp"
-#include "lru/statistics.hpp"
 
 namespace LRU {
 
 template <typename Function>
-auto wrap(const Function& original_function) {
-  return [original_function](auto&&... arguments) {
+auto wrap(Function original_function) {
+  return [original_function](auto&&... arguments) mutable {
     using Arguments = std::tuple<std::decay_t<decltype(arguments)>...>;
     using ReturnType = decltype(
         original_function(std::forward<decltype(arguments)>(arguments)...));
 
-    static std::unordered_map<Arguments, ReturnType> cache;
+    static Cache<Arguments, ReturnType> cache;
 
     auto key = std::make_tuple(arguments...);
     auto iterator = cache.find(key);
@@ -52,7 +48,7 @@ auto wrap(const Function& original_function) {
     }
 
     auto value =
-        original_function(std::forward<decltype(arguments)...>(arguments)...);
+        original_function(std::forward<decltype(arguments)>(arguments)...);
     cache.emplace(key, value);
 
     return value;
@@ -60,4 +56,4 @@ auto wrap(const Function& original_function) {
 }
 }  //  namespace LRU
 
-#endif  // LRU_MEMOIZE_HPP
+#endif  // LRU_WRAP_HPP
