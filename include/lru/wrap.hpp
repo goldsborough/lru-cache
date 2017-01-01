@@ -31,6 +31,15 @@
 
 namespace LRU {
 
+/// Wraps a function with a "shallow" LRU cache.
+///
+/// Given a function, this function will return a new function, where
+/// "top-level" calls are cached. With "top-level" or "shallow", we mean
+/// that recursive calls to the same function are not cached, since those
+/// will call the original function symbol, not the wrapped one.
+///
+/// \param original_function The function to wrap.
+/// \returns A new function with a shallow LRU cache.
 template <typename Function>
 auto wrap(Function original_function) {
   return [original_function](auto&&... arguments) mutable {

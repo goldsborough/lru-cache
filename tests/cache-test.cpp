@@ -448,8 +448,9 @@ TEST_F(CacheTest, SwapWorks) {
   ASSERT_TRUE(cache2.contains("two"));
 
   cache.swap(cache2);
+  dfa
 
-  EXPECT_FALSE(cache.contains("one"));
+      EXPECT_FALSE(cache.contains("one"));
   EXPECT_TRUE(cache.contains("two"));
   EXPECT_FALSE(cache2.contains("two"));
   EXPECT_TRUE(cache2.contains("one"));
