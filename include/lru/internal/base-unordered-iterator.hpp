@@ -50,6 +50,10 @@ using BaseForBaseUnorderedIterator =
 /// However, the order of keys is unspecified. For this reason, unordered
 /// iterators have the special property that they may be used to construct
 /// ordered iterators, after which the order of insertion is respected.
+///
+/// \tparam Cache The type of the cache instances of the iterator point into.
+/// \tparam UnderlyingIterator The underlying iterator class used to implement
+///                            the iterator.
 template <typename Cache, typename UnderlyingIterator>
 class BaseUnorderedIterator
     : public BaseForBaseUnorderedIterator<Cache, UnderlyingIterator> {

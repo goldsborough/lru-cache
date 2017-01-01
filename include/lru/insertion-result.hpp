@@ -34,6 +34,8 @@ namespace LRU {
 /// returned by `std::unordered_map` or so. It still has the same static
 /// interface as the `std::pair` (with `first` and `second` members), but adds
 /// nicer `was_inserted()` and `iterator()` accessors.
+///
+/// \tparam Iterator The class of the iterator contained in the result.
 template <typename Iterator>
 struct InsertionResult final {
   using IteratorType = Iterator;

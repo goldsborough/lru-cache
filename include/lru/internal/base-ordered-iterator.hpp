@@ -54,6 +54,10 @@ using BaseForBaseOrderedIterator =
 /// efficient than unordered iterators. However, they also have the additional
 /// property that they may be constructed from unordered iterators, and that
 /// they can be decremented.
+///
+/// \tparam Key The key type over which instances of the iterator iterate.
+/// \tparam Value The value type over which instances of the iterator iterate.
+/// \tparam Cache The type of the cache instances of the iterator point into.
 template <typename Key, typename Value, typename Cache>
 class BaseOrderedIterator
     : public BaseForBaseOrderedIterator<Key, Value, Cache> {

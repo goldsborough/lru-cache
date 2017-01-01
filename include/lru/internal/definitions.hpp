@@ -30,18 +30,25 @@
 
 namespace LRU {
 namespace Internal {
+
+/// The default capacity for all caches.
 const std::size_t DEFAULT_CAPACITY = 128;
 
+/// The default queue type used internally.
 template <typename T>
 using Queue = std::list<T>;
 
+/// The default map type used internally.
 template <typename Key,
           typename Information,
           typename HashFunction,
           typename KeyEqual>
 using Map = std::unordered_map<Key, Information, HashFunction, KeyEqual>;
 
+/// The default clock used internally.
 using Clock = std::chrono::steady_clock;
+
+/// The default timestamp (time point) used internally.
 using Timestamp = Clock::time_point;
 }  // namespace Internal
 }  // namespace LRU

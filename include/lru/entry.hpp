@@ -31,6 +31,9 @@ namespace LRU {
 /// A entry of references to the key and value of an entry in a cache.
 ///
 /// Instances of this class are usually the result of dereferencing an iterator.
+///
+/// \tparam Key The key type of the pair.
+/// \tparam Value The value type of the pair.
 template <typename Key, typename Value>
 struct Entry final {
   using KeyType = Key;

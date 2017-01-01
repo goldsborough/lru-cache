@@ -27,8 +27,14 @@
 #elif __has_include(<optional>)
 
 #include <optional>
+
+namespace LRU {
+namespace Internal {
 template <typename T>
 using Optional = std::optional<T>;
+}  // namespace Internal
+}  // namespace LRU
+
 #else
 #define USE_LRU_OPTIONAL
 #endif
@@ -37,21 +43,46 @@ using Optional = std::optional<T>;
 #include <memory>
 #include <stdexcept>
 
+namespace LRU {
+namespace Internal {
+
+// A roll-your-own replacement of `std::optional`.
+//
+// This class is only to be used if `std::optional` is unavailable. It
+// implements an optional type simply on top of a `unique_ptr`. It is
+// API-compatible with `std::optional`, as required for our purposes.
 template <typename T>
 class Optional {
  public:
+  /// Constructor.
   Optional() = default;
 
+  /// Copy constructor.
+  ///
+  /// \other The other optional object to copy from.
   Optional(const Optional& other) {
     if (other) emplace(*other);
   }
 
+  /// Generalized copy constructor.
+  ///
+  /// \other The other optional object to copy from.
   template <typename U,
             typename = std::enable_if_t<std::is_convertible<T, U>::value>>
   Optional(const Optional<U>& other) {
     if (other) emplace(*other);
   }
 
+  /// Move constructor.
+  ///
+  /// \other The other optional object to move into this one.
+  Optional(Optional&& other) noexcept {
+    swap(other);
+  }
+
+  /// Generalized move constructor.
+  ///
+  /// \other The other optional object to move into this one.
   template <typename U,
             typename = std::enable_if_t<std::is_convertible<T, U>::value>>
   Optional(Optional<U>&& other) noexcept {
@@ -60,48 +91,67 @@ class Optional {
     }
   }
 
-  Optional(Optional&& other) noexcept {
-    swap(other);
-  }
-
+  /// Assignment operator.
+  ///
+  /// \param The other object to assign from.
+  /// \returns The resulting optional instance.
   Optional& operator=(Optional other) noexcept {
     swap(other);
     return *this;
   }
 
+  /// Swaps the contents of this optional with another one.
+  ///
+  /// \param other The other optional to swap with.
   void swap(Optional& other) {
     _value.swap(other._value);
   }
 
-  friend void swap(Optional& first, Optional& second) {
+  /// Swaps the contents of two optionals.
+  ///
+  /// \param first The first optional to swap.
+  /// \param second The second optional to swap.
+  friend void swap(Optional& first, Optional& second) /* NOLINT */ {
     first.swap(second);
   }
 
-  constexpr explicit operator bool() const noexcept {
-    return has_value();
-  }
-
-  constexpr bool has_value() const noexcept {
+  /// \returns True if the `Optional` has a value, else false.
+  bool has_value() const noexcept {
     return static_cast<bool>(_value);
   }
 
-  constexpr const T* operator->() const {
+  /// \copydoc has_value()
+  explicit operator bool() const noexcept {
+    return has_value();
+  }
+
+  /// \returns A pointer to the current value. Behavior is undefined if the
+  /// optional has no value.
+  T* operator->() {
     return _value.get();
   }
 
-  constexpr T* operator->() {
+  /// \returns A const pointer to the current value. Behavior is undefined if
+  /// the `Optional` has no value.
+  const T* operator->() const {
     return _value.get();
   }
 
-  constexpr const T& operator*() const {
+  /// \returns A const reference to the current value. Behavior is undefined if
+  /// the `Optional` has no value.
+  const T& operator*() const {
     return *_value;
   }
 
-  constexpr T& operator*() {
+  /// \returns A reference to the current value. Behavior is undefined if
+  /// the `Optional` has no value.
+  T& operator*() {
     return *_value;
   }
 
-  constexpr T& value() {
+  /// \returns A reference to the current value.
+  /// \throws std::runtime_error If the `Optional` currently has no value.
+  T& value() {
     if (!has_value()) {
       // Actually std::bad_optional_access
       throw std::runtime_error("optional has no value");
@@ -110,7 +160,9 @@ class Optional {
     return *_value;
   }
 
-  constexpr const T& value() const {
+  /// \returns A const reference to the current value.
+  /// \throws std::runtime_error If the `Optional` currently has no value.
+  const T& value() const {
     if (!has_value()) {
       // Actually std::bad_optional_access
       throw std::runtime_error("optional has no value");
@@ -119,15 +171,22 @@ class Optional {
     return *_value;
   }
 
+  /// \returns The current value, or the given argument if there is no value.
+  /// \param default_value The value to return if this `Optional` currently has
+  ///                      no value.
   template <class U>
-  constexpr T value_or(U&& default_value) const {
+  T value_or(U&& default_value) const {
     return *this ? **this : static_cast<T>(std::forward<U>(default_value));
   }
 
+  /// Resets the `Optional` to have no value.
   void reset() {
     _value.reset();
   }
 
+  /// Constructs the `Optional`'s value with the given arguments.
+  ///
+  /// \param args Arguments to perfeclty forward to the value's constructor.
   template <typename... Args>
   void emplace(Args&&... args) {
     _value = std::make_unique<T>(std::forward<Args>(args)...);
@@ -137,8 +196,11 @@ class Optional {
   template <typename>
   friend class Optional;
 
+  /// The value, as we implement it.
   std::unique_ptr<T> _value;
 };
+}  // namespace Internal
+}  // namespace LRU
 
 #endif
 

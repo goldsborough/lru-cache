@@ -28,6 +28,7 @@
 namespace LRU {
 namespace Error {
 
+/// Exception thrown when the value of an invalid key was requested.
 struct KeyNotFound : public std::runtime_error {
   using super = std::runtime_error;
 
@@ -39,6 +40,7 @@ struct KeyNotFound : public std::runtime_error {
   }
 };
 
+/// Exception thrown when the value of an expired key was requested.
 struct KeyExpired : public std::runtime_error {
   using super = std::runtime_error;
 
@@ -50,6 +52,7 @@ struct KeyExpired : public std::runtime_error {
   }
 };
 
+/// Exception thrown when requesting the front or end key of an empty cache.
 struct EmptyCache : public std::runtime_error {
   using super = std::runtime_error;
   explicit EmptyCache(const std::string& what_was_expected)
@@ -57,6 +60,8 @@ struct EmptyCache : public std::runtime_error {
   }
 };
 
+/// Exception thrown when attempting to convert an invalid unordered iterator to
+/// an ordered iterator.
 struct InvalidIteratorConversion : public std::runtime_error {
   using super = std::runtime_error;
   InvalidIteratorConversion()
@@ -64,18 +69,22 @@ struct InvalidIteratorConversion : public std::runtime_error {
   }
 };
 
+/// Exception thrown when attempting to erase the past-the-end iterator.
 struct InvalidIterator : public std::runtime_error {
   using super = std::runtime_error;
   InvalidIterator() : super("Past-the-end iterator is invalid here") {
   }
 };
 
+/// Exception thrown when requesting statistics about an unmonitored key.
 struct UnmonitoredKey : public std::runtime_error {
   using super = std::runtime_error;
   UnmonitoredKey() : super("Requested statistics for unmonitored key") {
   }
 };
 
+/// Exception thrown when requesting the statistics object of a cache when none
+/// was registered.
 struct NotMonitoring : public std::runtime_error {
   using super = std::runtime_error;
   NotMonitoring() : super("Statistics monitoring not enabled for this cache") {

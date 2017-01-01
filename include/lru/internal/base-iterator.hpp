@@ -48,6 +48,13 @@ namespace Internal {
 /// into, an underlying iterator they adapt (e.g. a map iterator or list
 /// iterator) as well as a entry, a reference to which is returned when
 /// dereferencing the iterator.
+///
+/// \tparam IteratorTag A standard iterator category tag.
+/// \tparam Key The key type over which instances of the iterator iterate.
+/// \tparam Value The value type over which instances of the iterator iterate.
+/// \tparam Cache The type of the cache instances of the iterator point into.
+/// \tparam UnderlyingIterator The underlying iterator class used to implement
+///                            the iterator.
 template <typename IteratorTag,
           typename Key,
           typename Value,

@@ -27,18 +27,38 @@
 
 namespace LRU {
 
+/// Stores statistics for a single key.
+///
+/// The statistics stored are the total number of hits and the total number of
+/// misses. The total number of acccesses (the sum of hits and misses) may be
+/// accessed as well.
 struct KeyStatistics {
   using size_t = std::size_t;
 
+  /// Constructor.
+  ///
+  /// \param hits_ The initial number of hits for the key.
+  /// \param misses_ The initial number of misses for the key.
   explicit KeyStatistics(size_t hits_ = 0, size_t misses_ = 0)
   : hits(hits_), misses(misses_) {
   }
 
+  /// \returns The total number of accesses made for the key.
+  /// \detail This is the sum of the hits and misses.
   size_t accesses() const noexcept {
     return hits + misses;
   }
 
+  /// Resets the statistics for a key (sets them to zero).
+  void reset() {
+    hits = 0;
+    misses = 0;
+  }
+
+  /// The number of hits for the key.
   size_t hits;
+
+  /// The number of misses for the key.
   size_t misses;
 };
 

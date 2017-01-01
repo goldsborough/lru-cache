@@ -49,16 +49,16 @@ class StatisticsMutator {
     _statistics->_total_accesses += 1;
     _statistics->_total_hits += 1;
 
-    auto iterator = _statistics->_hit_map.find(key);
-    if (iterator != _statistics->_hit_map.end()) {
+    auto iterator = _statistics->_key_map.find(key);
+    if (iterator != _statistics->_key_map.end()) {
       iterator->second.hits += 1;
     }
   }
 
   void register_miss(const Key& key) {
     _statistics->_total_accesses += 1;
-    auto iterator = _statistics->_hit_map.find(key);
-    if (iterator != _statistics->_hit_map.end()) {
+    auto iterator = _statistics->_key_map.find(key);
+    if (iterator != _statistics->_key_map.end()) {
       iterator->second.misses += 1;
     }
   }
