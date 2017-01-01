@@ -68,7 +68,7 @@ TEST(CacheConstructionTest, IsConstructibleFromInitializerListWithCapacity) {
 }
 
 TEST(CacheConstructionTest, IsConstructibleFromRange) {
-  std::vector<std::pair<std::string, int>> range = {
+  const std::vector<std::pair<std::string, int>> range = {
       {"one", 1}, {"two", 2}, {"three", 3}};
 
   Cache<std::string, int> cache(range);
@@ -91,6 +91,25 @@ TEST(CacheConstructionTest, IsConstructibleFromIterators) {
   EXPECT_EQ(cache["one"], 1);
   EXPECT_EQ(cache["two"], 2);
   EXPECT_EQ(cache["three"], 3);
+}
+
+TEST(CacheConstructionTest, CapacityIsMaxOfInternalDefaultAndIteratorDistance) {
+  std::vector<std::pair<std::string, int>> range = {
+      {"one", 1}, {"two", 2}, {"three", 3}};
+
+  Cache<std::string, int> cache(range.begin(), range.end());
+
+  EXPECT_EQ(cache.capacity(), Internal::DEFAULT_CAPACITY);
+
+  for (int i = 0; i < Internal::DEFAULT_CAPACITY; ++i) {
+    range.emplace_back(std::to_string(i), i);
+  }
+
+  cache = std::move(range);
+  EXPECT_EQ(cache.capacity(), range.size());
+
+  Cache<std::string, int> cache2(range.begin(), range.end());
+  EXPECT_EQ(cache2.capacity(), range.size());
 }
 
 TEST(CacheConstructionTest, UsesCustomHashFunction) {

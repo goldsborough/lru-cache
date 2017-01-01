@@ -20,6 +20,8 @@
 /// IN THE SOFTWARE.
 
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "lru/lru.hpp"
@@ -138,4 +140,22 @@ TEST_F(MoveAwarenessTest, MovesLValueTuples) {
   // One copy to place the key into the queue
   EXPECT_EQ(MoveAwareKey::copy_count, 1);
   EXPECT_EQ(MoveAwareValue::copy_count, 0);
+}
+
+TEST_F(MoveAwarenessTest, MovesElementsOutOfRValueRanges) {
+  std::vector<std::pair<std::string, std::string>> range = {{"x", "y"}};
+  cache.insert(std::move(range));
+
+  // Move constructions from the string
+  EXPECT_EQ(MoveAwareKey::move_count, 1);
+  EXPECT_EQ(MoveAwareValue::move_count, 1);
+
+  EXPECT_EQ(MoveAwareKey::non_move_count, 0);
+  EXPECT_EQ(MoveAwareValue::non_move_count, 0);
+
+  // One copy to place the key into the queue
+  EXPECT_EQ(MoveAwareKey::copy_count, 1);
+  EXPECT_EQ(MoveAwareValue::copy_count, 0);
+
+  ASSERT_EQ(cache["x"], "y");
 }

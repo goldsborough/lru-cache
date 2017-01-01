@@ -23,6 +23,7 @@
 #define LRU_INTERNAL_BASE_CACHE_HPP
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
@@ -299,7 +300,9 @@ class BaseCache {
 
   /// Constructor.
   ///
-  /// The capacity is inferred from the distance between the two iterators.
+  /// The capacity is inferred from the distance between the two iterators and
+  /// lower-bounded by an internal constant $c_0$, usually 128 (i.e. the actual
+  /// capacity will be $\max(\text{distance}, c_0)$).
   /// This may be expensive for iterators that are not random-access.
   ///
   /// \parm begin The start of a range to construct the cache with.
@@ -312,7 +315,12 @@ class BaseCache {
             const HashFunction& hash,
             const KeyEqual& key_equal)
       // This may be expensive
-      : BaseCache(std::distance(begin, end), begin, end, hash, key_equal) {
+      : BaseCache(std::max<size_t>(std::distance(begin, end),
+                                   Internal::DEFAULT_CAPACITY),
+                  begin,
+                  end,
+                  hash,
+                  key_equal) {
   }
 
   /// Constructor.
@@ -323,7 +331,7 @@ class BaseCache {
   /// \param key_equal The key equality function to use for the internal map.
   template <typename Range>
   BaseCache(size_t capacity,
-            const Range& range,
+            Range& range,
             const HashFunction& hash,
             const KeyEqual& key_equal)
   : BaseCache(capacity, hash, key_equal) {
@@ -340,10 +348,48 @@ class BaseCache {
   /// \param hash The hash function to use for the internal map.
   /// \param key_equal The key equality function to use for the internal map.
   template <typename Range>
-  explicit BaseCache(const Range& range,
+  explicit BaseCache(Range& range,
                      const HashFunction& hash,
                      const KeyEqual& key_equal)
   : BaseCache(std::begin(range), std::end(range), hash, key_equal) {
+  }
+
+  /// Constructor.
+  ///
+  /// Elements of the range will be moved into the cache.
+  ///
+  /// \param capacity The capacity of the cache.
+  /// \param range A range to construct the cache with.
+  /// \param hash The hash function to use for the internal map.
+  /// \param key_equal The key equality function to use for the internal map.
+  template <typename Range>
+  BaseCache(size_t capacity,
+            Range&& range,
+            const HashFunction& hash,
+            const KeyEqual& key_equal)
+  : BaseCache(capacity, hash, key_equal) {
+    insert(std::move(range));
+  }
+
+  /// Constructor.
+  ///
+  /// The capacity is inferred from the distance between the beginning and end
+  /// of the range. This may be expensive for iterators that are not
+  /// random-access.
+  ///
+  /// Elements of the range will be moved into the cache.
+  ///
+  /// \param range A range to construct the cache with.
+  /// \param hash The hash function to use for the internal map.
+  /// \param key_equal The key equality function to use for the internal map.
+  template <typename Range>
+  explicit BaseCache(Range&& range,
+                     const HashFunction& hash,
+                     const KeyEqual& key_equal)
+  : BaseCache(std::distance(std::begin(range), std::end(range)),
+              std::move(range),
+              hash,
+              key_equal) {
   }
 
   /// Constructor.
@@ -387,14 +433,17 @@ class BaseCache {
 
   /// Sets the contents of the cache to a range.
   ///
+  /// If the size of the range is greater than the current capacity,
+  /// the capacity is increased to match the range's size. If the size of
+  /// the range is less than the current capacity, the cache's capacity is *not*
+  /// changed.
+  ///
   /// \param range A range of pairs to assign to the cache.
   /// \returns The cache instance.
   template <typename Range, typename = Internal::enable_if_range<Range>>
   BaseCache& operator=(const Range& range) {
-    clear();
-    for (const auto& pair : range) {
-      insert(pair.first, pair.second);
-    }
+    _clear_and_increase_capacity(range);
+    insert(range);
     return *this;
   }
 
@@ -406,10 +455,8 @@ class BaseCache {
   /// \returns The cache instance.
   template <typename Range, typename = Internal::enable_if_range<Range>>
   BaseCache& operator=(Range&& range) {
-    clear();
-    for (auto&& pair : std::move(range)) {
-      emplace(std::move(pair.first), std::move(pair.second));
-    }
+    _clear_and_increase_capacity(range);
+    insert(std::move(range));
     return *this;
   }
 
@@ -731,11 +778,28 @@ class BaseCache {
   /// \returns The number of elements newly inserted (as opposed to only
   /// updated).
   template <typename Range, typename = Internal::enable_if_range<Range>>
-  size_t insert(const Range& range) {
+  size_t insert(Range& range) {
     using std::begin;
     using std::end;
 
     return insert(begin(range), end(range));
+  }
+
+  /// Moves the elements of the range into the cache.
+  ///
+  /// \param range The range of `(key, value)` pairs to move into the cache.
+  /// \returns The number of elements newly inserted (as opposed to only
+  /// updated).
+  template <typename Range, typename = Internal::enable_if_range<Range>>
+  size_t insert(Range&& range) {
+    size_t newly_inserted = 0;
+    for (auto& pair : range) {
+      const auto result =
+          emplace(std::move(pair.first), std::move(pair.second));
+      newly_inserted += result.was_inserted();
+    }
+
+    return newly_inserted;
   }
 
   /// Inserts a list `(key, value)` pairs.
@@ -1148,6 +1212,22 @@ class BaseCache {
     }
   }
 
+  /// The common part of both range assignment operators.
+  ///
+  /// \param range The range to assign to.
+  template <typename Range>
+  void _clear_and_increase_capacity(const Range& range) {
+    using std::begin;
+    using std::end;
+
+    clear();
+
+    auto distance = std::distance(begin(range), end(range));
+    if (distance > _capacity) {
+      _capacity = distance;
+    }
+  }
+
   /// The map from keys to information objects.
   Map _map;
 
@@ -1163,7 +1243,6 @@ class BaseCache {
   /// The current capacity of the cache.
   size_t _capacity;
 };
-fdas
 }  // namespace Internal
 }  // namespace LRU
 
