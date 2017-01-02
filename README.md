@@ -1,77 +1,37 @@
 # lru-cache
 
-## rewrite-tool
-Some interesting links:
-* http://stackoverflow.com/a/33473726
-* http://clang.llvm.org/docs/InternalsManual.html#how-to-add-an-attribute
-* http://llvm.org/releases/3.8.1/tools/docs/LibASTMatchersReference.html
-* http://clang.llvm.org/doxygen/classclang_1_1Rewriter.html
-* https://github.com/Microsoft/clang-tools-extra/blob/master/clang-tidy/modernize/PassByValueCheck.cpp
-* http://stackoverflow.com/a/11154162
-* http://stackoverflow.com/a/12662748
+A feature complete LRU cache implementation in C++.
 
-## Thoughts on Further Generalization
+## Description
 
-How about arbitrary decorators in Python?
+A *least recently used* (LRU) cache is a fixed size cache that behaves just like a regular lookup table, but remembers the order in which elements are inserted. Once its (user-defined) capacity is reached, it uses this information to replace the least recently used element with a newly inserted one. This is ideal for caching function return values, where fast lookup of complex computation is favorable, but a memory blowup resulting from caching all `(input, output)` pairs is to be avoided.
 
-Idea: We write a "meta tool" that can generate clang plugins for decorators. The steps would be:
+We provide two implementations of an LRU cache: one has only the basic functionality described above, and another can be additionally supplied with a *time to live*. This is useful, for example, when caching resources on a server, where cache entries should be invalidated automatically after a certain amount of time, because they are no longer "fresh".
 
-1. The user defines decorators in C++. Such a decorator would not, like in Python, take a function and return the new function. Rather, the user would only have to define the body function that *will be called instead* of the original function. This function the user defines would have to:
-  1. Take the original function as the first argument.
-  2. Take any other arguments the function could be called with, or variadic arguments.
-  3. Have a non-automatically-deduced templated return type.
-For example, the following function would match these requirements:
+Additionally, all our caches can be connected to *statistics* objects, that keep track of cache hits and misses for all keys and, upon request, individual keys (similar to `functools.lru_cache` in Python).
 
-```cpp
-template <typename ReturnType, typename Function, typename... Ts>
-ReturnType memoize(Function original_function, Ts &&... ts) {
-  static std::unordered_map<std::tuple<Ts...>, ReturnType> map;
-  auto key = std::make_tuple(ts...);
-  auto iterator = map.find(key);
+## Basic Usage
 
-  if (iterator != map.end()) {
-    return iterator->second;
-  }
+The two main classes we provide are `LRU::Cache` and `LRU::TimedCache`. A basic usage example of these may look like so:
 
-  auto value = original_function(std::forward<Ts>(ts)...);
-  map.emplace(key, value);
+`LRU::Cache`:
+```C++
+#include "lru/lru.hpp"
+
+using Cache = LRU::Cache<int, int>;
+
+int fib(int n, Cache& cache) {
+  if (n < 2) return 1;
+  if (cache.contains(n)) return cache[n];
+
+  auto value = fib(n - 1, cache) + fib(n - 2, cache);
+  cache.emplace(n, value);
 
   return value;
 }
-```
-2. The user would then include this decorator where she wants to use them and annotate functions appropriately:
-```cpp
-#include "my-decorator.hpp"
-
-int fib(int n) __attribute((anotate("memoize"))){
-  if (n < 2) return 1;
-  return fib(n - 1) + fib(n -2);
-}
-```
-3. We would then write a tool, e.g. a Python script that renders a Jinja template, that generates a clang plugin, which does the following:
-  1. Rename the matched function to `fib_original` or maybe a mangled name, to avoid collisions.
-  2. Declare the original function with the original name before the now renamed function, so that recursive calls see the declaration.
-  3. Place a new function under the original function, which has the original name and in whose body we call the template decorator defined by the user,  instantiated with the return type of the function.
-In total, this will produce:
-```cpp
-// Original function declaration
-int fib(int);
-
-int __original__fib(int n) {
-  if (n < 2) return 1;
-  return fib(n - 1) + fib(n -2);
-}
 
 int fib(int n) {
-  // Instantiate the template with the return type, which is now known
-  return memoize<int>(__original__ fib, n);
+  Cache cache;
+  return fib(n, cache);
 }
 ```
-4. Profit $$
-
-## Extending Clang
-
-The next step would be to actually add attributes to clang itself and recompile clang to use the attribute as if it were a standard attribute:
-
-http://clang.llvm.org/docs/InternalsManual.html#attribute-basics
-http://stackoverflow.com/questions/38391314/clang-custom-attributes-not-visible-in-ast

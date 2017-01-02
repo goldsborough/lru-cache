@@ -40,15 +40,15 @@ set(CMAKE_MODULE_PATH
 ## INCLUDES
 ###########################################################
 
+# Need this top-level include for "tests/"
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 ###########################################################
-## BINARIES
+## EXAMPLES
 ###########################################################
 
-set(LRU_CACHE_BINARY_DIR ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${LRU_CACHE_BINARY_DIR})
+add_subdirectory(examples)
 
 ########################################
 # TESTS
