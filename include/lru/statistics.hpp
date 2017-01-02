@@ -73,7 +73,7 @@ class Statistics {
   /// Constructor.
   ///
   /// \param range A range of keys to monitor.
-  template <typename Range>
+  template <typename Range, typename = Internal::enable_if_range<Range>>
   explicit Statistics(const Range& range)
   : Statistics(std::begin(range), std::end(range)) {
   }
@@ -82,7 +82,8 @@ class Statistics {
   ///
   /// \param begin The start iterator of a range of keys to monitor.
   /// \param end The end iterator of a range of keys to monitor.
-  template <typename Iterator>
+  template <typename Iterator,
+            typename = Internal::enable_if_iterator<Iterator>>
   Statistics(Iterator begin, Iterator end) : Statistics() {
     for (; begin != end; ++begin) {
       monitor(*begin);

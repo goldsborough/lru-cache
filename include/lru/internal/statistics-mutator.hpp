@@ -22,7 +22,9 @@
 #ifndef LRU_STATISTICS_MUTATOR_HPP
 #define LRU_STATISTICS_MUTATOR_HPP
 
+#include <cassert>
 #include <cstddef>
+#include <memory>
 #include <utility>
 
 #include "lru/internal/generalized-pointer.hpp"
@@ -35,17 +37,22 @@ namespace Internal {
 template <typename Key>
 class StatisticsMutator {
  public:
+  using StatisticsPointer = std::shared_ptr<Statistics<Key>>;
+
   StatisticsMutator() noexcept = default;
 
-  StatisticsMutator(Statistics<Key>& statistics)  // NOLINT(runtime/explicit)
+  StatisticsMutator(
+      const StatisticsPointer& statistics)  // NOLINT(runtime/explicit)
       : _statistics(statistics) {
   }
 
-  StatisticsMutator(Statistics<Key>&& statistics)  // NOLINT(runtime/explicit)
+  StatisticsMutator(StatisticsPointer&& statistics)  // NOLINT(runtime/explicit)
       : _statistics(std::move(statistics)) {
   }
 
   void register_hit(const Key& key) {
+    assert(_statistics != nullptr);
+
     _statistics->_total_accesses += 1;
     _statistics->_total_hits += 1;
 
@@ -56,7 +63,10 @@ class StatisticsMutator {
   }
 
   void register_miss(const Key& key) {
+    assert(_statistics != nullptr);
+
     _statistics->_total_accesses += 1;
+
     auto iterator = _statistics->_key_map.find(key);
     if (iterator != _statistics->_key_map.end()) {
       iterator->second.misses += 1;
@@ -64,15 +74,25 @@ class StatisticsMutator {
   }
 
   Statistics<Key>& get() noexcept {
+    assert(_statistics != nullptr);
     return *_statistics;
   }
 
   const Statistics<Key>& get() const noexcept {
+    assert(_statistics != nullptr);
     return *_statistics;
   }
 
+  StatisticsPointer& shared() noexcept {
+    return _statistics;
+  }
+
+  const StatisticsPointer& shared() const noexcept {
+    return _statistics;
+  }
+
   bool has_statistics() const noexcept {
-    return !_statistics.is_null();
+    return _statistics != nullptr;
   }
 
   explicit operator bool() const noexcept {
@@ -84,7 +104,7 @@ class StatisticsMutator {
   }
 
  private:
-  Internal::GeneralizedPointer<Statistics<Key>> _statistics;
+  std::shared_ptr<Statistics<Key>> _statistics;
 };
 
 }  // namespace Internal

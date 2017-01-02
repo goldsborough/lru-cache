@@ -39,7 +39,7 @@ set(TEST_LRU_CACHE_SOURCES
 
 add_executable(lru-cache-test ${TEST_LRU_CACHE_SOURCES})
 
-target_link_libraries(lru-cache-test gtest gmock gtest_main)
+target_link_libraries(lru-cache-test gtest gtest_main)
 
 add_test(
   NAME lru-cache-test

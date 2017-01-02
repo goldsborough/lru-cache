@@ -92,12 +92,43 @@ using enable_if_iterator_over_pair =
               typename std::iterator_traits<T>::value_type::first_type>;
 
 #if __cplusplus > 201402L
+
+/// Checks if all the given parameters evaluate to true.
+///
+/// Requires C++17 fold expressions.
+///
+/// \param ts The parameters to check.
+/// \returns True if all of the given parameters evaluate to true.
 template <typename... Ts>
 constexpr bool static_all_of(Ts&&... ts) {
   return (ts && ...);
 }
-#else
-/// Base case for `static_all_of` (an empty set of boolean is always true).
+
+/// Checks if any the given parameters evaluate to true.
+///
+/// Requires C++17 fold expressions.
+///
+/// \param ts The parameters to check.
+/// \returns True if any of the given parameters evaluate to true.
+template <typename... Ts>
+constexpr bool static_any_of(Ts&&... ts) {
+  return (ts || ...);
+}
+
+/// Checks if none the given parameters evaluate to true.
+///
+/// Requires C++17 fold expressions.
+///
+/// \param ts The parameters to check.
+/// \returns True if none of the given parameters evaluate to true.
+template <typename... Ts>
+constexpr bool static_none_of(Ts&&... ts) {
+  return !static_any_of(std::forward<Ts>(ts)...);
+}
+
+#else  // __cplusplus > 201402L
+
+/// Base case for `static_all_of` (the neutral element of AND is true).
 constexpr bool static_all_of() noexcept {
   return true;
 }
@@ -110,7 +141,32 @@ template <typename Head, typename... Tail>
 constexpr bool static_all_of(Head&& head, Tail&&... tail) {
   return std::forward<Head>(head) && static_all_of(std::forward<Tail>(tail)...);
 }
-#endif
+
+/// Base case for `static_any_of` (the neutral element of OR is false).
+constexpr bool static_any_of() noexcept {
+  return false;
+}
+
+/// Checks if any the given parameters evaluate to true.
+///
+/// \param head The first expression to check.
+/// \param tail The remaining expression to check.
+/// \returns True if any of the given parameters evaluate to true.
+template <typename Head, typename... Tail>
+constexpr bool static_any_of(Head&& head, Tail&&... tail) {
+  return std::forward<Head>(head) || static_all_of(std::forward<Tail>(tail)...);
+}
+
+/// Checks if none the given parameters evaluate to true.
+///
+/// \param ts The expressions to check.
+/// \returns True if any of the given parameters evaluate to true.
+template <typename... Ts>
+constexpr bool static_none_of(Ts&&... ts) {
+  return !static_any_of(std::forward<Ts>(ts)...);
+}
+
+#endif  // __cplusplus > 201402L
 
 /// Checks if all the given types are convertible to the first type.
 ///
@@ -118,7 +174,15 @@ constexpr bool static_all_of(Head&& head, Tail&&... tail) {
 /// \tparam Ts The types to check against the first.
 template <typename T, typename... Ts>
 constexpr bool
-    all_of_type = static_all_of(std::is_convertible<T, Ts>::value...);
+    all_of_type = static_all_of(std::is_convertible<Ts, T>::value...);
+
+/// Checks if none of the given types are convertible to the first type.
+///
+/// \tparam T the first type.
+/// \tparam Ts The types to check against the first.
+template <typename T, typename... Ts>
+constexpr bool
+    none_of_type = static_none_of(std::is_convertible<Ts, T>::value...);
 
 /// Base case for `for_each`.
 template <typename Function>

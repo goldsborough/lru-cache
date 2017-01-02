@@ -28,6 +28,7 @@
 #include <initializer_list>
 #include <iterator>
 #include <list>
+#include <memory>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -123,6 +124,7 @@ class BaseCache {
 
  public:
   using InitializerList = std::initializer_list<std::pair<Key, Value>>;
+  using StatisticsPointer = std::shared_ptr<Statistics<Key>>;
   using size_t = std::size_t;
 
   /////////////////////////////////////////////////////////////////////////////
@@ -328,7 +330,7 @@ class BaseCache {
   /// \param range A range to construct the cache with.
   /// \param hash The hash function to use for the internal map.
   /// \param key_equal The key equality function to use for the internal map.
-  template <typename Range>
+  template <typename Range, typename = Internal::enable_if_range<Range>>
   BaseCache(size_t capacity,
             Range& range,
             const HashFunction& hash,
@@ -346,7 +348,7 @@ class BaseCache {
   /// \param range A range to construct the cache with.
   /// \param hash The hash function to use for the internal map.
   /// \param key_equal The key equality function to use for the internal map.
-  template <typename Range>
+  template <typename Range, typename = Internal::enable_if_range<Range>>
   explicit BaseCache(Range& range,
                      const HashFunction& hash,
                      const KeyEqual& key_equal)
@@ -361,7 +363,7 @@ class BaseCache {
   /// \param range A range to construct the cache with.
   /// \param hash The hash function to use for the internal map.
   /// \param key_equal The key equality function to use for the internal map.
-  template <typename Range>
+  template <typename Range, typename = Internal::enable_if_range<Range>>
   BaseCache(size_t capacity,
             Range&& range,
             const HashFunction& hash,
@@ -381,7 +383,7 @@ class BaseCache {
   /// \param range A range to construct the cache with.
   /// \param hash The hash function to use for the internal map.
   /// \param key_equal The key equality function to use for the internal map.
-  template <typename Range>
+  template <typename Range, typename = Internal::enable_if_range<Range>>
   explicit BaseCache(Range&& range,
                      const HashFunction& hash,
                      const KeyEqual& key_equal)
@@ -1051,7 +1053,7 @@ class BaseCache {
   /// exceeds that of the registered statistics object.
   ///
   /// \param statistics The statistics object to register.
-  virtual void monitor(Statistics<Key>& statistics) {
+  virtual void monitor(const StatisticsPointer& statistics) {
     _stats = statistics;
   }
 
@@ -1060,7 +1062,7 @@ class BaseCache {
   /// Ownership of the statistics object is transferred to the cache.
   ///
   /// \param statistics The statistics object to register.
-  virtual void monitor(Statistics<Key>&& statistics) {
+  virtual void monitor(StatisticsPointer&& statistics) {
     _stats = std::move(statistics);
   }
 
@@ -1071,9 +1073,11 @@ class BaseCache {
   ///
   /// \param args Arguments to be forwarded to the constructor of the statistics
   ///             object.
-  template <typename... Args>
+  template <typename... Args,
+            typename = std::enable_if_t<
+                Internal::none_of_type<StatisticsPointer, Args...>>>
   void monitor(Args&&... args) {
-    _stats = Statistics<Key>(std::forward<Args>(args)...);
+    _stats = std::make_shared<Statistics<Key>>(std::forward<Args>(args)...);
   }
 
   /// Stops any monitoring being performed with a statistics object.
@@ -1083,7 +1087,8 @@ class BaseCache {
     _stats.reset();
   }
 
-  /// \returns True if the cache is currently monitoring statistics, else false.
+  /// \returns True if the cache is currently monitoring statistics, else
+  /// false.
   bool is_monitoring() const noexcept {
     return _stats.has_statistics();
   }
@@ -1091,7 +1096,7 @@ class BaseCache {
   /// \returns The statistics object currently in use by the cache.
   /// \throws LRU::Error::NotMonitoring if the cache is currently not
   /// monitoring.
-  virtual Statistics<Key>& statistics() {
+  virtual Statistics<Key>& stats() {
     if (!is_monitoring()) {
       throw LRU::Error::NotMonitoring();
     }
@@ -1101,11 +1106,21 @@ class BaseCache {
   /// \returns The statistics object currently in use by the cache.
   /// \throws LRU::Error::NotMonitoring if the cache is currently not
   /// monitoring.
-  virtual const Statistics<Key>& statistics() const {
+  virtual const Statistics<Key>& stats() const {
     if (!is_monitoring()) {
       throw LRU::Error::NotMonitoring();
     }
     return _stats.get();
+  }
+
+  /// \returns A `shared_ptr` to the statistics currently in use by the cache.
+  virtual StatisticsPointer& shared_stats() {
+    return _stats.shared();
+  }
+
+  /// \returns A `shared_ptr` to the statistics currently in use by the cache.
+  virtual const StatisticsPointer& shared_stats() const {
+    return _stats.shared();
   }
 
  protected:
@@ -1169,12 +1184,14 @@ class BaseCache {
   /// Convenience methhod to get the value for an insertion result into a map.
   /// \returns The value for the given result.
   virtual Value& _value_from_result(MapInsertionResult& result) noexcept {
-    // `result.first` is the map iterator (to a pair), whose `second` member is
+    // `result.first` is the map iterator (to a pair), whose `second` member
+    // is
     // the information object, whose `value` member is the value stored.
     return result.first->second.value;
   }
 
-  /// The main use of this method is that it may be override by a base class if
+  /// The main use of this method is that it may be override by a base class
+  /// if
   /// there are any stronger constraints (such as time expiration) as to when
   /// the last-accessed object may be used to access a key.
   ///
@@ -1191,7 +1208,8 @@ class BaseCache {
 
   /// Attempts to access the last accessed key's value.
   /// \returns The value of the last accessed object.
-  /// \detail This method exists so that derived classes may perform additional
+  /// \detail This method exists so that derived classes may perform
+  /// additional
   /// checks (and possibly throw exceptions) or perform other operations to
   /// retrieve the value.
   virtual const Value& _value_for_last_accessed() const {
