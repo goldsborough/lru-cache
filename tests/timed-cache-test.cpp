@@ -1,5 +1,5 @@
 /// The MIT License (MIT)
-/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+/// Copyright (c) 2016 Peter Goldsborough
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to
@@ -116,4 +116,43 @@ TEST(TimedCacheTest, LookupThrowsWhenKeyExpired) {
   std::this_thread::sleep_for(2ms);
 
   ASSERT_THROW(cache.lookup(1), LRU::Error::KeyExpired);
+}
+
+TEST(TimedCacheTest, HasExpiredReturnsFalseForNonContainedKeys) {
+  TimedCache<int, int> cache(2ms);
+
+  EXPECT_FALSE(cache.has_expired(1));
+  EXPECT_FALSE(cache.has_expired(2));
+}
+
+TEST(TimedCacheTest, HasExpiredReturnsFalseForContainedButNotExpiredKeys) {
+  TimedCache<int, int> cache(100ms);
+
+  cache.emplace(1, 1);
+  cache.emplace(2, 2);
+
+  EXPECT_FALSE(cache.has_expired(1));
+  EXPECT_FALSE(cache.has_expired(2));
+}
+
+TEST(TimedCacheTest, HasExpiredReturnsTrueForContainedAndExpiredKeys) {
+  TimedCache<int, int> cache(2ms);
+
+  cache.emplace(1, 1);
+
+  std::this_thread::sleep_for(1ms);
+
+  cache.emplace(2, 2);
+
+  EXPECT_FALSE(cache.has_expired(1));
+
+  std::this_thread::sleep_for(1ms);
+
+  EXPECT_TRUE(cache.has_expired(1));
+  EXPECT_FALSE(cache.has_expired(2));
+
+  std::this_thread::sleep_for(1ms);
+
+  EXPECT_TRUE(cache.has_expired(1));
+  EXPECT_TRUE(cache.has_expired(2));
 }

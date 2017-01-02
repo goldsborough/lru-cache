@@ -33,6 +33,12 @@ set(TEST_LRU_CACHE_SOURCES
   statistics-test.cpp
 )
 
+###########################################################
+## BINARIES
+###########################################################
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 ########################################
 # TARGET
 ########################################
@@ -44,5 +50,5 @@ target_link_libraries(lru-cache-test gtest gtest_main)
 add_test(
   NAME lru-cache-test
   COMMAND lru-cache-test
-  WORKING_DIRECTORY ${LRU_CACHE_BINARY_DIR}
+  WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )

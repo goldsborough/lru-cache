@@ -1,5 +1,5 @@
 /// The MIT License (MIT)
-/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+/// Copyright (c) 2016 Peter Goldsborough
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to
@@ -481,6 +481,27 @@ TEST_F(CacheTest, SwapWorks) {
   EXPECT_TRUE(cache.contains("two"));
   EXPECT_FALSE(cache2.contains("two"));
   EXPECT_TRUE(cache2.contains("one"));
+}
+
+TEST_F(CacheTest, SizeStaysZeroWhenCapacityZero) {
+  cache.capacity(0);
+
+  ASSERT_EQ(cache.capacity(), 0);
+  ASSERT_EQ(cache.size(), 0);
+
+  auto result = cache.insert("one", 1);
+
+  EXPECT_EQ(cache.capacity(), 0);
+  EXPECT_EQ(cache.size(), 0);
+  EXPECT_FALSE(result.was_inserted());
+  EXPECT_EQ(result.iterator(), cache.end());
+
+  result = cache.emplace("two", 2);
+
+  EXPECT_EQ(cache.capacity(), 0);
+  EXPECT_EQ(cache.size(), 0);
+  EXPECT_FALSE(result.was_inserted());
+  EXPECT_EQ(result.iterator(), cache.end());
 }
 
 TEST(WrapTest, CanWrapMutableAndNonMutableLambdas) {

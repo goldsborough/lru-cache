@@ -1,5 +1,5 @@
 /// The MIT License (MIT)
-/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+/// Copyright (c) 2016 Peter Goldsborough
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to
@@ -19,12 +19,15 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
+#include <chrono>
 #include <string>
+#include <thread>
 
 #include "gtest/gtest.h"
 #include "lru/lru.hpp"
 
 using namespace LRU;
+using namespace std::chrono_literals;
 
 struct IteratorTest : public ::testing::Test {
   using CacheType = Cache<std::string, int>;
@@ -126,7 +129,7 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   ASSERT_EQ(unordered.value(), 1);
 
   OrderedIterator ordered(unordered);
-  ordered = unordered;
+  ordered = OrderedIterator(unordered);
 
   EXPECT_EQ(ordered.key(), "one");
   EXPECT_EQ(ordered.value(), 1);
@@ -140,7 +143,7 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   const_unordered = unordered;
 
   OrderedConstIterator const_ordered(std::move(const_unordered));
-  const_ordered = std::move(const_unordered);
+  const_ordered = OrderedConstIterator(std::move(const_unordered));
 
   EXPECT_EQ(ordered.key(), "two");
   EXPECT_EQ(ordered.value(), 2);
@@ -149,7 +152,7 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
 
   // Just making sure this compiles
   const_ordered = ordered;
-  const_ordered = unordered;
+  const_ordered = OrderedConstIterator(unordered);
 
   EXPECT_EQ(ordered.key(), "one");
   EXPECT_EQ(ordered.value(), 1);
@@ -164,4 +167,110 @@ TEST_F(IteratorTest, OrdereredIteratorsAreOrdered) {
   for (std::size_t i = 0; i < 100; ++i, ++iterator) {
     ASSERT_EQ(iterator.value(), i);
   }
+}
+
+TEST_F(IteratorTest, OrderedIteratorsThrowWhenAccessingExpiredElements) {
+  TimedCache<int, int> timed_cache(0ms);
+
+  timed_cache.emplace(1, 1);
+
+  auto iterator = timed_cache.ordered_begin();
+
+  EXPECT_THROW(iterator.entry(), LRU::Error::KeyExpired);
+}
+
+TEST_F(IteratorTest, UnorderedIteratorsThrowWhenAccessingExpiredElements) {
+  TimedCache<int, int> timed_cache(0ms);
+
+  timed_cache.emplace(1, 1);
+
+  auto iterator = timed_cache.unordered_begin();
+
+  EXPECT_THROW(iterator.entry(), LRU::Error::KeyExpired);
+}
+
+TEST_F(IteratorTest, IsValidReturnsTrueForValidIterators) {
+  cache.emplace("one", 1);
+  cache.emplace("two", 1);
+
+  auto ordered_iterator = cache.ordered_begin();
+  EXPECT_TRUE(cache.is_valid(ordered_iterator));
+  EXPECT_TRUE(cache.is_valid(++ordered_iterator));
+
+  auto unordered_iterator = cache.unordered_begin();
+  EXPECT_TRUE(cache.is_valid(unordered_iterator));
+  EXPECT_TRUE(cache.is_valid(++unordered_iterator));
+}
+
+TEST_F(IteratorTest, IsValidReturnsFalseForInvalidIterators) {
+  TimedCache<int, int> timed_cache(0ms);
+
+  EXPECT_FALSE(cache.is_valid(cache.ordered_begin()));
+  EXPECT_FALSE(cache.is_valid(cache.ordered_end()));
+  EXPECT_FALSE(cache.is_valid(cache.unordered_begin()));
+  EXPECT_FALSE(cache.is_valid(cache.unordered_end()));
+
+  timed_cache.emplace(1, 1);
+
+  EXPECT_FALSE(cache.is_valid(cache.ordered_begin()));
+  EXPECT_FALSE(cache.is_valid(cache.unordered_begin()));
+}
+
+TEST_F(IteratorTest, ThrowIfInvalidThrowsAsExpected) {
+  EXPECT_THROW(cache.throw_if_invalid(cache.ordered_begin()),
+               LRU::Error::InvalidIterator);
+  EXPECT_THROW(cache.throw_if_invalid(cache.ordered_end()),
+               LRU::Error::InvalidIterator);
+  EXPECT_THROW(cache.throw_if_invalid(cache.unordered_begin()),
+               LRU::Error::InvalidIterator);
+  EXPECT_THROW(cache.throw_if_invalid(cache.unordered_end()),
+               LRU::Error::InvalidIterator);
+
+  TimedCache<int, int> timed_cache(0s, {{1, 1}});
+
+  ASSERT_EQ(timed_cache.size(), 1);
+
+  EXPECT_THROW(timed_cache.throw_if_invalid(timed_cache.ordered_begin()),
+               LRU::Error::KeyExpired);
+  EXPECT_THROW(timed_cache.throw_if_invalid(timed_cache.unordered_begin()),
+               LRU::Error::KeyExpired);
+}
+
+TEST_F(IteratorTest, DereferencingNeverThrows) {
+  TimedCache<int, int> timed_cache(1ms, {{1, 1}});
+
+  // Test valid iterators.
+  EXPECT_EQ(timed_cache.ordered_begin()->key(), 1);
+  EXPECT_EQ(timed_cache.unordered_begin()->key(), 1);
+
+  std::this_thread::sleep_for(1ms);
+
+  // Test invalid iterators.
+  *timed_cache.ordered_begin();
+  *timed_cache.unordered_begin();
+  timed_cache.ordered_begin()->key();
+  timed_cache.unordered_begin()->key();
+  timed_cache.ordered_begin()->value();
+  timed_cache.unordered_begin()->value();
+}
+
+TEST_F(IteratorTest, CallingAccessThrowsForInvalidIterators) {
+  TimedCache<int, int> timed_cache(1ms, {{1, 1}});
+
+  // Test valid iterators.
+  ASSERT_EQ(timed_cache.ordered_begin()->key(), 1);
+  ASSERT_EQ(timed_cache.unordered_begin()->key(), 1);
+
+  std::this_thread::sleep_for(1ms);
+
+  // Test invalid iterators.
+  EXPECT_THROW(timed_cache.ordered_begin().key(), LRU::Error::KeyExpired);
+  EXPECT_THROW(timed_cache.unordered_begin().key(), LRU::Error::KeyExpired);
+  EXPECT_THROW(timed_cache.ordered_begin().value(), LRU::Error::KeyExpired);
+  EXPECT_THROW(timed_cache.unordered_begin().value(), LRU::Error::KeyExpired);
+  EXPECT_THROW(timed_cache.ordered_end().key(), LRU::Error::InvalidIterator);
+  EXPECT_THROW(timed_cache.unordered_end().key(), LRU::Error::InvalidIterator);
+  EXPECT_THROW(timed_cache.ordered_end().value(), LRU::Error::InvalidIterator);
+  EXPECT_THROW(timed_cache.unordered_end().value(),
+               LRU::Error::InvalidIterator);
 }
