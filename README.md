@@ -4,17 +4,17 @@ A feature complete LRU cache implementation in C++.
 
 ## Description
 
-A *least recently used* (LRU) cache is a fixed size cache that behaves just like a regular lookup table, but remembers the order in which elements are inserted. Once its (user-defined) capacity is reached, it uses this information to replace the least recently used element with a newly inserted one. This is ideal for caching function return values, where fast lookup of complex computation is favorable, but a memory blowup resulting from caching all `(input, output)` pairs is to be avoided.
+A *least recently used* (LRU) cache is a fixed size cache that behaves just like a regular lookup table, but remembers the order in which elements are inserted. Once its (user-defined) capacity is reached, it uses this information to replace the least recently used element with a newly inserted one. This is ideal for caching function return values, where fast lookup of complex computation is favorable, but a memory blowup from caching all `(input, output)` pairs is to be avoided.
 
 We provide two implementations of an LRU cache: one has only the basic functionality described above, and another can be additionally supplied with a *time to live*. This is useful, for example, when caching resources on a server, where cache entries should be invalidated automatically after a certain amount of time, because they are no longer "fresh".
 
-Additionally, all our caches can be connected to *statistics* objects, that keep track of cache hits and misses for all keys and, upon request, individual keys (similar to `functools.lru_cache` in Python).
+Additionally, all our caches can be connected to *statistics* objects, that keep track of cache hits and misses for all keys and, upon request, individual keys (similar to `functools.lru_cache` in Python). You can also register arbitrary callbacks for hits, misses or accesses in general.
 
 ## Basic Usage
 
 The two main classes we provide are `LRU::Cache` and `LRU::TimedCache`. A basic usage example of these may look like so:
 
-`LRU::Cache`:
+__`LRU::Cache`__
 ```C++
 #include <iostream>
 #include "lru/lru.hpp"
@@ -27,7 +27,7 @@ int fibonacci(int n, Cache& cache) {
   // We internally keep track of the last accessed key, meaning a
   // `contains(key)` + `lookup(key)` sequence will involve only a single hash
   // table lookup.
-  if (cache.contains(n)) return cache[n];
+  if (cache.contains(n)) return cache.lookup(n);
 
   auto value = fibonacci(n - 1, cache) + fibonacci(n - 2, cache);
 
@@ -46,7 +46,7 @@ int fibonacci(int n) {
 }
 ```
 
-`LRU::TimedCache`:
+__`LRU::TimedCache`__
 ```C++
 #include <chrono>
 #include <iostream>
@@ -80,3 +80,103 @@ auto main() -> int {
 ```
 
 ## Extended Usage
+
+Our caches bring along many exciting features including statistics monitoring, arbitrary callbacks as well as ordered and unordered iteration. There is a lot more to discover in our Doxygen documentation, but below are some usage examples.
+
+### Ordered and Unordered Iteration
+
+Both the `LRU::Cache` and `LRU::TimedCache` can be iterated over in two ways: ordered or unordered fashion (where the "order" refers to the order of insertion). The default iterators returned by `begin()`, `cbegin()`, `end()` etc. are *unordered* and mostly similar to `unordered_map` iterators (with some nice non-standard sugar):
+
+```C++
+LRU::Cache<int, int> cache = {{1, 2}, {2, 3}, {3, 4}};
+
+int sum = 0;
+for (const auto& pair : cache) {
+  sum += pair.first; // Standards compliant (good for templates)
+  sum += pair.value(); // But sugar on top (also key())
+}
+
+auto iterator = cache.begin();           // These two lines
+auto iterator = cache.unordered_begin(); // are the same
+auto iterator = cache.ordered_end();     // This is something different.
+```
+
+Unordered iterators are implemented directly over `unordered_map` iterators and thus have direct access to the key and value of a pointed-to entry.
+
+Ordered iterators respect the order of insertion. They differ in a few ways from unordered iterators:
+
+1. They are bidirectional, while unordered iterators are forward iterators.
+2. They provide fast access only to the `key()`. Accessing the value requires a hash table lookup the first time an iterator is dereferenced.
+3. They can be constructed from unordered iterators! This means writing something like `typename LRU::Cache<int, int>::OrderedIterator i(unordered_iterator)` will work and is fast.
+
+### Statistics
+
+Our caches can be associated with statistics objects, that monitor hits and misses. There are a few ways to create and use them. First of all, let's say you only wanted to record hits and misses for all keys and didn't care about any particular key. The simplest way to do this is to simply call:
+
+```cpp
+cache.monitor();
+```
+
+This allows you to call `cache.stats()`, which returns an `LRU::Statistics` object. It's interface is quite clear, allowing you to write stuff like:
+
+```cpp
+cache.stats().total_hits(); // Hits for any key
+cache.stats().total_misses(); // Misses for any key
+cache.stats().hit_rate(); // Hit rate in [0, 1]
+```
+
+#### Sharing Statistics
+
+Already here, one idea might be that we have two functions, each with their own cache, but we'd like them to share statistics. This is easy to do. Simply create the `Statistics` object as a `std::shared_ptr` and plug it into `cache.monitor()` for as many caches as you like:
+
+```cpp
+auto stats = std::make_shared<LRU::Statistics<std::string>>();
+
+cache1.monitor(stats);
+cache2.monitor(stats);
+
+// Both affect the same statistics object
+cache1.lookup("key");
+cache2.lookup("foo");
+
+assert(&cache1.stats() == &cache2.stats()); // Ok
+
+std::shared_ptr<Statistics<std::string>> stats2 = cache1.shared_stats();
+```
+
+#### Monitoring specific keys
+
+One of the more interesting features of our statistics API is the ability to monitor hits and misses for a specific set of keys. Say we were writing a web server accepting HTTP requests and wanted to cache resources (I assume that's something people would do). Because our website changes in some way every hour, we'll use a timed cache with a time to live of one hour. We're also particularly interested in how many cache hits we get for `index.html`. For this, it's good to know that the empty `monitor()` call we made further up is actually a method accepting variadic arguments to forward to the constructor of an internal statistics object (the empty `monitor()` calls the default constructor). One constructor of `Statistics` takes a number of keys to monitor in particular. So calling `monitor(key1, key2, ...)` will set up monitoring for all keys, plus keep a special eye on those. We could then something like this:
+
+```cpp
+#include <string>
+#include <chrono>
+
+#include "lru/lru.hpp"
+
+using namespace std::chrono_literals;
+
+struct MyWebServerHehe {
+
+  // We pass 1h to let the cache know that resources are to be invalidated after one hour.
+  MyWebServerHehe() : cache(1h) {
+    cache.monitor("index.html");
+  }
+
+  std::string get(const std::string& resource_name) {
+    std::string resource;
+    if (cache.contains(resource_name)) {
+      resource = cache.lookup(resource_name);
+    } else {
+      resource = fetch_expensively(resource_name);
+      cache.insert(resource_name, resource_name);
+    }
+
+    return resource;
+  }
+
+  LRU::TimedCache<std::string, std::string> cache;
+};
+```
+
+Later on, we can use method like `hits_for(key)`, `misses_for(key)` or `stats_for(key)` on `cache.stats()` to find out how many hits or misses we got for our monitored resource. Note that `stats_for(key)` returns a lightweight `struct` holding hit and miss information about a particular key.
