@@ -1,5 +1,5 @@
 /// The MIT License (MIT)
-/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+/// Copyright (c) 2016 Peter Goldsborough
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to
@@ -30,9 +30,15 @@
 #include "lru/internal/base-iterator.hpp"
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/optional.hpp"
+#include "lru/iterator-tags.hpp"
 
 
 namespace LRU {
+
+// Forward declaration.
+template <typename, typename, typename, typename, typename>
+class TimedCache;
+
 namespace Internal {
 template <typename Cache, typename UnderlyingIterator>
 using BaseForBaseUnorderedIterator =
@@ -46,7 +52,7 @@ using BaseForBaseUnorderedIterator =
 ///
 /// An unordered iterator is a wrapper around an `unordered_map` iterator with
 /// ForwardIterator category. As such, it is (nearly) as fast to access the pair
-/// as through the unordered iterator as through the map iterato directly.
+/// as through the unordered iterator as through the map iterator directly.
 /// However, the order of keys is unspecified. For this reason, unordered
 /// iterators have the special property that they may be used to construct
 /// ordered iterators, after which the order of insertion is respected.
@@ -65,7 +71,7 @@ class BaseUnorderedIterator
   using Value = typename super::ValueType;
 
  public:
-  using Tag = std::false_type;
+  using Tag = LRU::Tag::UnorderedIterator;
   using PUBLIC_BASE_ITERATOR_MEMBERS;
 
   /// Constructor.
@@ -73,7 +79,7 @@ class BaseUnorderedIterator
 
   /// \copydoc BaseIterator::BaseIterator(Cache,UnderlyingIterator)
   explicit BaseUnorderedIterator(Cache& cache,
-                                 const UnderlyingIterator& iterator)
+                                 const UnderlyingIterator& iterator) noexcept
   : super(cache, iterator) {
   }
 
@@ -84,25 +90,26 @@ class BaseUnorderedIterator
   /// \param other The iterator to copy from.
   template <typename AnyCache, typename AnyUnderlyingIterator>
   BaseUnorderedIterator(
-      const BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>& other)
+      const BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>&
+          other) noexcept
   : super(other) {
   }
 
   /// Copy constructor.
-  BaseUnorderedIterator(const BaseUnorderedIterator& other) = default;
+  BaseUnorderedIterator(const BaseUnorderedIterator& other) noexcept = default;
 
   /// Move constructor.
-  BaseUnorderedIterator(BaseUnorderedIterator&& other) = default;
+  BaseUnorderedIterator(BaseUnorderedIterator&& other) noexcept = default;
 
   /// Copy assignment operator.
   BaseUnorderedIterator&
-  operator=(const BaseUnorderedIterator& other) = default;
+  operator=(const BaseUnorderedIterator& other) noexcept = default;
 
   /// Move assignment operator.
   template <typename AnyCache, typename AnyUnderlyingIterator>
   BaseUnorderedIterator&
   operator=(BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator>
-                unordered_iterator) {
+                unordered_iterator) noexcept {
     swap(unordered_iterator);
     return *this;
   }
@@ -156,31 +163,52 @@ class BaseUnorderedIterator
     return previous;
   }
 
-  /// \returns A reference to the entry the iterator points to.
-  /// \details If the iterator is invalid, behavior is undefined.
-  Entry& entry() noexcept override {
+  /// \copydoc BaseIterator::operator*
+  /// \details If the iterator is invalid, behavior is undefined. No exception
+  /// handling is performed.
+  Entry& operator*() noexcept override {
     if (!_entry.has_value()) {
-      _entry.emplace(key(), value());
+      _entry.emplace(_iterator->first, _iterator->second.value);
     }
 
     return *_entry;
   }
 
-  /// \returns A reference to the value the iterator points to.
-  /// \details If the iterator is invalid, behavior is undefined.
-  Value& value() noexcept override {
-    return _iterator->second.value;
+  /// \returns A reference to the entry the iterator points to.
+  /// \throws LRU::Error::InvalidIterator if the iterator is the end iterator.
+  /// \throws LRU::Error::KeyExpired if the key pointed to by the iterator has
+  /// expired.
+  Entry& entry() override {
+    if (!_entry.has_value()) {
+      _entry.emplace(_iterator->first, _iterator->second.value);
+    }
+
+    _cache->throw_if_invalid(*this);
+    return *_entry;
   }
 
   /// \returns A reference to the key the iterator points to.
-  /// \details If the iterator is invalid, behavior is undefined.
-  const Key& key() noexcept override {
-    return _iterator->first;
+  /// \throws LRU::Error::InvalidIterator if the iterator is the end iterator.
+  /// \throws LRU::Error::KeyExpired if the key pointed to by the iterator has
+  /// expired.
+  const Key& key() override {
+    return entry().key();
+  }
+
+  /// \returns A reference to the value the iterator points to.
+  /// \throws LRU::Error::InvalidIterator if the iterator is the end iterator.
+  /// \throws LRU::Error::KeyExpired if the key pointed to by the iterator has
+  /// expired.
+  Value& value() override {
+    return entry().value();
   }
 
  protected:
   template <typename, typename, typename>
   friend class BaseOrderedIterator;
+
+  template <typename, typename, typename, typename, typename>
+  friend class LRU::TimedCache;
 };
 }  // namespace Internal
 }  // namespace LRU

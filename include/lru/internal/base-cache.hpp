@@ -1,5 +1,5 @@
 /// The MIT License (MIT)
-/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+/// Copyright (c) 2016 Peter Goldsborough
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to
@@ -85,7 +85,6 @@ namespace Internal {
   using super::_register_miss_if_monitoring; \
   using super::_register_hit_if_monitoring;
 
-
 /// The base class for the LRU::Cache and LRU::TimedCache.
 ///
 /// This base class (base as opposed to abstract, because it is not intended to
@@ -107,11 +106,13 @@ namespace Internal {
 /// \tparam InformationType The internal information class to be used.
 /// \tparam HashFunction The hash function type for the internal map.
 /// \tparam KeyEqual The type of the key equality function for the internal map.
+/// \tparam TagType The cache tag type of the concrete derived class.
 template <typename Key,
           typename Value,
           template <typename, typename> class InformationType,
           typename HashFunction,
-          typename KeyEqual>
+          typename KeyEqual,
+          typename TagType>
 class BaseCache {
  protected:
   using Information = InformationType<Key, Value>;
@@ -123,9 +124,14 @@ class BaseCache {
   using MapConstIterator = typename Map::const_iterator;
 
  public:
+  using Tag = TagType;
   using InitializerList = std::initializer_list<std::pair<Key, Value>>;
   using StatisticsPointer = std::shared_ptr<Statistics<Key>>;
   using size_t = std::size_t;
+
+  static constexpr Tag tag() noexcept {
+    return {};
+  }
 
   /////////////////////////////////////////////////////////////////////////////
   // ITERATORS CLASSES
@@ -143,6 +149,17 @@ class BaseCache {
 
     /// Default constructor.
     UnorderedIterator() = default;
+
+    /// Constructs a new UnorderedIterator from an unordered base iterator.
+    ///
+    /// \param iterator The iterator to initialize this one from.
+    UnorderedIterator(BaseUnorderedIterator<BaseCache, MapIterator>
+                          iterator)  // NOLINT(runtime/explicit)
+        : super(std::move(iterator)) {
+      // Note that this only works because these derived iterator
+      // classes dont' have any members of their own.
+      // It is necessary because the increment operators return base iterators.
+    }
 
     /// Constructs a new UnorderedIterator.
     ///
@@ -167,12 +184,24 @@ class BaseCache {
     /// Default constructor.
     UnorderedConstIterator() = default;
 
+    /// Constructs a new UnorderedConstIterator from any unordered base
+    /// iterator.
+    ///
+    /// \param iterator The iterator to initialize this one from.
+    template <typename AnyCache, typename AnyUnderlyingIterator>
+    UnorderedConstIterator(
+        BaseUnorderedIterator<AnyCache, AnyUnderlyingIterator> iterator)
+    : super(std::move(iterator)) {
+      // Note that this only works because these derived iterator
+      // classes dont' have any members of their own.
+    }
+
     /// Constructs a new UnorderedConstIterator from a non-const iterator.
     ///
     /// \param iterator The non-const iterator to initialize this one from.
     UnorderedConstIterator(
         UnorderedIterator iterator)  // NOLINT(runtime/explicit)
-        : super(iterator) {
+        : super(std::move(iterator)) {
     }
 
     /// Constructs a new UnorderedConstIterator.
@@ -203,9 +232,19 @@ class BaseCache {
     /// Constructs an ordered iterator from an unordered iterator.
     ///
     /// \param unordered_iterator The unordered iterator to construct from.
-    OrderedIterator(
-        UnorderedIterator unordered_iterator)  // NOLINT(runtime/explicit)
-        : super(std::move(unordered_iterator)) {
+    explicit OrderedIterator(UnorderedIterator unordered_iterator)
+    : super(std::move(unordered_iterator)) {
+    }
+
+    /// Constructs a new OrderedIterator from an unordered base iterator.
+    ///
+    /// \param iterator The iterator to initialize this one from.
+    OrderedIterator(BaseOrderedIterator<Key, Value, BaseCache>
+                        iterator)  // NOLINT(runtime/explicit)
+        : super(std::move(iterator)) {
+      // Note that this only works because these derived iterator
+      // classes dont' have any members of their own.
+      // It is necessary because the increment operators return base iterators.
     }
 
     /// Constructs a new ordered iterator.
@@ -233,6 +272,18 @@ class BaseCache {
     /// Default constructor.
     OrderedConstIterator() = default;
 
+    /// Constructs a new OrderedConstIterator from a compatible ordered
+    /// iterator.
+    ///
+    /// \param iterator The iterator to initialize this one from.
+    template <typename AnyKey, typename AnyValue, typename AnyCache>
+    OrderedConstIterator(BaseOrderedIterator<AnyKey, AnyValue, AnyCache>
+                             iterator)  // NOLINT(runtime/explicit)
+        : super(iterator) {
+      // Note that this only works because these derived iterator
+      // classes dont' have any members of their own.
+    }
+
     /// Constructs a new const ordered iterator from a non-const one.
     ///
     /// \param iterator The non-const ordered iterator to construct from.
@@ -243,17 +294,16 @@ class BaseCache {
     /// Constructs a new const ordered iterator from an unordered iterator.
     ///
     /// \param unordered_iterator The unordered iterator to construct from.
-    OrderedConstIterator(
-        UnorderedIterator unordered_iterator)  // NOLINT(runtime/explicit)
-        : super(unordered_iterator) {
+    explicit OrderedConstIterator(UnorderedIterator unordered_iterator)
+    : super(std::move(unordered_iterator)) {
     }
 
     /// Constructs a new const ordered iterator from a const unordered iterator.
     ///
     /// \param unordered_iterator The unordered iterator to construct from.
-    OrderedConstIterator(
+    explicit OrderedConstIterator(
         UnorderedConstIterator unordered_iterator)  // NOLINT(runtime/explicit)
-        : super(unordered_iterator) {
+        : super(std::move(unordered_iterator)) {
     }
 
     /// Constructs a new const ordered iterator.
@@ -519,104 +569,150 @@ class BaseCache {
 
   /// \returns An unordered iterator to the beginning of the cache (this need
   /// not be the first key inserted).
-  UnorderedIterator unordered_begin() {
+  UnorderedIterator unordered_begin() noexcept {
     return {*this, _map.begin()};
   }
 
   /// \returns A const unordered iterator to the beginning of the cache (this
   /// need not be the key least recently inserted).
-  UnorderedConstIterator unordered_begin() const {
+  UnorderedConstIterator unordered_begin() const noexcept {
     return unordered_cbegin();
   }
 
   /// \returns A const unordered iterator to the beginning of the cache (this
   /// need not be the key least recently inserted).
-  UnorderedConstIterator unordered_cbegin() const {
+  UnorderedConstIterator unordered_cbegin() const noexcept {
     return {*this, _map.cbegin()};
   }
 
   /// \returns An unordered iterator to the end of the cache (this
   /// need not be one past the key most recently inserted).
-  UnorderedIterator unordered_end() {
+  UnorderedIterator unordered_end() noexcept {
     return {*this, _map.end()};
   }
 
   /// \returns A const unordered iterator to the end of the cache (this
   /// need not be one past the key most recently inserted).
-  UnorderedConstIterator unordered_end() const {
+  UnorderedConstIterator unordered_end() const noexcept {
     return unordered_cend();
   }
 
   /// \returns A const unordered iterator to the end of the cache (this
   /// need not be one past the key most recently inserted).
-  UnorderedConstIterator unordered_cend() const {
+  UnorderedConstIterator unordered_cend() const noexcept {
     return {*this, _map.cend()};
   }
 
   /// \returns An ordered iterator to the beginning of the cache (the key least
   /// recently inserted).
-  OrderedIterator ordered_begin() {
+  OrderedIterator ordered_begin() noexcept {
     return {*this, _order.begin()};
   }
 
   /// \returns A const ordered iterator to the beginning of the cache (the key
   /// least recently inserted).
-  OrderedConstIterator ordered_begin() const {
+  OrderedConstIterator ordered_begin() const noexcept {
     return ordered_cbegin();
   }
 
   /// \returns A const ordered iterator to the beginning of the cache (the key
   /// least recently inserted).
-  OrderedConstIterator ordered_cbegin() const {
+  OrderedConstIterator ordered_cbegin() const noexcept {
     return {*this, _order.cbegin()};
   }
 
   /// \returns An ordered iterator to the end of the cache (one past the key
   /// most recently inserted).
-  OrderedIterator ordered_end() {
+  OrderedIterator ordered_end() noexcept {
     return {*this, _order.end()};
   }
 
   /// \returns A const ordered iterator to the end of the cache (one past the
   /// key least recently inserted).
-  OrderedConstIterator ordered_end() const {
+  OrderedConstIterator ordered_end() const noexcept {
     return ordered_cend();
   }
 
   /// \returns A const ordered iterator to the end of the cache (one past the
   /// key least recently inserted).
-  OrderedConstIterator ordered_cend() const {
+  OrderedConstIterator ordered_cend() const noexcept {
     return {*this, _order.cend()};
   }
 
   /// \copydoc unordered_begin()
-  UnorderedIterator begin() {
+  UnorderedIterator begin() noexcept {
     return unordered_begin();
   }
 
   /// \copydoc unordered_cbegin()
-  UnorderedConstIterator begin() const {
+  UnorderedConstIterator begin() const noexcept {
     return cbegin();
   }
 
   /// \copydoc unordered_cbegin()
-  UnorderedConstIterator cbegin() const {
+  UnorderedConstIterator cbegin() const noexcept {
     return unordered_begin();
   }
 
   /// \copydoc unordered_end() const
-  UnorderedIterator end() {
+  UnorderedIterator end() noexcept {
     return unordered_end();
   }
 
   /// \copydoc unordered_cend() const
-  UnorderedConstIterator end() const {
+  UnorderedConstIterator end() const noexcept {
     return cend();
   }
 
   /// \copydoc unordered_cend() const
-  UnorderedConstIterator cend() const {
+  UnorderedConstIterator cend() const noexcept {
     return unordered_cend();
+  }
+
+  /// \returns True if the given iterator may be safely dereferenced, else
+  /// false.
+  /// \details Behavior is undefined if the iterator does not point into this
+  /// cache.
+  /// \param unordered_iterator The iterator to check.
+  virtual bool is_valid(UnorderedConstIterator unordered_iterator) const
+      noexcept {
+    return unordered_iterator != unordered_end();
+  }
+
+  /// \returns True if the given iterator may be safely dereferenced, else
+  /// false.
+  /// \details Behavior is undefined if the iterator does not point into this
+  /// cache.
+  /// \param ordered_iterator The iterator to check.
+  virtual bool is_valid(OrderedConstIterator ordered_iterator) const noexcept {
+    return ordered_iterator != ordered_end();
+  }
+
+  /// Checks if the given iterator may be dereferencend and throws an exception
+  /// if not.
+  ///
+  /// The exception thrown, if any, depends on the state of the iterator.
+  ///
+  /// \param unordered_iterator The iterator to check.
+  /// \throws LRU::Error::InvalidIterator if the iterator is the end iterator.
+  virtual void
+  throw_if_invalid(UnorderedConstIterator unordered_iterator) const {
+    if (unordered_iterator == unordered_end()) {
+      throw LRU::Error::InvalidIterator();
+    }
+  }
+
+  /// Checks if the given iterator may be dereferencend and throws an exception
+  /// if not.
+  ///
+  /// The exception thrown, if any, depends on the state of the iterator.
+  ///
+  /// \param ordered_iterator The iterator to check.
+  /// \throws LRU::Error::InvalidIterator if the iterator is the end iterator.
+  virtual void throw_if_invalid(OrderedConstIterator ordered_iterator) const {
+    if (ordered_iterator == ordered_end()) {
+      throw LRU::Error::InvalidIterator();
+    }
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -729,6 +825,8 @@ class BaseCache {
   /// key was newly inserted (true) or only updated (false) as well as an
   /// iterator pointing to the entry for the key.
   virtual InsertionResultType insert(const Key& key, const Value& value) {
+    if (_capacity == 0) return {false, end()};
+
     auto iterator = _map.find(key);
 
     // To insert, we first check if the key is already present in the cache
@@ -853,6 +951,8 @@ class BaseCache {
   InsertionResultType emplace(std::piecewise_construct_t _,
                               const std::tuple<Ks...>& key_arguments,
                               const std::tuple<Vs...>& value_arguments) {
+    if (_capacity == 0) return {false, end()};
+
     auto key = Internal::construct_from_tuple<Key>(key_arguments);
     auto iterator = _map.find(key);
 

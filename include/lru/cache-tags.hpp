@@ -19,39 +19,14 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef LRU_INTERNAL_DEFINITIONS_HPP
-#define LRU_INTERNAL_DEFINITIONS_HPP
-
-#include <chrono>
-#include <cstddef>
-#include <list>
-#include <tuple>
-#include <unordered_map>
+#ifndef LRU_CACHE_TAGS_HPP
+#define LRU_CACHE_TAGS_HPP
 
 namespace LRU {
-namespace Internal {
-
-/// The default capacity for all caches.
-const std::size_t DEFAULT_CAPACITY = 128;
-
-/// The default queue type used internally.
-template <typename T>
-using Queue = std::list<T>;
-
-/// The default map type used internally.
-template <typename Key,
-          typename Information,
-          typename HashFunction,
-          typename KeyEqual>
-using Map = std::unordered_map<Key, Information, HashFunction, KeyEqual>;
-
-/// The default clock used internally.
-using Clock = std::chrono::steady_clock;
-
-/// The default timestamp (time point) used internally.
-using Timestamp = Clock::time_point;
-}  // namespace Internal
+namespace Tag {
+struct BasicCache {};
+struct TimedCache {};
+}  // namespace Tag
 }  // namespace LRU
 
-
-#endif  // LRU_INTERNAL_DEFINITIONS_HPP
+#endif  // LRU_CACHE_TAGS_HPP

@@ -1,5 +1,5 @@
 /// The MIT License (MIT)
-/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+/// Copyright (c) 2016 Peter Goldsborough
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to
@@ -33,6 +33,7 @@
 #include "lru/internal/base-unordered-iterator.hpp"
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/optional.hpp"
+#include "lru/iterator-tags.hpp"
 
 namespace LRU {
 namespace Internal {
@@ -67,7 +68,7 @@ class BaseOrderedIterator
   using UnderlyingIterator = typename Queue<Key>::const_iterator;
 
  public:
-  using Tag = std::true_type;
+  using Tag = LRU::Tag::OrderedIterator;
   using PUBLIC_BASE_ITERATOR_MEMBERS;
 
   /// Constructor.
@@ -268,21 +269,28 @@ class BaseOrderedIterator
     return previous;
   }
 
+  Entry& operator*() noexcept override {
+    return _maybe_lookup();
+  }
+
   /// \returns A reference to the entry the iterator points to.
   /// \details If the iterator is invalid, behavior is undefined.
-  Entry& entry() noexcept override {
+  Entry& entry() override {
+    _cache->throw_if_invalid(*this);
     return _maybe_lookup();
   }
 
   /// \returns A reference to the value the iterator points to.
   /// \details If the iterator is invalid, behavior is undefined.
-  Value& value() noexcept override {
-    return _maybe_lookup().value();
+  Value& value() override {
+    return entry().value();
   }
 
   /// \returns A reference to the key the iterator points to.
   /// \details If the iterator is invalid, behavior is undefined.
-  const Key& key() noexcept override {
+  const Key& key() override {
+    // No lookup required
+    _cache->throw_if_invalid(*this);
     return *_iterator;
   }
 
@@ -303,8 +311,8 @@ class BaseOrderedIterator
 
   /// Looks up the entry for a key and sets the internal entry member.
   void _lookup() {
-    Value& value = _cache->lookup(key());
-    _entry.emplace(key(), value);
+    auto iterator = _cache->find(*_iterator);
+    _entry.emplace(*_iterator, iterator->value());
   }
 
  private:

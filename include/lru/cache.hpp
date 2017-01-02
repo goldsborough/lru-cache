@@ -1,5 +1,5 @@
 /// The MIT License (MIT)
-/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+/// Copyright (c) 2016 Peter Goldsborough
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to
@@ -31,6 +31,7 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include "lru/cache-tags.hpp"
 #include "lru/error.hpp"
 #include "lru/internal/base-cache.hpp"
 #include "lru/internal/information.hpp"
@@ -42,9 +43,13 @@ template <typename Key,
           typename Value,
           typename HashFunction,
           typename KeyEqual>
-using UntimedCacheBase = Internal::
-    BaseCache<Key, Value, Internal::Information, HashFunction, KeyEqual>;
-}
+using UntimedCacheBase = Internal::BaseCache<Key,
+                                             Value,
+                                             Internal::Information,
+                                             HashFunction,
+                                             KeyEqual,
+                                             Tag::BasicCache>;
+}  // namespace Internal
 
 /// A basic LRU cache implementation.
 ///

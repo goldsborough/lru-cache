@@ -1,5 +1,5 @@
 /// The MIT License (MIT)
-/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+/// Copyright (c) 2016 Peter Goldsborough
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to
@@ -44,9 +44,13 @@ template <typename Key,
           typename Value,
           typename HashFunction,
           typename KeyEqual>
-using TimedCacheBase =
-    BaseCache<Key, Value, Internal::TimedInformation, HashFunction, KeyEqual>;
-}
+using TimedCacheBase = BaseCache<Key,
+                                 Value,
+                                 Internal::TimedInformation,
+                                 HashFunction,
+                                 KeyEqual,
+                                 Tag::TimedCache>;
+}  // namespace Internal
 
 
 /// A timed LRU cache.
@@ -73,7 +77,10 @@ class TimedCache
   using PRIVATE_BASE_CACHE_MEMBERS;
 
  public:
+  using Tag = LRU::Tag::TimedCache;
   using PUBLIC_BASE_CACHE_MEMBERS;
+  using super::ordered_end;
+  using super::unordered_end;
   using typename super::size_t;
 
   /// \param time_to_live The time to live for keys in the cache.
@@ -260,6 +267,70 @@ class TimedCache
     }
 
     return number_of_erasures;
+  }
+
+  /// \returns True if the given key is contained in the cache and has expired.
+  /// \param key The key to test expiration for.
+  bool has_expired(const Key& key) const noexcept {
+    auto iterator = _map.find(key);
+    return iterator != _map.end() && _has_expired(iterator->second);
+  }
+
+  /// \returns True if the key pointed to by the iterator has expired.
+  /// \param ordered_iterator The ordered iterator to check.
+  /// \details If this is the end iterator, this method returns false.
+  bool has_expired(OrderedConstIterator ordered_iterator) const noexcept {
+    if (ordered_iterator == ordered_end()) return false;
+    auto iterator = _map.find(ordered_iterator->key());
+    assert(iterator != _map.end());
+
+    return _has_expired(iterator->second);
+  }
+
+  /// \returns True if the key pointed to by the iterator has expired.
+  /// \param unordered_iterator The unordered iterator to check.
+  /// \details If this is the end iterator, this method returns false.
+  bool has_expired(UnorderedConstIterator unordered_iterator) const noexcept {
+    if (unordered_iterator == unordered_end()) return false;
+    assert(unordered_iterator._iterator != _map.end());
+
+    return _has_expired(unordered_iterator._iterator->second);
+  }
+
+  /// \copydoc BaseCache::is_valid(UnorderedConstIterator)
+  bool is_valid(UnorderedConstIterator unordered_iterator) const
+      noexcept override {
+    if (!super::is_valid(unordered_iterator)) return false;
+    if (has_expired(unordered_iterator)) return false;
+    return true;
+  }
+
+  /// \copydoc BaseCache::is_valid(OrderedConstIterator)
+  bool is_valid(OrderedConstIterator ordered_iterator) const noexcept override {
+    if (!super::is_valid(ordered_iterator)) return false;
+    if (has_expired(ordered_iterator)) return false;
+    return true;
+  }
+
+  /// \copydoc BaseCache::is_valid(UnorderedConstIterator)
+  /// \throws LRU::Error::KeyExpired if the key pointed to by the iterator has
+  /// expired.
+  void
+  throw_if_invalid(UnorderedConstIterator unordered_iterator) const override {
+    super::throw_if_invalid(unordered_iterator);
+    if (has_expired(unordered_iterator)) {
+      throw LRU::Error::KeyExpired();
+    }
+  }
+
+  /// \copydoc BaseCache::is_valid(OrderedConstIterator)
+  /// \throws LRU::Error::KeyExpired if the key pointed to by the iterator has
+  /// expired.
+  void throw_if_invalid(OrderedConstIterator ordered_iterator) const override {
+    super::throw_if_invalid(ordered_iterator);
+    if (has_expired(ordered_iterator)) {
+      throw LRU::Error::KeyExpired();
+    }
   }
 
  private:

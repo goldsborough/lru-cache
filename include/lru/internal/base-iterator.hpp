@@ -1,5 +1,5 @@
 /// The MIT License (MIT)
-/// Copyright (c) 2016 Peter Goldsborough and Markus Engel
+/// Copyright (c) 2016 Peter Goldsborough
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to
@@ -75,7 +75,7 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Entry<Key, Value>> {
   ///
   /// \param cache The cache this iterator points into.
   /// \param iterator The underlying iterator to adapt.
-  BaseIterator(Cache& cache, const UnderlyingIterator& iterator)
+  BaseIterator(Cache& cache, const UnderlyingIterator& iterator) noexcept
   : _iterator(iterator), _cache(&cache) {
   }
 
@@ -109,7 +109,7 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Entry<Key, Value>> {
   }
 
   /// Move constructor.
-  BaseIterator(BaseIterator&& other) = default;
+  BaseIterator(BaseIterator&& other) noexcept = default;
 
   /// Move assignment operator.
   BaseIterator& operator=(BaseIterator&& other) noexcept = default;
@@ -146,7 +146,7 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Entry<Key, Value>> {
                             AnyKeyType,
                             AnyValueType,
                             AnyCacheType,
-                            AnyUnderlyingIteratorType>&& other)
+                            AnyUnderlyingIteratorType>&& other) noexcept
   : _iterator(std::move(other._iterator))
   , _entry(std::move(other._entry))
   , _cache(std::move(other._cache)) {
@@ -176,9 +176,7 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Entry<Key, Value>> {
   }
 
   /// \returns A reference to the current entry pointed to by the iterator.
-  Entry& operator*() noexcept {
-    return entry();
-  }
+  virtual Entry& operator*() noexcept = 0;
 
   /// \returns A pointer to the current entry pointed to by the iterator.
   Entry* operator->() noexcept {
@@ -186,15 +184,15 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Entry<Key, Value>> {
   }
 
   /// \copydoc operator*()
-  virtual Entry& entry() noexcept = 0;
+  virtual Entry& entry() = 0;
 
   /// \returns A reference to the value of the entry currently pointed to by the
   /// iterator.
-  virtual ValueType& value() noexcept = 0;
+  virtual ValueType& value() = 0;
 
   /// \returns A reference to the key of the entry currently pointed to by the
   /// iterator.
-  virtual const Key& key() noexcept = 0;
+  virtual const Key& key() = 0;
 
  protected:
   template <typename, typename, typename, typename, typename>
