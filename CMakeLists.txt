@@ -50,12 +50,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(LRU_CACHE_BINARY_DIR ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${LRU_CACHE_BINARY_DIR})
 
-###########################################################
-## SUBDIRECTORIES
-###########################################################
-
-# add_subdirectory(memoize)
-
 ########################################
 # TESTS
 ########################################
