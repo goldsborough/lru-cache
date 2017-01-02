@@ -198,13 +198,13 @@ class TimedCache
     auto iterator = _map.find(key);
     if (iterator != _map.end()) {
       if (!_has_expired(iterator->second)) {
-        _register_hit_if_monitoring(key);
+        _register_hit(key, iterator->second.value);
         _last_accessed = iterator;
         return {*this, iterator};
       }
     }
 
-    _register_miss_if_monitoring(key);
+    _register_miss(key);
 
     return end();
   }
@@ -214,13 +214,13 @@ class TimedCache
     auto iterator = _map.find(key);
     if (iterator != _map.end()) {
       if (!_has_expired(iterator->second)) {
-        _register_hit_if_monitoring(key);
+        _register_hit(key, iterator->second.value);
         _last_accessed = iterator;
         return {*this, iterator};
       }
     }
 
-    _register_hit_if_monitoring(key);
+    _register_miss(key);
 
     return cend();
   }

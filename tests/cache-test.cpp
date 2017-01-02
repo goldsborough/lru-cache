@@ -503,22 +503,3 @@ TEST_F(CacheTest, SizeStaysZeroWhenCapacityZero) {
   EXPECT_FALSE(result.was_inserted());
   EXPECT_EQ(result.iterator(), cache.end());
 }
-
-TEST(WrapTest, CanWrapMutableAndNonMutableLambdas) {
-  // This is purely to make sure both variants compile
-  LRU::wrap([](int x) { return x; })(5);
-  LRU::wrap([](int x) mutable { return x; })(5);
-}
-
-TEST(WrapTest, WrappingWorks) {
-  auto f = [x = 0](int _) mutable {
-    return ++x;
-  };
-  auto wrapped = LRU::wrap(f);
-
-  EXPECT_EQ(wrapped(69), 1);
-  EXPECT_EQ(wrapped(69), 1);
-  EXPECT_EQ(wrapped(42), 2);
-  EXPECT_EQ(wrapped(42), 2);
-  EXPECT_EQ(wrapped(50), 3);
-}

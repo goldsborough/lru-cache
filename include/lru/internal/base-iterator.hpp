@@ -19,8 +19,8 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef BASE_ITERATOR_HPP
-#define BASE_ITERATOR_HPP
+#ifndef LRU_INTERNAL_BASE_ITERATOR_HPP
+#define LRU_INTERNAL_BASE_ITERATOR_HPP
 
 #include <algorithm>
 #include <iterator>
@@ -213,4 +213,4 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Entry<Key, Value>> {
 }  // namespace Internal
 }  // namespace LRU
 
-#endif  // BASE_ITERATOR_HPP
+#endif  // LRU_INTERNAL_BASE_ITERATOR_HPP

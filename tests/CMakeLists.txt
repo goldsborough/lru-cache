@@ -31,6 +31,8 @@ set(TEST_LRU_CACHE_SOURCES
   cache-test.cpp
   timed-cache-test.cpp
   statistics-test.cpp
+  wrap-test.cpp
+  callback-test.cpp
 )
 
 ###########################################################

@@ -91,6 +91,15 @@ using enable_if_iterator_over_pair =
     std::pair<typename std::iterator_traits<T>::value_type::first_type,
               typename std::iterator_traits<T>::value_type::first_type>;
 
+
+/// A type trait that disables a template overload if a type is not convertible
+/// to a target type.
+///
+/// \tparam Target The type one wants to check against.
+/// \tparam T The type to check.
+template <typename Target, typename T>
+using enable_if_same = std::enable_if_t<std::is_convertible<T, Target>::value>;
+
 #if __cplusplus > 201402L
 
 /// Checks if all the given parameters evaluate to true.

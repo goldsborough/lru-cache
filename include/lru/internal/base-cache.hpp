@@ -36,6 +36,7 @@
 #include "lru/insertion-result.hpp"
 #include "lru/internal/base-ordered-iterator.hpp"
 #include "lru/internal/base-unordered-iterator.hpp"
+#include "lru/internal/callback-manager.hpp"
 #include "lru/internal/definitions.hpp"
 #include "lru/internal/last-accessed.hpp"
 #include "lru/internal/optional.hpp"
@@ -67,23 +68,23 @@ namespace Internal {
   using typename super::OrderedConstIterator;   \
   using typename super::InitializerList;
 
-#define PRIVATE_BASE_CACHE_MEMBERS           \
-  super::_map;                               \
-  using typename super::Map;                 \
-  using typename super::MapIterator;         \
-  using typename super::MapConstIterator;    \
-  using typename super::Queue;               \
-  using typename super::QueueIterator;       \
-  using super::_order;                       \
-  using super::_last_accessed;               \
-  using super::_capacity;                    \
-  using super::_erase;                       \
-  using super::_erase_lru;                   \
-  using super::_move_to_front;               \
-  using super::_value_from_result;           \
-  using super::_last_accessed_is_ok;         \
-  using super::_register_miss_if_monitoring; \
-  using super::_register_hit_if_monitoring;
+#define PRIVATE_BASE_CACHE_MEMBERS        \
+  super::_map;                            \
+  using typename super::Map;              \
+  using typename super::MapIterator;      \
+  using typename super::MapConstIterator; \
+  using typename super::Queue;            \
+  using typename super::QueueIterator;    \
+  using super::_order;                    \
+  using super::_last_accessed;            \
+  using super::_capacity;                 \
+  using super::_erase;                    \
+  using super::_erase_lru;                \
+  using super::_move_to_front;            \
+  using super::_value_from_result;        \
+  using super::_last_accessed_is_ok;      \
+  using super::_register_miss;            \
+  using super::_register_hit;
 
 /// The base class for the LRU::Cache and LRU::TimedCache.
 ///
@@ -122,6 +123,17 @@ class BaseCache {
   using Map = Internal::Map<Key, Information, HashFunction, KeyEqual>;
   using MapIterator = typename Map::iterator;
   using MapConstIterator = typename Map::const_iterator;
+
+  using CallbackManagerType = CallbackManager<Key, Value>;
+  using HitCallback = typename CallbackManagerType::HitCallback;
+  using MissCallback = typename CallbackManagerType::MissCallback;
+  using AccessCallback = typename CallbackManagerType::AccessCallback;
+  using HitCallbackContainer =
+      typename CallbackManagerType::HitCallbackContainer;
+  using MissCallbackContainer =
+      typename CallbackManagerType::MissCallbackContainer;
+  using AccessCallbackContainer =
+      typename CallbackManagerType::AccessCallbackContainer;
 
  public:
   using Tag = TagType;
@@ -732,7 +744,7 @@ class BaseCache {
   virtual bool contains(const Key& key) const {
     if (key == _last_accessed) {
       if (_last_accessed_is_ok(key)) {
-        _register_hit_if_monitoring(key);
+        _register_hit(key, _last_accessed.value());
         return true;
       } else {
         return false;
@@ -757,8 +769,9 @@ class BaseCache {
   /// \see contains()
   virtual const Value& lookup(const Key& key) const {
     if (key == _last_accessed) {
-      _register_hit_if_monitoring(key);
-      return _value_for_last_accessed();
+      auto& value = _value_for_last_accessed();
+      _register_hit(key, value);
+      return value;
     }
 
     auto iterator = find(key);
@@ -778,8 +791,9 @@ class BaseCache {
   /// \see contains()
   virtual Value& lookup(const Key& key) {
     if (key == _last_accessed) {
-      _register_hit_if_monitoring(key);
-      return _value_for_last_accessed();
+      auto& value = _value_for_last_accessed();
+      _register_hit(key, value);
+      return value;
     }
 
     auto iterator = find(key);
@@ -1223,6 +1237,56 @@ class BaseCache {
     return _stats.shared();
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+  // CALLBACK INTERFACE
+  /////////////////////////////////////////////////////////////////////////////
+
+  template <typename Callback,
+            typename = Internal::enable_if_same<HitCallback, Callback>>
+  void hit_callback(Callback&& hit_callback) {
+    _callback_manager.hit_callback(std::forward<Callback>(hit_callback));
+  }
+
+  template <typename Callback,
+            typename = Internal::enable_if_same<MissCallback, Callback>>
+  void miss_callback(Callback&& miss_callback) {
+    _callback_manager.miss_callback(std::forward<Callback>(miss_callback));
+  }
+
+  template <typename Callback,
+            typename = Internal::enable_if_same<AccessCallback, Callback>>
+  void access_callback(Callback&& access_callback) {
+    _callback_manager.access_callback(std::forward<Callback>(access_callback));
+  }
+
+  void clear_hit_callbacks() {
+    _callback_manager.clear_hit_callbacks();
+  }
+
+  void clear_miss_callbacks() {
+    _callback_manager.clear_miss_callbacks();
+  }
+
+  void clear_access_callbacks() {
+    _callback_manager.clear_access_callbacks();
+  }
+
+  void clear_all_callbacks() {
+    _callback_manager.clear();
+  }
+
+  const HitCallbackContainer& hit_callbacks() const noexcept {
+    return _callback_manager.hit_callbacks();
+  }
+
+  const MissCallbackContainer& miss_callbacks() const noexcept {
+    return _callback_manager.miss_callbacks();
+  }
+
+  const AccessCallbackContainer& access_callbacks() const noexcept {
+    return _callback_manager.access_callbacks();
+  }
+
  protected:
   using MapInsertionResult = decltype(Map().emplace());
   using LastAccessed =
@@ -1316,20 +1380,25 @@ class BaseCache {
     return _last_accessed.value();
   }
 
-  /// Registers a hit for the key, if the cache is currently monitoring.
-  /// \param key The key to maybe register a hit for.
-  virtual void _register_hit_if_monitoring(const Key& key) const {
+  /// Registers a hit for the key and performs appropriate actions.
+  /// \param key The key to register a hit for.
+  /// \param value The value that was found for the key.
+  virtual void _register_hit(const Key& key, const Value& value) const {
     if (is_monitoring()) {
       _stats.register_hit(key);
     }
+
+    _callback_manager.hit(key, value);
   }
 
-  /// Registers a miss for the key, if the cache is currently monitoring.
-  /// \param key The key to maybe register a miss for.
-  virtual void _register_miss_if_monitoring(const Key& key) const {
+  /// Registers a miss for the key and performs appropriate actions.
+  /// \param key The key to register a miss for.
+  virtual void _register_miss(const Key& key) const {
     if (is_monitoring()) {
       _stats.register_miss(key);
     }
+
+    _callback_manager.miss(key);
   }
 
   /// The common part of both range assignment operators.
@@ -1359,6 +1428,9 @@ class BaseCache {
 
   /// The last-accessed cache object.
   mutable LastAccessed _last_accessed;
+
+  /// The callback manager to store any callbacks.
+  mutable CallbackManagerType _callback_manager;
 
   /// The current capacity of the cache.
   size_t _capacity;

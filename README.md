@@ -16,22 +16,67 @@ The two main classes we provide are `LRU::Cache` and `LRU::TimedCache`. A basic 
 
 `LRU::Cache`:
 ```C++
+#include <iostream>
 #include "lru/lru.hpp"
 
 using Cache = LRU::Cache<int, int>;
 
-int fib(int n, Cache& cache) {
+int fibonacci(int n, Cache& cache) {
   if (n < 2) return 1;
+
+  // We internally keep track of the last accessed key, meaning a
+  // `contains(key)` + `lookup(key)` sequence will involve only a single hash
+  // table lookup.
   if (cache.contains(n)) return cache[n];
 
-  auto value = fib(n - 1, cache) + fib(n - 2, cache);
+  auto value = fibonacci(n - 1, cache) + fibonacci(n - 2, cache);
+
+  // Caches are 100% move-aware and we have implemented
+  // `unordered_map` style emplacement and insertion.
   cache.emplace(n, value);
 
   return value;
 }
 
-int fib(int n) {
-  Cache cache;
-  return fib(n, cache);
+int fibonacci(int n) {
+  // Use a capacity of 100 (after 100 insertions, the next insertion will evict
+  // the least-recently inserted element). The default capacity is 128.
+  Cache cache(100);
+  return fibonacci(n, cache);
 }
 ```
+
+`LRU::TimedCache`:
+```C++
+#include <chrono>
+#include <iostream>
+
+#include "lru/lru.hpp"
+
+using namespace std::chrono_literals;
+
+using Cache = LRU::TimedCache<int, int>;
+
+int fibonacci(int n, Cache& cache) {
+  if (n < 2) return 1;
+  if (cache.contains(n)) return cache[n];
+
+  auto value = fibonacci(n - 1, cache) + fibonacci(n - 2, cache);
+  cache.emplace(n, value);
+
+  return value;
+}
+
+int fibonacci(int n) {
+  // Use a time to live of 100ms. This means that 100ms after insertion, a key
+  // will be said to have "expired" and `contains(key)` will return false.
+  Cache cache(100ms);
+  return fibonacci(n, cache);
+}
+
+auto main() -> int {
+  std::cout << fibonacci(32) << std::endl;
+}
+```
+
+## Extended Usage
