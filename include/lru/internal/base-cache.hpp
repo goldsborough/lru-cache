@@ -1241,48 +1241,66 @@ class BaseCache {
   // CALLBACK INTERFACE
   /////////////////////////////////////////////////////////////////////////////
 
+  /// Registers a new hit callback.
+  ///
+  /// \param hit_callback The hit callback function to register with the cache.
   template <typename Callback,
             typename = Internal::enable_if_same<HitCallback, Callback>>
   void hit_callback(Callback&& hit_callback) {
     _callback_manager.hit_callback(std::forward<Callback>(hit_callback));
   }
 
+  /// Registers a new miss callback.
+  ///
+  /// \param miss_callback The miss callback function to register with the
+  ///                       cache.
   template <typename Callback,
             typename = Internal::enable_if_same<MissCallback, Callback>>
   void miss_callback(Callback&& miss_callback) {
     _callback_manager.miss_callback(std::forward<Callback>(miss_callback));
   }
 
+  /// Registers a new access callback.
+  ///
+  /// \param access_callback The access callback function to register with the
+  ///                        cache.
   template <typename Callback,
             typename = Internal::enable_if_same<AccessCallback, Callback>>
   void access_callback(Callback&& access_callback) {
     _callback_manager.access_callback(std::forward<Callback>(access_callback));
   }
 
+  /// Clears all hit callbacks.
   void clear_hit_callbacks() {
     _callback_manager.clear_hit_callbacks();
   }
 
+  /// Clears all miss callbacks.
   void clear_miss_callbacks() {
     _callback_manager.clear_miss_callbacks();
   }
 
+  /// Clears all access callbacks.
   void clear_access_callbacks() {
     _callback_manager.clear_access_callbacks();
   }
 
+  /// Clears all callbacks.
   void clear_all_callbacks() {
     _callback_manager.clear();
   }
 
+  /// \returns All hit callbacks.
   const HitCallbackContainer& hit_callbacks() const noexcept {
     return _callback_manager.hit_callbacks();
   }
 
+  /// \returns All miss callbacks.
   const MissCallbackContainer& miss_callbacks() const noexcept {
     return _callback_manager.miss_callbacks();
   }
 
+  /// \returns All access callbacks.
   const AccessCallbackContainer& access_callbacks() const noexcept {
     return _callback_manager.access_callbacks();
   }
