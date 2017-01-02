@@ -285,8 +285,8 @@ class BaseCache {
   /// Constructor.
   ///
   /// \param capacity The capacity of the cache.
-  /// \parm begin The start of a range to construct the cache with.
-  /// \parm end The end of a range to construct the cache with.
+  /// \param begin The start of a range to construct the cache with.
+  /// \param end The end of a range to construct the cache with.
   /// \param hash The hash function to use for the internal map.
   /// \param key_equal The key equality function to use for the internal map.
   template <typename Iterator>
@@ -306,8 +306,8 @@ class BaseCache {
   /// capacity will be $\max(\text{distance}, c_0)$).
   /// This may be expensive for iterators that are not random-access.
   ///
-  /// \parm begin The start of a range to construct the cache with.
-  /// \parm end The end of a range to construct the cache with.
+  /// \param begin The start of a range to construct the cache with.
+  /// \param end The end of a range to construct the cache with.
   /// \param hash The hash function to use for the internal map.
   /// \param key_equal The key equality function to use for the internal map.
   template <typename Iterator>
@@ -911,7 +911,7 @@ class BaseCache {
     // No need to use _last_accessed_is_ok here, because even
     // if it has expired, it's no problem to erase it anyway
     if (_last_accessed == key) {
-      _erase(_last_accessed.key(), _last_accessed.value());
+      _erase(_last_accessed.key(), _last_accessed.information());
       return true;
     }
 
@@ -1090,7 +1090,7 @@ class BaseCache {
   /// \returns True if the cache is currently monitoring statistics, else
   /// false.
   bool is_monitoring() const noexcept {
-    return _stats.has_statistics();
+    return _stats.has_stats();
   }
 
   /// \returns The statistics object currently in use by the cache.
@@ -1203,7 +1203,7 @@ class BaseCache {
 
   /// \copydoc _value_for_last_accessed() const
   virtual Value& _value_for_last_accessed() {
-    return _last_accessed.value().value;
+    return _last_accessed.value();
   }
 
   /// Attempts to access the last accessed key's value.
@@ -1213,7 +1213,7 @@ class BaseCache {
   /// checks (and possibly throw exceptions) or perform other operations to
   /// retrieve the value.
   virtual const Value& _value_for_last_accessed() const {
-    return _last_accessed.value().value;
+    return _last_accessed.value();
   }
 
   /// Registers a hit for the key, if the cache is currently monitoring.

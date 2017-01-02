@@ -169,8 +169,8 @@ class BaseIterator : public std::iterator<IteratorTag, LRU::Entry<Key, Value>> {
 
   /// Swaps two base iterator.
   ///
-  /// \parm first The first iterator to swap.
-  /// \parm second The second iterator to swap.
+  /// \param first The first iterator to swap.
+  /// \param second The second iterator to swap.
   friend void swap(BaseIterator& first, BaseIterator& second) noexcept {
     first.swap(second);
   }

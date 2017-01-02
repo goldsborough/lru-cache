@@ -48,17 +48,17 @@ TEST_F(LastAccessedTest, IsAssignableFromConstAndNonConst) {
   LastAccessed<std::string, int> last_accessed(front->first, front->second);
 
   ASSERT_EQ(last_accessed.key(), "one");
-  ASSERT_EQ(last_accessed.value(), 1);
+  ASSERT_EQ(last_accessed.information(), 1);
 
   last_accessed = map.find("two");
 
   EXPECT_EQ(last_accessed.key(), "two");
-  EXPECT_EQ(last_accessed.value(), 2);
+  EXPECT_EQ(last_accessed.information(), 2);
 
   last_accessed = map.find("three");
 
   EXPECT_EQ(last_accessed.key(), "three");
-  EXPECT_EQ(last_accessed.value(), 3);
+  EXPECT_EQ(last_accessed.information(), 3);
 }
 
 TEST_F(LastAccessedTest, IsComparableWithConstAndNonConstIterators) {
@@ -86,9 +86,9 @@ TEST_F(LastAccessedTest, IsComparableWithConstAndNonConstIterators) {
 
 TEST_F(LastAccessedTest, IsComparableToConstAndNonConstKeys) {
   std::string key = "forty-two";
-  int value = 42;
+  int information = 42;
 
-  LastAccessed<std::string, int> last_accessed(key, value);
+  LastAccessed<std::string, int> last_accessed(key, information);
 
   EXPECT_EQ(last_accessed, key);
   EXPECT_EQ(key, last_accessed);

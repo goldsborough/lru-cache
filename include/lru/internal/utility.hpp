@@ -193,7 +193,7 @@ void for_each(Function) noexcept {
 ///
 /// \param function The function to call for each argument.
 /// \param head The first value to call the function with.
-/// \parm tail The remaining values to call the function with.
+/// \param tail The remaining values to call the function with.
 template <typename Function, typename Head, typename... Tail>
 void for_each(Function function, Head&& head, Tail&&... tail) {
   function(std::forward<Head>(head));

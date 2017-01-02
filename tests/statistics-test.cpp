@@ -255,7 +255,7 @@ TEST_F(CacheWithStatisticsTest, CanRegisterLValueStatistics) {
   EXPECT_EQ(&cache.stats(), &*stats);
 
   cache.contains(1);
-  EXPECT_EQ(cache.stats().total_accesses(), 1);
+  EXPECT_EQ(cache.shared_stats()->total_accesses(), 1);
   EXPECT_EQ(cache.stats().total_misses(), 1);
 
   cache.emplace(1, 2);

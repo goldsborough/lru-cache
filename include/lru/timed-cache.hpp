@@ -268,12 +268,12 @@ class TimedCache
   /// checks for expiration of the last accessed key.
   bool _last_accessed_is_ok(const Key& key) const noexcept override {
     if (!super::_last_accessed_is_ok(key)) return false;
-    return !_has_expired(_last_accessed.value());
+    return !_has_expired(_last_accessed.information());
   }
 
   /// \copydoc _value_for_last_accessed() const
   Value& _value_for_last_accessed() override {
-    auto& information = _last_accessed.value();
+    auto& information = _last_accessed.information();
     if (_has_expired(information)) {
       throw LRU::Error::KeyExpired();
     } else {
@@ -285,7 +285,7 @@ class TimedCache
   /// \throws LRU::Error::KeyExpired if the key has expired.
   /// \returns The value of the last accessed key.
   const Value& _value_for_last_accessed() const override {
-    const auto& information = _last_accessed.value();
+    const auto& information = _last_accessed.information();
     if (_has_expired(information)) {
       throw LRU::Error::KeyExpired();
     } else {

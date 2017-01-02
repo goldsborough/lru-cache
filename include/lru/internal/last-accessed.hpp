@@ -31,17 +31,20 @@
 namespace LRU {
 namespace Internal {
 
-/// Provides a simple iterator-compatible pointer object for a key and value.
+/// Provides a simple iterator-compatible pointer object for a key and
+/// information.
 ///
 /// The easisest idea for this class, theoretically, would be to just store an s
 /// iterator to the internal cache map (i.e. template the class on the iterator
 /// type). However, the major trouble with that approach is that this class
-/// should be 100% *mutable*, as in "always non-const", so that  keys and values
+/// should be 100% *mutable*, as in "always non-const", so that  keys and
+/// informations
 /// we store for fast access can be (quickly) retrieved as either const or
 /// non-const (iterators for example). This is not possible, since the
 /// const-ness of `const_iterators` are not the usual idea of const in C++,
 /// meaning especially it cannot be cast away with a `const_cast` as is required
-/// for the mutability. As such, we *must* store the plain keys and values.
+/// for the mutability. As such, we *must* store the plain keys and
+/// informations.
 /// This, however, means that iterators cannot be stored efficiently, since a
 /// new hash table lookup would be required to go from a key to its iterator.
 /// However, since the main use case of this class is to avoid a second lookup
@@ -49,131 +52,194 @@ namespace Internal {
 /// not an issue for iterators since they can be compared to the `end` iterator
 /// in constant time (equivalent to the call to `contains()`).
 ///
-/// WARNING: This class stores *pointers* to keys and values. As such lifetime
+/// WARNING: This class stores *pointers* to keys and informations. As such
+/// lifetime
 /// of the pointed-to objects must be cared for by the user of this class.
-template <typename Key, typename Value, typename KeyEqual = std::equal_to<Key>>
+///
+/// \tparam Key The type of key being accessed.
+/// \tparam InformationType The type of information being accessed.
+/// \tparam KeyEqual The type of the key comparison function.
+template <typename Key,
+          typename InformationType,
+          typename KeyEqual = std::equal_to<Key>>
 class LastAccessed {
  public:
+  /// Constructor.
+  ///
+  /// \param key_equal The function to compare keys with.
   explicit LastAccessed(const KeyEqual& key_equal = KeyEqual())
-  : _is_valid(false), _key_equal(key_equal) {
+  : _key(nullptr)
+  , _information(nullptr)
+  , _is_valid(false)
+  , _key_equal(key_equal) {
   }
 
+  /// Constructor.
+  ///
+  /// \param key The key to store a reference to.
+  /// \param information The information to store a reference to.
+  /// \param key_equal The function to compare keys with.
   LastAccessed(const Key& key,
-               const Value& value,
+               const InformationType& information,
                const KeyEqual& key_equal = KeyEqual())
   : _key(const_cast<Key*>(&key))
-  , _value(const_cast<Value*>(&value))
+  , _information(const_cast<InformationType*>(&information))
   , _is_valid(true)
   , _key_equal(key_equal) {
   }
 
+  /// Constructor.
+  ///
+  /// \param iterator An iterator pointing to a key and information to use for
+  ///                constructing the instance.
+  /// \param key_equal The function to compare keys with.
   template <typename Iterator>
   explicit LastAccessed(Iterator iterator,
                         const KeyEqual& key_equal = KeyEqual())
   : LastAccessed(iterator->first, iterator->second, key_equal) {
   }
 
+  /// Copy assignment operator for iterators.
+  ///
+  /// \param iterator An iterator pointing to a key and value to use for the
+  ///                 `LastAccessed` instance.
+  /// \return The resulting `LastAccessed` instance.
   template <typename Iterator>
   LastAccessed& operator=(Iterator iterator) {
     _key = const_cast<Key*>(&(iterator->first));
-    _value = const_cast<Value*>(&(iterator->second));
+    _information = const_cast<InformationType*>(&(iterator->second));
     _is_valid = true;
 
     return *this;
   }
 
-  /// Comparisons to keys
+  /// Compares a `LastAccessed` object for equality with a key.
+  ///
+  /// \param last_accessed The `LastAccessed` instance to compare.
+  /// \param key The key instance to compare.
+  /// \returns True if the key of the `LastAccessed` object's key equals the
+  /// given key, else false.
   friend bool
   operator==(const LastAccessed& last_accessed, const Key& key) noexcept {
     if (!last_accessed._is_valid) return false;
-    return last_accessed._key_equal(key, *(last_accessed._key));
+    return last_accessed._key_equal(key, last_accessed.key());
   }
 
+  /// \copydoc operator==(const LastAccessed&,const Key&)
   friend bool
   operator==(const Key& key, const LastAccessed& last_accessed) noexcept {
     return last_accessed == key;
   }
 
-  friend bool
-  operator!=(const LastAccessed& last_accessed, const Key& key) noexcept {
-    return !(last_accessed == key);
-  }
-
-  friend bool
-  operator!=(const Key& key, const LastAccessed& last_accessed) noexcept {
-    return !(key == last_accessed);
-  }
-
-  /// Fast comparisons to other iterators (not relying on implicit conversions)
+  /// Compares a `LastAccessed` object  for equality with an iterator.
+  ///
+  /// \param last_accessed The `LastAccessed` instance to compare.
+  /// \param iterator The iterator to compare with.
+  /// \returns True if the `LastAccessed` object's key equals that of the
+  /// iterator, else false.
   template <typename Iterator, typename = enable_if_iterator<Iterator>>
   friend bool operator==(const LastAccessed& last_accessed,
                          const Iterator& iterator) noexcept {
+    /// Fast comparisons to an iterator (not relying on implicit conversion)
     return last_accessed == iterator->first;
   }
 
+  /// \copydoc operator==(const LastAccessed&,Iterator)
   template <typename Iterator, typename = enable_if_iterator<Iterator>>
   friend bool operator==(const Iterator& iterator,
                          const LastAccessed& last_accessed) noexcept {
     return last_accessed == iterator;
   }
 
-  template <typename Iterator, typename = enable_if_iterator<Iterator>>
-  friend bool operator!=(const LastAccessed& last_accessed,
-                         const Iterator& iterator) noexcept {
-    return !(last_accessed == iterator);
+  /// Compares a `LastAccessed` object for inequality with something.
+  ///
+  /// \param last_accessed The `LastAccessed` instance to compare.
+  /// \param other Something else to compare to.
+  /// \returns True if the key of the `LastAccessed` object's key does not equal
+  /// the given other object's key, else false.
+  template <typename T>
+  friend bool
+  operator!=(const LastAccessed& last_accessed, const T& other) noexcept {
+    return !(last_accessed == other);
   }
 
-  template <typename Iterator, typename = enable_if_iterator<Iterator>>
-  friend bool operator!=(const Iterator& iterator,
-                         const LastAccessed& last_accessed) noexcept {
-    return !(iterator == last_accessed);
+  /// \copydoc operator!=(const LastAccessed&,const T&)
+  template <typename T>
+  friend bool
+  operator!=(const T& other, const LastAccessed& last_accessed) noexcept {
+    return !(other == last_accessed);
   }
 
-  explicit operator bool() const noexcept {
-    return is_valid();
-  }
-
+  /// \returns The last accessed key.
   Key& key() noexcept {
     assert(is_valid());
     return *_key;
   }
 
+  /// \returns The last accessed key.
   const Key& key() const noexcept {
     assert(is_valid());
     return *_key;
   }
 
-  Value& value() noexcept {
+  /// \returns The last accessed information.
+  InformationType& information() noexcept {
     assert(is_valid());
-    return *_value;
+    return *_information;
   }
 
-  const Value& value() const noexcept {
+  /// \returns The last accessed information.
+  const InformationType& information() const noexcept {
     assert(is_valid());
-    return *_value;
+    return *_information;
   }
 
+  /// \returns The last accessed value.
+  auto& value() noexcept {
+    assert(is_valid());
+    return _information->value;
+  }
+
+  /// \returns The last accessed value.
+  const auto& value() const noexcept {
+    assert(is_valid());
+    return _information->value;
+  }
+
+  /// \returns True if the key and information of the instance may be accessed,
+  /// else false.
   bool is_valid() const noexcept {
     return _is_valid;
   }
 
+  /// \copydoc is_valid()
+  explicit operator bool() const noexcept {
+    return is_valid();
+  }
+
+  /// Invalidates the instance.
   void invalidate() noexcept {
     _is_valid = false;
+    _key = nullptr;
+    _information = nullptr;
   }
 
-  void key_equal(const KeyEqual& key_equal) {
-    _key_equal = key_equal;
-  }
-
+  /// \returns The key comparison function used.
   const KeyEqual& key_equal() const noexcept {
     return _key_equal;
   }
 
  private:
+  /// A pointer to the key that was last accessed (if any).
   Key* _key;
-  Value* _value;
 
+  /// A pointer to the information that was last accessed (if any).
+  InformationType* _information;
+
+  /// True if the key and information pointers are valid, else false.
   bool _is_valid;
+
+  /// The function used to compare keys.
   KeyEqual _key_equal;
 };
 }  // namespace Internal
