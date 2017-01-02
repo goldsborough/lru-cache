@@ -50,7 +50,7 @@ struct Information {
   ///
   /// \param value_ The value for the information.
   /// \param order_ The order iterator for the information.
-  Information(const Value& value_, const QueueIterator& order_)
+  Information(const Value& value_, QueueIterator order_)
   : value(value_), order(order_) {
   }
 
@@ -60,7 +60,7 @@ struct Information {
   /// \param value_arguments Any number of arguments to perfectly forward to the
   ///                        value type's constructor.
   template <typename... ValueArguments>
-  Information(const QueueIterator& order_, ValueArguments&&... value_arguments)
+  Information(QueueIterator order_, ValueArguments&&... value_arguments)
   : value(std::forward<ValueArguments>(value_arguments)...), order(order_) {
   }
 
@@ -71,7 +71,7 @@ struct Information {
   ///                        value type's constructor.
   ///
   template <typename... ValueArguments>
-  Information(const QueueIterator& order_,
+  Information(QueueIterator order_,
               const std::tuple<ValueArguments...>& value_arguments)
   : Information(
         order_, value_arguments, Internal::tuple_indices(value_arguments)) {

@@ -77,7 +77,7 @@ class TimedCache
   using typename super::size_t;
 
   /// \param time_to_live The time to live for keys in the cache.
-  /// \copydoc BaseCache(size_t,const HashFunction&,const KeyEqual&)
+  /// \copydoc BaseCache::BaseCache(size_t,const HashFunction&,const KeyEqual&)
   template <typename AnyDurationType = Duration>
   explicit TimedCache(const AnyDurationType& time_to_live,
                       size_t capacity = Internal::DEFAULT_CAPACITY,
@@ -88,7 +88,8 @@ class TimedCache
   }
 
   /// \param time_to_live The time to live for keys in the cache.
-  /// \copydoc BaseCache(size_t,Iterator,Iterator,const HashFunction&,const
+  /// \copydoc BaseCache::BaseCache(size_t,Iterator,Iterator,const
+  /// HashFunction&,const
   /// KeyEqual&)
   template <typename Iterator, typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
@@ -102,7 +103,7 @@ class TimedCache
   }
 
   /// \param time_to_live The time to live for keys in the cache.
-  /// \copydoc BaseCache(Iterator,Iterator,const HashFunction&,const
+  /// \copydoc BaseCache::BaseCache(Iterator,Iterator,const HashFunction&,const
   /// KeyEqual&)
   template <typename Iterator, typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
@@ -115,7 +116,7 @@ class TimedCache
   }
 
   /// \param time_to_live The time to live for keys in the cache.
-  /// \copydoc BaseCache(Range,size_t,const HashFunction&,const
+  /// \copydoc BaseCache::BaseCache(Range,size_t,const HashFunction&,const
   /// KeyEqual&)
   template <typename Range,
             typename AnyDurationType = Duration,
@@ -130,7 +131,7 @@ class TimedCache
   }
 
   /// \param time_to_live The time to live for keys in the cache.
-  /// \copydoc BaseCache(Range,const HashFunction&,const
+  /// \copydoc BaseCache::BaseCache(Range,const HashFunction&,const
   /// KeyEqual&)
   template <typename Range,
             typename AnyDurationType = Duration,
@@ -144,7 +145,7 @@ class TimedCache
   }
 
   /// \param time_to_live The time to live for keys in the cache.
-  /// \copydoc BaseCache(InitializerList,const HashFunction&,const
+  /// \copydoc BaseCache::BaseCache(InitializerList,const HashFunction&,const
   /// KeyEqual&)
   template <typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
@@ -156,7 +157,8 @@ class TimedCache
   }
 
   /// \param time_to_live The time to live for keys in the cache.
-  /// \copydoc BaseCache(InitializerList,size_t,const HashFunction&,const
+  /// \copydoc BaseCache::BaseCache(InitializerList,size_t,const
+  /// HashFunction&,const
   /// KeyEqual&)
   template <typename AnyDurationType = Duration>
   TimedCache(const AnyDurationType& time_to_live,
@@ -264,7 +266,7 @@ class TimedCache
   using Clock = Internal::Clock;
 
   /// \returns True if the last accessed object is valid.
-  /// \detail Next to performing the base cache's action, this method also
+  /// \details Next to performing the base cache's action, this method also
   /// checks for expiration of the last accessed key.
   bool _last_accessed_is_ok(const Key& key) const noexcept override {
     if (!super::_last_accessed_is_ok(key)) return false;

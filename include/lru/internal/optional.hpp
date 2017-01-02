@@ -59,14 +59,14 @@ class Optional {
 
   /// Copy constructor.
   ///
-  /// \other The other optional object to copy from.
+  /// \param other The other optional object to copy from.
   Optional(const Optional& other) {
     if (other) emplace(*other);
   }
 
   /// Generalized copy constructor.
   ///
-  /// \other The other optional object to copy from.
+  /// \param other The other optional object to copy from.
   template <typename U,
             typename = std::enable_if_t<std::is_convertible<T, U>::value>>
   Optional(const Optional<U>& other) {
@@ -75,14 +75,14 @@ class Optional {
 
   /// Move constructor.
   ///
-  /// \other The other optional object to move into this one.
+  /// \param other The other optional object to move into this one.
   Optional(Optional&& other) noexcept {
     swap(other);
   }
 
   /// Generalized move constructor.
   ///
-  /// \other The other optional object to move into this one.
+  /// \param other The other optional object to move into this one.
   template <typename U,
             typename = std::enable_if_t<std::is_convertible<T, U>::value>>
   Optional(Optional<U>&& other) noexcept {
@@ -93,7 +93,7 @@ class Optional {
 
   /// Assignment operator.
   ///
-  /// \param The other object to assign from.
+  /// \param other The other object to assign from.
   /// \returns The resulting optional instance.
   Optional& operator=(Optional other) noexcept {
     swap(other);

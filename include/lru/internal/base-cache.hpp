@@ -710,12 +710,12 @@ class BaseCache {
   /// exists, else the end iterator.
   virtual UnorderedConstIterator find(const Key& key) const = 0;
 
-  /// \copydoc lookup()
+  /// \copydoc lookup(const Key&)
   virtual Value& operator[](const Key& key) {
     return lookup(key);
   }
 
-  /// \copydoc lookup() const
+  /// \copydoc lookup(const Key&) const
   virtual const Value& operator[](const Key& key) const {
     return lookup(key);
   }
@@ -759,7 +759,7 @@ class BaseCache {
   /// element-wise insertion via `insert()`.
   ///
   /// \param begin An iterator for the start of the range to insert.
-  /// \param begin An iterator for the end of the range to insert.
+  /// \param end An iterator for the end of the range to insert.
   /// \returns The number of elements newly inserted (as opposed to only
   /// updated).
   template <typename Iterator,
@@ -1009,7 +1009,7 @@ class BaseCache {
 
   /// \returns the number of slots left in the cache.
   ///
-  /// \detail After this number of elements have been inserted, the next one
+  /// \details After this number of elements have been inserted, the next one
   /// insertion is preceded by an erasure of the least-recently inserted
   /// element.
   virtual size_t space_left() const noexcept {
@@ -1023,7 +1023,7 @@ class BaseCache {
 
   /// \returns True if the cache's size equals its capacity, else false.
   ///
-  /// \detail If `is_full()` returns `true`, the next insertion is preceded by
+  /// \details If `is_full()` returns `true`, the next insertion is preceded by
   /// an erasure of the least-recently inserted element.
   virtual bool is_full() const noexcept {
     return size() == _capacity;
@@ -1131,7 +1131,7 @@ class BaseCache {
   /// Moves the key pointed to by the iterator to the front of the order.
   ///
   /// \param iterator The iterator pointing to the key to move.
-  /// \param value The updated value to move the key with.
+  /// \param new_value The updated value to move the key with.
   virtual void _move_to_front(MapIterator iterator, const Value& new_value) {
     _order.erase(iterator->second.order);
 
@@ -1208,7 +1208,7 @@ class BaseCache {
 
   /// Attempts to access the last accessed key's value.
   /// \returns The value of the last accessed object.
-  /// \detail This method exists so that derived classes may perform
+  /// \details This method exists so that derived classes may perform
   /// additional
   /// checks (and possibly throw exceptions) or perform other operations to
   /// retrieve the value.

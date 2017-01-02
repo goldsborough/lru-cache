@@ -138,16 +138,16 @@ class LastAccessed {
   /// \returns True if the `LastAccessed` object's key equals that of the
   /// iterator, else false.
   template <typename Iterator, typename = enable_if_iterator<Iterator>>
-  friend bool operator==(const LastAccessed& last_accessed,
-                         const Iterator& iterator) noexcept {
+  friend bool
+  operator==(const LastAccessed& last_accessed, Iterator iterator) noexcept {
     /// Fast comparisons to an iterator (not relying on implicit conversion)
     return last_accessed == iterator->first;
   }
 
   /// \copydoc operator==(const LastAccessed&,Iterator)
   template <typename Iterator, typename = enable_if_iterator<Iterator>>
-  friend bool operator==(const Iterator& iterator,
-                         const LastAccessed& last_accessed) noexcept {
+  friend bool
+  operator==(Iterator iterator, const LastAccessed& last_accessed) noexcept {
     return last_accessed == iterator;
   }
 

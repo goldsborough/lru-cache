@@ -71,8 +71,8 @@ class Cache
   using PUBLIC_BASE_CACHE_MEMBERS;
   using typename super::size_t;
 
-  /// \copydoc BaseCache(size_t,const HashFunction&,const KeyEqual&)
-  /// \details The capacity defaults to an internal constant, currently 128.
+  /// \copydoc BaseCache::BaseCache(size_t,const HashFunction&,const KeyEqual&)
+  /// \detailss The capacity defaults to an internal constant, currently 128.
   explicit Cache(size_t capacity = Internal::DEFAULT_CAPACITY,
                  const HashFunction& hash = HashFunction(),
                  const KeyEqual& equal = KeyEqual())

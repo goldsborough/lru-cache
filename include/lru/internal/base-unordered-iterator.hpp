@@ -157,7 +157,7 @@ class BaseUnorderedIterator
   }
 
   /// \returns A reference to the entry the iterator points to.
-  /// \detail If the iterator is invalid, behavior is undefined.
+  /// \details If the iterator is invalid, behavior is undefined.
   Entry& entry() noexcept override {
     if (!_entry.has_value()) {
       _entry.emplace(key(), value());
@@ -167,13 +167,13 @@ class BaseUnorderedIterator
   }
 
   /// \returns A reference to the value the iterator points to.
-  /// \detail If the iterator is invalid, behavior is undefined.
+  /// \details If the iterator is invalid, behavior is undefined.
   Value& value() noexcept override {
     return _iterator->second.value;
   }
 
   /// \returns A reference to the key the iterator points to.
-  /// \detail If the iterator is invalid, behavior is undefined.
+  /// \details If the iterator is invalid, behavior is undefined.
   const Key& key() noexcept override {
     return _iterator->first;
   }

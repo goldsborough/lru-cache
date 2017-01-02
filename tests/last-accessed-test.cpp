@@ -85,6 +85,8 @@ TEST_F(LastAccessedTest, IsComparableWithConstAndNonConstIterators) {
 }
 
 TEST_F(LastAccessedTest, IsComparableToConstAndNonConstKeys) {
+  using namespace std::string_literals;
+
   std::string key = "forty-two";
   int information = 42;
 
@@ -93,15 +95,15 @@ TEST_F(LastAccessedTest, IsComparableToConstAndNonConstKeys) {
   EXPECT_EQ(last_accessed, key);
   EXPECT_EQ(key, last_accessed);
 
-  EXPECT_EQ(last_accessed, "forty-two");
-  EXPECT_EQ("forty-two", last_accessed);
+  EXPECT_EQ(last_accessed, "forty-two"s);
+  EXPECT_EQ("forty-two"s, last_accessed);
 
   const std::string& key_const_reference = key;
 
   EXPECT_EQ(key_const_reference, last_accessed);
   EXPECT_EQ(last_accessed, key_const_reference);
 
-  EXPECT_NE(last_accessed, "asdf");
-  EXPECT_NE(last_accessed, "foo");
-  EXPECT_NE(last_accessed, "forty-three");
+  EXPECT_NE(last_accessed, "asdf"s);
+  EXPECT_NE(last_accessed, "foo"s);
+  EXPECT_NE(last_accessed, "forty-three"s);
 }

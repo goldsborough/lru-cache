@@ -44,7 +44,7 @@ struct KeyStatistics {
   }
 
   /// \returns The total number of accesses made for the key.
-  /// \detail This is the sum of the hits and misses.
+  /// \details This is the sum of the hits and misses.
   size_t accesses() const noexcept {
     return hits + misses;
   }
