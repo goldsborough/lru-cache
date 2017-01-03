@@ -525,8 +525,7 @@ TEST_F(CacheTest, LookupsMoveElementsToFront) {
   cache.insert({{"one", 1}, {"two", 2}});
 
   // The LRU principle mandates that lookups place
-  // accessed elements to the front. So when we look at
-  // one it should move to the front.
+  // accessed elements to the front.
 
   typename CacheType::OrderedIterator iterator(cache.find("one"));
   cache.emplace("three", 3);
@@ -535,8 +534,12 @@ TEST_F(CacheTest, LookupsMoveElementsToFront) {
   EXPECT_FALSE(cache.contains("two"));
   EXPECT_TRUE(cache.contains("three"));
   EXPECT_EQ(std::prev(cache.ordered_end()).key(), "three");
+  EXPECT_EQ(cache.front(), "three");
+  EXPECT_EQ(cache.back(), "one");
 
   ASSERT_EQ(cache.lookup("one"), 1);
   EXPECT_EQ(std::prev(cache.ordered_end()).key(), "one");
   EXPECT_EQ(cache.ordered_begin().key(), "three");
+  EXPECT_EQ(cache.front(), "one");
+  EXPECT_EQ(cache.back(), "three");
 }

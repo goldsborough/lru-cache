@@ -176,21 +176,23 @@ class Cache
     return {*this, iterator};
   }
 
-  /// \returns The least-recently inserted element.
+  /// \returns The most-recently inserted element.
   const Key& front() const noexcept {
     if (is_empty()) {
       throw LRU::Error::EmptyCache("front");
     } else {
-      return _order.front();
+      // The queue is reversed for natural order of iteration.
+      return _order.back();
     }
   }
 
-  /// \returns The most-recently inserted element.
+  /// \returns The least-recently inserted element.
   const Key& back() const noexcept {
     if (is_empty()) {
       throw LRU::Error::EmptyCache("back");
     } else {
-      return _order.back();
+      // The queue is reversed for natural order of iteration.
+      return _order.front();
     }
   }
 };
