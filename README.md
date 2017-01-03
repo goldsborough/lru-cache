@@ -225,6 +225,8 @@ Note that just like with statistics, these callbacks will only get invoked for l
 
 ## Documentation
 
+We have 100% public and private documentation coverage with a decent effort behind it. As such we ask you to RTFM to see the full interface we provide (it is a superset of `std::unordered_map`, minus the new node interface). Documentation can be generated with [Doxygen](http://www.stack.nl/~dimitri/doxygen/) by running the `doxygen` command inside the `docs/` folder.
+
 ## LICENSE
 
 This project is released under the [MIT License](http://goldsborough.mit-license.org). For more information, see the LICENSE file.
