@@ -378,6 +378,12 @@ class TimedCache
   /// The duration after which a key is said to be expired.
   Duration _time_to_live;
 };
+
+namespace Lowercase {
+template <typename... Ts>
+using timed_cache = TimedCache<Ts...>;
+}  // namespace Lowercase
+
 }  // namespace LRU
 
 #endif  // LRU_TIMED_CACHE_HPP

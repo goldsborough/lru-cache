@@ -27,6 +27,14 @@ namespace Tag {
 struct BasicCache {};
 struct TimedCache {};
 }  // namespace Tag
+
+namespace Lowercase {
+namespace tag {
+using basic_cache = ::LRU::Tag::BasicCache;
+using timed_cache = ::LRU::Tag::TimedCache;
+}  // namespace tag
+}  // namespace Lowercase
+
 }  // namespace LRU
 
 #endif  // LRU_CACHE_TAGS_HPP

@@ -91,6 +91,16 @@ struct NotMonitoring : public std::runtime_error {
   }
 };
 
+namespace Lowercase {
+using key_not_found = KeyNotFound;
+using key_expired = KeyExpired;
+using empty_cache = EmptyCache;
+using invalid_iterator_conversion = InvalidIteratorConversion;
+using invalid_iterator = InvalidIterator;
+using unmonitored_key = UnmonitoredKey;
+using not_monitoring = NotMonitoring;
+}  // namespace Lowercase
+
 }  // namespace Error
 }  // namespace LRU
 

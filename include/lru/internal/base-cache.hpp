@@ -329,6 +329,12 @@ class BaseCache {
 
   using InsertionResultType = InsertionResult<UnorderedIterator>;
 
+  // Can't put these in LRU::Lowercase because they are nested, unfortunately
+  using ordered_iterator = OrderedIterator;
+  using ordered_const_iterator = OrderedConstIterator;
+  using unordered_iterator = UnorderedIterator;
+  using unordered_const_iterator = UnorderedConstIterator;
+
   /////////////////////////////////////////////////////////////////////////////
   // SPECIAL MEMBER FUNCTIONS
   /////////////////////////////////////////////////////////////////////////////

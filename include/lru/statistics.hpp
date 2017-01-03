@@ -242,6 +242,12 @@ class Statistics {
   /// The map to keep track of statistics for monitored keys.
   HitMap _key_map;
 };
+
+namespace Lowercase {
+template <typename... Ts>
+using statistics = Statistics<Ts...>;
+}  // namespace Lowercase
+
 }  // namespace LRU
 
 #endif  // LRU_STATISTICS_HPP

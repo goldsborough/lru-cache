@@ -19,15 +19,16 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef LRU_HPP
-#define LRU_HPP
+#ifndef LRU_LOWERCASE_HPP
+#define LRU_LOWERCASE_HPP
 
-#include "lru/cache-tags.hpp"
-#include "lru/cache.hpp"
-#include "lru/error.hpp"
-#include "lru/iterator-tags.hpp"
-#include "lru/statistics.hpp"
-#include "lru/timed-cache.hpp"
-#include "lru/wrap.hpp"
+#include "lru/lru.hpp"
 
-#endif  // LRU_HPP
+namespace LRU {
+using namespace Lowercase;  // NOLINT(build/namespaces)
+}  // namespace LRU
+
+namespace lru = LRU;
+
+
+#endif  // LRU_LOWERCASE_HPP

@@ -27,6 +27,14 @@ namespace Tag {
 struct OrderedIterator {};
 struct UnorderedIterator {};
 }  // namespace Tag
+
+namespace Lowercase {
+namespace tag {
+using ordered_iterator = ::LRU::Tag::OrderedIterator;
+using unordered_iterator = ::LRU::Tag::UnorderedIterator;
+}  // namespace tag
+}  // namespace Lowercase
+
 }  // namespace LRU
 
 #endif  // LRU_ITERATOR_TAGS_HPP

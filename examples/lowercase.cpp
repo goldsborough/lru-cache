@@ -19,15 +19,29 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef LRU_HPP
-#define LRU_HPP
+#include <chrono>
+#include <iostream>
 
-#include "lru/cache-tags.hpp"
-#include "lru/cache.hpp"
-#include "lru/error.hpp"
-#include "lru/iterator-tags.hpp"
-#include "lru/statistics.hpp"
-#include "lru/timed-cache.hpp"
-#include "lru/wrap.hpp"
+#include "lru/lowercase.hpp"
 
-#endif  // LRU_HPP
+void print(lru::tag::basic_cache) {
+  std::cout << "basic cache" << '\n';
+}
+
+void print(lru::tag::timed_cache) {
+  std::cout << "timed cache" << '\n';
+}
+
+auto main() -> int {
+  using namespace std::chrono_literals;
+
+  lru::cache<int, int> cache;
+  lru::timed_cache<int, int> timed_cache(100ms);
+
+  print(cache.tag());
+  print(timed_cache.tag());
+
+  lru::cache<int, int>::ordered_const_iterator i(cache.unordered_begin());
+
+  lru::statistics<int> stats;
+}
