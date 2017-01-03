@@ -787,7 +787,7 @@ class BaseCache {
     if (key == _last_accessed) {
       if (_last_accessed_is_ok(key)) {
         _register_hit(key, _last_accessed.value());
-        _move_to_front(_last_accessed.iterator());
+        // If this is the last accessed key, it's at the front anyway
         return true;
       } else {
         return false;
@@ -812,7 +812,7 @@ class BaseCache {
     if (key == _last_accessed) {
       auto& value = _value_for_last_accessed();
       _register_hit(key, value);
-      _move_to_front(_last_accessed.iterator());
+      // If this is the last accessed key, it's at the front anyway
       return value;
     }
 
@@ -839,7 +839,7 @@ class BaseCache {
     if (key == _last_accessed) {
       auto& value = _value_for_last_accessed();
       _register_hit(key, value);
-      _move_to_front(_last_accessed.iterator());
+      // If this is the last accessed key, it's at the front anyway
       return value;
     }
 

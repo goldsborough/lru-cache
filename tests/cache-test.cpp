@@ -32,13 +32,15 @@
 using namespace LRU;
 
 struct CacheTest : public ::testing::Test {
+  using CacheType = Cache<std::string, int>;
+
   template <typename Cache, typename Range>
   bool is_equal_to_range(const Cache& cache, const Range& range) {
     using std::begin;
     return std::equal(cache.ordered_begin(), cache.ordered_end(), begin(range));
   }
 
-  Cache<std::string, int> cache;
+  CacheType cache;
 };
 
 TEST(CacheConstructionTest, IsConstructibleFromInitializerList) {
@@ -526,11 +528,15 @@ TEST_F(CacheTest, LookupsMoveElementsToFront) {
   // accessed elements to the front. So when we look at
   // one it should move to the front.
 
-  auto iterator = cache.find("one");
+  typename CacheType::OrderedIterator iterator(cache.find("one"));
   cache.emplace("three", 3);
 
   EXPECT_TRUE(cache.contains("one"));
   EXPECT_FALSE(cache.contains("two"));
   EXPECT_TRUE(cache.contains("three"));
-  EXPECT_EQ(++iterator, cache.end());
+  EXPECT_EQ(std::prev(cache.ordered_end()).key(), "three");
+
+  ASSERT_EQ(cache.lookup("one"), 1);
+  EXPECT_EQ(std::prev(cache.ordered_end()).key(), "one");
+  EXPECT_EQ(cache.ordered_begin().key(), "three");
 }
