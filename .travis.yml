@@ -27,6 +27,14 @@ matrix:
             - gdb
       env: COMPILER=clang++-3.7
 
+before_install:
+ # What is the current file size max for core files?
+ # It is usually 0, which means no core file will be dumped if there is a crash
+ - ulimit -c
+ - ulimit -a -S
+ - ulimit -a -H
+ - cat /proc/sys/kernel/core_pattern
+
 install:
   - CMAKE_VERSION_MM=3.2
   - CMAKE_VERSION_FULL=$CMAKE_VERSION_MM.2
@@ -49,10 +57,13 @@ before_script:
   - mkdir build
   - cd build
   - cmake -DCMAKE_CXX_COMPILER=$COMPILER ..
+  - cp ../tests/logbt.sh .
+  - sudo chmod a+x logbt.sh
+  - sudo bash -c "echo '/tmp/logbt-coredumps/core.%p.%E' > /proc/sys/kernel/core_pattern"
 
 script:
   - make VERBOSE=1 -j4
-  - ctest -v -j4
+  - ./logbt.sh ctest -v -j4
 
 notifications:
   email: false
