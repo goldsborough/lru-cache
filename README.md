@@ -223,6 +223,26 @@ cache.access_callback([](const auto& key, bool was_hit) {
 
 Note that just like with statistics, these callbacks will only get invoked for lookup and not insertion.
 
+### Wrapping
+
+We provide a utility wrapper `LRU::wrap` that takes a function and returns a new function, with a cache attached to it. Feels like Python. Just faster.
+
+```cpp
+#include "lru/lru.hpp"
+
+int my_expensive_function(int, char, double) {
+  // ...
+}
+
+auto my_cached_expensive_function = LRU::wrap(my_expensive_function);
+
+my_cached_expensive_function(1, 'a', 3.14);
+```
+
+Note that this will *not* cache recursive calls, since we cannot override the actual function symobl. As such we refer to this as "shallow memoization".
+
+### Lowercase Names
+
 ## Documentation
 
 We have 100% public and private documentation coverage with a decent effort behind it. As such we ask you to RTFM to see the full interface we provide (it is a superset of `std::unordered_map`, minus the new node interface). Documentation can be generated with [Doxygen](http://www.stack.nl/~dimitri/doxygen/) by running the `doxygen` command inside the `docs/` folder.

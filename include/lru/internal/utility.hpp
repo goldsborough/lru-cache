@@ -59,14 +59,13 @@ constexpr T construct_from_tuple(const std::tuple<Args...>& args) {
   return construct_from_tuple<T>(args, tuple_indices(args));
 }
 
-/// Forwards the given arguments to the constructor of a class.
+/// Applies (in the functional sense) a tuple to the constructor of a class.
 ///
 /// \tparam T The type to construct.
-/// \param args The arguments to construct the object with.
+/// \param args The tuple of arguments to construct the object with.
 template <typename T, typename... Args>
-constexpr T construct_from_tuple(Args&&... args) {
-  return construct_from_tuple<T>(
-      std::forward_as_tuple(std::forward<Args>(args)...));
+constexpr T construct_from_tuple(std::tuple<Args...>&& args) {
+  return construct_from_tuple<T>(std::move(args), tuple_indices(args));
 }
 
 /// A type trait that disables a template overload if a type is not an iterator.

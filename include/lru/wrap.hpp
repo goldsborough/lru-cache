@@ -24,10 +24,12 @@
 
 #include <cstddef>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 #include "lru/cache.hpp"
 #include "lru/internal/hash.hpp"
+#include "lru/internal/utility.hpp"
 
 namespace LRU {
 
@@ -38,16 +40,28 @@ namespace LRU {
 /// that recursive calls to the same function are not cached, since those
 /// will call the original function symbol, not the wrapped one.
 ///
+/// \tparam CacheType The cache template class to use.
 /// \param original_function The function to wrap.
+/// \param args Any arguments to forward to the cache.
 /// \returns A new function with a shallow LRU cache.
-template <typename Function>
-auto wrap(Function original_function) {
-  return [original_function](auto&&... arguments) mutable {
+template <typename Function,
+          template <typename...> class CacheType = Cache,
+          typename... Args>
+auto wrap(Function original_function, Args&&... args) {
+  return [
+    original_function,
+    cache_args = std::forward_as_tuple(std::forward<Args>(args)...)
+  ](auto&&... arguments) mutable {
     using Arguments = std::tuple<std::decay_t<decltype(arguments)>...>;
     using ReturnType = decltype(
         original_function(std::forward<decltype(arguments)>(arguments)...));
 
-    static Cache<Arguments, ReturnType> cache;
+    static_assert(!std::is_void<ReturnType>::value,
+                  "Return type of wrapped function must not be void");
+
+    static auto cache =
+        Internal::construct_from_tuple<CacheType<Arguments, ReturnType>>(
+            cache_args);
 
     auto key = std::make_tuple(arguments...);
     auto iterator = cache.find(key);
@@ -63,6 +77,23 @@ auto wrap(Function original_function) {
     return value;
   };
 }
+
+/// Wraps a function with a "shallow" LRU timed cache.
+///
+/// Given a function, this function will return a new function, where
+/// "top-level" calls are cached. With "top-level" or "shallow", we mean
+/// that recursive calls to the same function are not cached, since those
+/// will call the original function symbol, not the wrapped one.
+///
+/// \param original_function The function to wrap.
+/// \param args Any arguments to forward to the cache.
+/// \returns A new function with a shallow LRU cache.
+template <typename Function, typename... Args>
+auto timed_wrap(Function original_function, Args&&... args) {
+  return wrap<Function, TimedCache>(original_function,
+                                    std::forward<Args>(args)...);
+}
+
 }  //  namespace LRU
 
 #endif  // LRU_WRAP_HPP

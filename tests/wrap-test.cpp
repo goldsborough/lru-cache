@@ -19,6 +19,8 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
+#include <chrono>
+
 #include "gtest/gtest.h"
 
 #include "lru/lru.hpp"
@@ -40,4 +42,49 @@ TEST(WrapTest, WrappingWorks) {
   EXPECT_EQ(wrapped(42), 2);
   EXPECT_EQ(wrapped(42), 2);
   EXPECT_EQ(wrapped(50), 3);
+}
+
+TEST(WrapTest, CanPassCapacityArgumentToWrap) {
+  std::size_t call_count = 0;
+  auto f = [&call_count](int _) { return call_count += 1; };
+
+  auto wrapped1 = LRU::wrap(f, 1);
+
+  wrapped1(1);
+  EXPECT_EQ(call_count, 1);
+
+  wrapped1(1);
+  EXPECT_EQ(call_count, 1);
+
+  auto wrapped2 = LRU::wrap(f, 0);
+
+  wrapped1(1);
+  EXPECT_EQ(call_count, 1);
+
+  wrapped1(1);
+  EXPECT_EQ(call_count, 1);
+}
+
+
+TEST(WrapTest, CanPassTimeArgumentToTimedCacheWrap) {
+  using namespace std::chrono_literals;
+
+  std::size_t call_count = 0;
+  auto f = [&call_count](int _) { return call_count += 1; };
+
+  auto wrapped1 = LRU::wrap<decltype(f), LRU::TimedCache>(f, 100ms);
+
+  wrapped1(1);
+  EXPECT_EQ(call_count, 1);
+
+  wrapped1(1);
+  EXPECT_EQ(call_count, 1);
+
+  auto wrapped2 = LRU::timed_wrap(f, 0ms);
+
+  wrapped1(1);
+  EXPECT_EQ(call_count, 1);
+
+  wrapped1(1);
+  EXPECT_EQ(call_count, 1);
 }
