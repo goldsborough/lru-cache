@@ -83,7 +83,7 @@ auto main() -> int {
 
 ## Extended Usage
 
-Our caches bring along many exciting features including statistics monitoring, arbitrary callbacks as well as ordered and unordered iteration. There is a lot more to discover in our Doxygen documentation, but below are some usage examples.
+Our caches bring along many exciting features including statistics monitoring, function wrapping, arbitrary callbacks as well as ordered and unordered iteration.
 
 ### Ordered and Unordered Iteration
 
@@ -288,6 +288,8 @@ auto main() -> int {
 ## Documentation
 
 We have 100% public and private documentation coverage with a decent effort behind it. As such we ask you to RTFM to see the full interface we provide (it is a superset of `std::unordered_map`, minus the new node interface). Documentation can be generated with [Doxygen](http://www.stack.nl/~dimitri/doxygen/) by running the `doxygen` command inside the `docs/` folder.
+
+Also do check out all the examples in the `examples/` folder!
 
 ## LICENSE
 
