@@ -127,7 +127,7 @@ constexpr bool static_any_of() noexcept {
 template <typename Head, typename... Tail>
 constexpr bool static_any_of(Head&& head, Tail&&... tail) {
   // Replace with (ts || ...) when the time is right
-  return std::forward<Head>(head) || static_all_of(std::forward<Tail>(tail)...);
+  return std::forward<Head>(head) || static_any_of(std::forward<Tail>(tail)...);
 }
 
 /// Checks if none the given parameters evaluate to true.
