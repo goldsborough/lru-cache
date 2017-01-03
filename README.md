@@ -235,4 +235,4 @@ This project is released under the [MIT License](http://goldsborough.mit-license
 
 [Peter Goldsborough](http://goldsborough.me) + [cat](https://goo.gl/IpUmJn) :heart:
 
-Thanks to @engelmarkus for technical and emotional support.
+Thanks to [@engelmarkus](https://github.com/engelmarkus) for technical and emotional support.
