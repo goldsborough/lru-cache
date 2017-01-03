@@ -1,5 +1,7 @@
 # lru-cache
 
+[![GitHub license](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square)](http://goldsborough.mit-license.org)
+
 A feature complete LRU cache implementation in C++.
 
 ## Description
@@ -125,6 +127,8 @@ cache.stats().total_misses(); // Misses for any key
 cache.stats().hit_rate(); // Hit rate in [0, 1]
 ```
 
+Note that a hit or miss only refers to lookup (i.e. methods `contains()`, `find()`, `lookup()` and `operator[]`) but not insertion via `emplace()` or `insert()`.
+
 #### Sharing Statistics
 
 Already here, one idea might be that we have two functions, each with their own cache, but we'd like them to share statistics. This is easy to do. Simply create the `Statistics` object as a `std::shared_ptr` and plug it into `cache.monitor()` for as many caches as you like:
@@ -169,7 +173,7 @@ struct MyWebServerHehe {
       resource = cache.lookup(resource_name);
     } else {
       resource = fetch_expensively(resource_name);
-      cache.insert(resource_name, resource_name);
+      cache.insert(resource_name, resourcefdas);
     }
 
     return resource;
@@ -179,4 +183,54 @@ struct MyWebServerHehe {
 };
 ```
 
-Later on, we can use method like `hits_for(key)`, `misses_for(key)` or `stats_for(key)` on `cache.stats()` to find out how many hits or misses we got for our monitored resource. Note that `stats_for(key)` returns a lightweight `struct` holding hit and miss information about a particular key.
+Later on, we can use methods like `hits_for(key)`, `misses_for(key)` or `stats_for(key)` on `cache.stats()` to find out how many hits or misses we got for our monitored resource. Note that `stats_for(key)` returns a lightweight `struct` holding hit and miss information about a particular key.
+
+### Callbacks
+
+Next to registering statistics, we also allow hooking in arbitrary callbacks. The three kinds of callbacks that may be registered are:
+
+1. Hit callbacks, taking a key and value after a cache hit (`hit_callback()`).
+2. Miss callbacks, taking only a key, that was not found in a cache (`miss_callback()`).
+3. Access callbacks, taking a key and a boolean indicating a hit or a miss (`access_callback()`).
+
+Usage could look something like this:
+
+```cpp
+LRU::Cache<int, int> cache;
+
+cache.hit_callback([](const auto& key, const auto& value) {
+  std::clog << "Hit for entry ("
+            << key << ", " << value << ")"
+            << std::endl;
+});
+
+cache.miss_callback([](const auto& key) {
+  std::clog << "Miss for " << key<< std::endl;
+});
+
+// Roll your own statistics
+std::size_t miss_count = 0;
+cache.miss_callback([&miss_count](auto&) {
+  miss_count += 1;
+});
+
+cache.access_callback([](const auto& key, bool was_hit) {
+  std::clog << "Access for " << key
+            << " was a " << (was_hit ? "hit" : "miss")
+            << std::endl;
+});
+```
+
+Note that just like with statistics, these callbacks will only get invoked for lookup and not insertion.
+
+## Documentation
+
+## LICENSE
+
+This project is released under the [MIT License](http://goldsborough.mit-license.org). For more information, see the LICENSE file.
+
+## Authors
+
+[Peter Goldsborough](http://goldsborough.me) + [cat](https://goo.gl/IpUmJn) :heart:
+
+Thanks to @engelmarkus for technical and emotional support.
