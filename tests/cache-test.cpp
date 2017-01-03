@@ -448,6 +448,20 @@ TEST_F(CacheTest, ResultIsCorrectForEmplace) {
   EXPECT_EQ(result.iterator(), cache.begin());
 }
 
+TEST_F(CacheTest, CapacityIsSameAfterCopy) {
+  cache.capacity(100);
+  auto cache2 = cache;
+
+  EXPECT_EQ(cache.capacity(), cache2.capacity());
+}
+
+TEST_F(CacheTest, CapacityIsSameAfterMove) {
+  cache.capacity(100);
+  auto cache2 = std::move(cache);
+
+  EXPECT_EQ(cache2.capacity(), 100);
+}
+
 TEST_F(CacheTest, ComparisonOperatorWorks) {
   ASSERT_EQ(cache, cache);
 

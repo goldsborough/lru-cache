@@ -504,7 +504,22 @@ class BaseCache {
   }
 
   /// Copy assignment operator.
-  BaseCache& operator=(BaseCache other) noexcept {
+  BaseCache& operator=(const BaseCache& other) noexcept {
+    if (this != &other) {
+      _map = other._map;
+      _order = other._order;
+      _stats = other._stats;
+      _last_accessed = other._last_accessed;
+      _callback_manager = other._callback_manager;
+      _capacity = other._capacity;
+      _reassign_references();
+    }
+
+    return *this;
+  }
+
+  /// Move assignment operator.
+  BaseCache& operator=(BaseCache&& other) noexcept {
     // Following the copy-swap idiom.
     swap(other);
     return *this;
@@ -586,6 +601,7 @@ class BaseCache {
       other._order.begin(),
       other._order.end(),
       [](const auto& first, const auto& second) {
+        std::cout << first.get() << " " << second.get() << '\n';
         return first.get() == second.get();
     });
     // clang-format on
@@ -1463,7 +1479,7 @@ class BaseCache {
   /// to the keys of the other cache's map. Thus we need to re-assign them.
   void _reassign_references() noexcept {
     for (auto& key_reference : _order) {
-      key_reference = std::ref(_map.find(key_reference).first);
+      key_reference = std::ref(_map.find(key_reference)->first);
     }
   }
 

@@ -101,7 +101,10 @@ struct Information {
   virtual bool operator==(const Information& other) const noexcept {
     if (this == &other) return true;
     if (this->value != other.value) return false;
-    if (this->order != other.order) return false;
+    // We do not compare the iterator (because otherwise two containers
+    // holding information would never be equal). We also do not compare
+    // the key stored in the iterator, because keys will always have been
+    // compared before this operator is called.
     return true;
   }
 
