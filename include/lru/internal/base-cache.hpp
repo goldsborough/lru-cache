@@ -117,7 +117,7 @@ template <typename Key,
 class BaseCache {
  protected:
   using Information = InformationType<Key, Value>;
-  using Queue = Internal::Queue<Key>;
+  using Queue = Internal::Queue<const Key>;
   using QueueIterator = typename Queue::const_iterator;
 
   using Map = Internal::Map<Key, Information, HashFunction, KeyEqual>;
@@ -233,8 +233,9 @@ class BaseCache {
   /// iterators the first time they are dereferenced. However, they may be
   /// constructed or assigned from unordered iterators (of compatible
   /// qualifiers).
-  struct OrderedIterator : public BaseOrderedIterator<Key, Value, BaseCache> {
-    using super = BaseOrderedIterator<Key, Value, BaseCache>;
+  struct OrderedIterator
+      : public BaseOrderedIterator<const Key, Value, BaseCache> {
+    using super = BaseOrderedIterator<const Key, Value, BaseCache>;
     using UnderlyingIterator = typename super::UnderlyingIterator;
     friend BaseCache;
 
@@ -275,8 +276,8 @@ class BaseCache {
   /// constructed or assigned from unordered iterators (of compatible
   /// qualifiers).
   struct OrderedConstIterator
-      : public BaseOrderedIterator<Key, const Value, const BaseCache> {
-    using super = BaseOrderedIterator<Key, const Value, const BaseCache>;
+      : public BaseOrderedIterator<const Key, const Value, const BaseCache> {
+    using super = BaseOrderedIterator<const Key, const Value, const BaseCache>;
     using UnderlyingIterator = typename super::UnderlyingIterator;
 
     friend BaseCache;
@@ -566,8 +567,16 @@ class BaseCache {
   bool operator==(const BaseCache& other) const noexcept {
     if (this == &other) return true;
     if (this->_map != other._map) return false;
-    if (this->_order != other._order) return false;
-    return true;
+    // clang-format off
+    return std::equal(
+      this->_order.begin(),
+      this->_order.end(),
+      other._order.begin(),
+      other._order.end(),
+      [](const auto& first, const auto& second) {
+        return first.get() == second.get();
+    });
+    // clang-format on
   }
 
   /// Compares the cache for inequality with another cache.
@@ -859,9 +868,10 @@ class BaseCache {
         _erase_lru();
       }
 
-      auto order = _order.insert(_order.end(), key);
-      auto result = _map.emplace(key, Information(order, value));
+      auto result = _map.emplace(key, Information(value));
       assert(result.second);
+      auto order = _order.insert(_order.end(), result.first->first);
+      result.first->second.order = order;
 
       _last_accessed = result.first;
       return {true, {*this, result.first}};
@@ -981,15 +991,10 @@ class BaseCache {
         _erase_lru();
       }
 
-      auto order = _order.emplace(_order.end(), key);
 
-      // clang-format off
-        auto result = _map.emplace(
-          std::move(key),
-          Information(order, value_arguments)
-        );
-      // clang-format on
-
+      auto result = _map.emplace(std::move(key), Information(value_arguments));
+      auto order = _order.emplace(_order.end(), result.first->first);
+      result.first->second.order = order;
       assert(result.second);
 
       _last_accessed = result.first;
@@ -1359,6 +1364,8 @@ class BaseCache {
       _last_accessed.invalidate();
     }
 
+    // To be sure, we should do this first, since the order stores a reference
+    // to the key in the map.
     _order.erase(information.order);
 
     // Requires an additional hash-lookup, whereas erase(iterator) doesn't

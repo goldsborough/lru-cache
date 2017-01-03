@@ -49,11 +49,11 @@ struct TimedInformation : public Information<Key, Value> {
   /// Constructor.
   ///
   /// \param value_ The value for the information.
-  /// \param order_ The order iterator for the information.
   /// \param insertion_time_ The insertion timestamp of the key.
+  /// \param order_ The order iterator for the information.
   TimedInformation(const Value& value_,
-                   QueueIterator order_,
-                   const Timestamp& insertion_time_)
+                   const Timestamp& insertion_time_,
+                   QueueIterator order_ = QueueIterator())
   : super(value_, order_), insertion_time(insertion_time_) {
   }
 
@@ -63,8 +63,9 @@ struct TimedInformation : public Information<Key, Value> {
   ///
   /// \param value_ The value for the information.
   /// \param order_ The order iterator for the information.
-  TimedInformation(const Value& value_, QueueIterator order_)
-  : TimedInformation(value_, order_, Internal::Clock::now()) {
+  explicit TimedInformation(const Value& value_,
+                            QueueIterator order_ = QueueIterator())
+  : TimedInformation(value_, Internal::Clock::now(), order_) {
   }
 
   /// \copydoc Information::Information(QueueIterator,ValueArguments&&)
@@ -77,9 +78,10 @@ struct TimedInformation : public Information<Key, Value> {
   /// \copydoc Information::Information(QueueIterator,const
   /// std::tuple<ValueArguments...>&)
   template <typename... ValueArguments>
-  TimedInformation(QueueIterator order_,
-                   const std::tuple<ValueArguments...>& value_arguments)
-  : super(order_, value_arguments), insertion_time(Internal::Clock::now()) {
+  explicit TimedInformation(
+      const std::tuple<ValueArguments...>& value_arguments,
+      QueueIterator order_ = QueueIterator())
+  : super(value_arguments, order_), insertion_time(Internal::Clock::now()) {
   }
 
   /// Compares this timed information for equality with another one.

@@ -44,13 +44,14 @@ template <typename Key, typename Value>
 struct Information {
   using KeyType = Key;
   using ValueType = Value;
-  using QueueIterator = typename Internal::Queue<Key>::const_iterator;
+  using QueueIterator = typename Internal::Queue<const Key>::const_iterator;
 
   /// Constructor.
   ///
   /// \param value_ The value for the information.
   /// \param order_ The order iterator for the information.
-  Information(const Value& value_, QueueIterator order_)
+  explicit Information(const Value& value_,
+                       QueueIterator order_ = QueueIterator())
   : value(value_), order(order_) {
   }
 
@@ -59,10 +60,10 @@ struct Information {
   /// \param order_ The order iterator for the information.
   /// \param value_arguments Any number of arguments to perfectly forward to the
   ///                        value type's constructor.
-  template <typename... ValueArguments>
-  Information(QueueIterator order_, ValueArguments&&... value_arguments)
-  : value(std::forward<ValueArguments>(value_arguments)...), order(order_) {
-  }
+  // template <typename... ValueArguments>
+  // Information(QueueIterator order_, ValueArguments&&... value_arguments)
+  // : value(std::forward<ValueArguments>(value_arguments)...), order(order_) {
+  // }
 
   /// Constructor.
   ///
@@ -71,8 +72,8 @@ struct Information {
   ///                        value type's constructor.
   ///
   template <typename... ValueArguments>
-  Information(QueueIterator order_,
-              const std::tuple<ValueArguments...>& value_arguments)
+  explicit Information(const std::tuple<ValueArguments...>& value_arguments,
+                       QueueIterator order_ = QueueIterator())
   : Information(
         order_, value_arguments, Internal::tuple_indices(value_arguments)) {
   }
@@ -100,7 +101,7 @@ struct Information {
   virtual bool operator==(const Information& other) const noexcept {
     if (this == &other) return true;
     if (this->value != other.value) return false;
-    if (*this->order != *other.order) return false;
+    if (this->order != other.order) return false;
     return true;
   }
 

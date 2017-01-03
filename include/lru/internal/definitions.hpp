@@ -24,6 +24,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <functional>
 #include <list>
 #include <tuple>
 #include <unordered_map>
@@ -34,9 +35,39 @@ namespace Internal {
 /// The default capacity for all caches.
 const std::size_t DEFAULT_CAPACITY = 128;
 
+/// The reference type use to store keys in the order queue.
+template <typename T>
+using Reference = std::reference_wrapper<T>;
+
+/// Compares two References for equality.
+///
+/// This is necessary because `std::reference_wrapper` does not define any
+/// operator overloads. We do need them, however (e.g. for container
+/// comparison).
+///
+/// \param first The first reference to compare.
+/// \param second The second reference to compare.
+template <typename T, typename U>
+bool operator==(const Reference<T>& first, const Reference<U>& second) {
+  return first.get() == second.get();
+}
+
+/// Compares two References for inequality.
+///
+/// This is necessary because `std::reference_wrapper` does not define any
+/// operator overloads. We do need them, however (e.g. for container
+/// comparison).
+///
+/// \param first The first reference to compare.
+/// \param second The second reference to compare.
+template <typename T, typename U>
+bool operator!=(const Reference<T>& first, const Reference<U>& second) {
+  return !(first == second);
+}
+
 /// The default queue type used internally.
 template <typename T>
-using Queue = std::list<T>;
+using Queue = std::list<Reference<T>>;
 
 /// The default map type used internally.
 template <typename Key,
