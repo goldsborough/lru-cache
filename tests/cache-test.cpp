@@ -526,10 +526,11 @@ TEST_F(CacheTest, LookupsMoveElementsToFront) {
   // accessed elements to the front. So when we look at
   // one it should move to the front.
 
-  cache.lookup("one");
+  auto iterator = cache.find("one");
   cache.emplace("three", 3);
 
   EXPECT_TRUE(cache.contains("one"));
   EXPECT_FALSE(cache.contains("two"));
   EXPECT_TRUE(cache.contains("three"));
+  EXPECT_EQ(++iterator, cache.end());
 }
