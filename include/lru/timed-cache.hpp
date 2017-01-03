@@ -199,6 +199,7 @@ class TimedCache
     if (iterator != _map.end()) {
       if (!_has_expired(iterator->second)) {
         _register_hit(key, iterator->second.value);
+        _move_to_front(iterator);
         _last_accessed = iterator;
         return {*this, iterator};
       }
@@ -215,6 +216,7 @@ class TimedCache
     if (iterator != _map.end()) {
       if (!_has_expired(iterator->second)) {
         _register_hit(key, iterator->second.value);
+        _move_to_front(iterator);
         _last_accessed = iterator;
         return {*this, iterator};
       }

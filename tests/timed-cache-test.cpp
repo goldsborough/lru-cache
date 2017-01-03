@@ -156,3 +156,22 @@ TEST(TimedCacheTest, HasExpiredReturnsTrueForContainedAndExpiredKeys) {
   EXPECT_TRUE(cache.has_expired(1));
   EXPECT_TRUE(cache.has_expired(2));
 }
+
+TEST(TimedCacheTest, LookupsMoveElementsToFront) {
+  TimedCache<std::string, int> cache(1s);
+
+  cache.capacity(2);
+  cache.insert({{"one", 1}, {"two", 2}});
+
+  // The LRU principle mandates that lookups place
+  // accessed elements to the front. So when we look at
+  // one it should move to the front.
+
+  auto iterator = cache.find("one");
+  cache.emplace("three", 3);
+
+  EXPECT_TRUE(cache.contains("one"));
+  EXPECT_FALSE(cache.contains("two"));
+  EXPECT_TRUE(cache.contains("three"));
+  EXPECT_EQ(++iterator, cache.end());
+}
