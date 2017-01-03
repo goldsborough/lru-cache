@@ -21,27 +21,25 @@
 
 #include <chrono>
 #include <iostream>
+#include <thread>
 
-#include "lru/lowercase.hpp"
+#include "lru/lru.hpp"
 
-void print(lru::tag::basic_cache) {
-  std::cout << "basic cache" << '\n';
-}
+using namespace std::chrono_literals;
 
-void print(lru::tag::timed_cache) {
-  std::cout << "timed cache" << '\n';
+int f(int x) {
+  std::this_thread::sleep_for(1s);
+  return x;
 }
 
 auto main() -> int {
-  using namespace std::chrono_literals;
+  // Use a time-to-live of 2 minutes and a
+  // capacity of 128 for an LRU::TimedCache
+  auto wrapped = LRU::timed_wrap(f, 2min, 128);
 
-  lru::cache<int, int> cache;
-  lru::timed_cache<int, int> timed_cache(100ms);
+  std::cout << "Slow the first time ..." << '\n';
+  wrapped(42);
 
-  print(cache.tag());
-  print(timed_cache.tag());
-
-  lru::cache<int, int>::ordered_const_iterator iterator(cache.begin());
-
-  lru::statistics<int> stats;
+  std::cout << "Fast the second time!" << '\n';
+  wrapped(42);
 }

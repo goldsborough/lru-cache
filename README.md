@@ -173,7 +173,7 @@ struct MyWebServerHehe {
       resource = cache.lookup(resource_name);
     } else {
       resource = fetch_expensively(resource_name);
-      cache.insert(resource_name, resourcefdas);
+      cache.insert(resource_name, resource);
     }
 
     return resource;
@@ -225,7 +225,7 @@ Note that just like with statistics, these callbacks will only get invoked for l
 
 ### Wrapping
 
-We provide a utility wrapper `LRU::wrap` that takes a function and returns a new function, with a cache attached to it. Feels like Python. Just faster.
+We provide utility functions `LRU::wrap` and `LRU::timed_wrap` that take a function and return a new function, with a (timed) cache attached to it. Feels like Python. Just faster.
 
 ```cpp
 #include "lru/lru.hpp"
@@ -239,9 +239,51 @@ auto my_cached_expensive_function = LRU::wrap(my_expensive_function);
 my_cached_expensive_function(1, 'a', 3.14);
 ```
 
+Next to the function to wrap, `LRU::wrap` and `LRU::timed_wrap` take any number of arguments to forward to the constructor of the internal cache:
+
+```cpp
+// Use a capacity of 100
+auto new_function = LRU::wrap(old_function, 1000);
+
+// Use a time-to-live of 100 milliseconds
+auto new_function = LRU::timed_wrap(old_function, 100ms);
+```
+
 Note that this will *not* cache recursive calls, since we cannot override the actual function symobl. As such we refer to this as "shallow memoization".
 
 ### Lowercase Names
+
+Not everyone has the same taste. We get that. For this reason, for every public `CamelCase` type name, we've defined a `lower_case` (C++ standard style) alias. You can make these visible by including `lru/lowercase.hpp` instead of `lru/lru.hpp`:
+
+```cpp
+#include <chrono>
+#include <iostream>
+
+#include "lru/lowercase.hpp"
+
+void print(lru::tag::basic_cache) {
+  std::cout << "basic cache" << '\n';
+}
+
+void print(lru::tag::timed_cache) {
+  std::cout << "timed cache" << '\n';
+}
+
+auto main() -> int {
+  using namespace std::chrono_literals;
+
+  lru::cache<int, int> cache;
+  lru::timed_cache<int, int> timed_cache(100ms);
+
+  print(cache.tag());
+  print(timed_cache.tag());
+
+  lru::cache<int, int>::ordered_const_iterator iterator(cache.begin());
+
+  lru::statistics<int> stats;
+}
+
+```
 
 ## Documentation
 

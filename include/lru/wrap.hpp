@@ -88,10 +88,10 @@ auto wrap(Function original_function, Args&&... args) {
 /// \param original_function The function to wrap.
 /// \param args Any arguments to forward to the cache.
 /// \returns A new function with a shallow LRU cache.
-template <typename Function, typename... Args>
-auto timed_wrap(Function original_function, Args&&... args) {
-  return wrap<Function, TimedCache>(original_function,
-                                    std::forward<Args>(args)...);
+template <typename Function, typename Duration, typename... Args>
+auto timed_wrap(Function original_function, Duration duration, Args&&... args) {
+  return wrap<Function, TimedCache>(
+      original_function, duration, std::forward<Args>(args)...);
 }
 
 }  //  namespace LRU
