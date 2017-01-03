@@ -487,16 +487,28 @@ class BaseCache {
   }
 
   /// Copy constructor.
-  BaseCache(const BaseCache& other) = default;
+  BaseCache(const BaseCache& other)
+  : _map(other._map)
+  , _order(other._order)
+  , _stats(other._stats)
+  , _last_accessed(other._last_accessed)
+  , _callback_manager(other._callback_manager)
+  , _capacity(other._capacity) {
+    _reassign_references();
+  }
 
   /// Move constructor.
-  BaseCache(BaseCache&& other) = default;
+  BaseCache(BaseCache&& other) {
+    // Following the copy-swap idiom.
+    swap(other);
+  }
 
   /// Copy assignment operator.
-  BaseCache& operator=(const BaseCache& other) = default;
-
-  /// Move assignment operator.
-  BaseCache& operator=(BaseCache&& other) = default;
+  BaseCache& operator=(BaseCache other) noexcept {
+    // Following the copy-swap idiom.
+    swap(other);
+    return *this;
+  }
 
   /// Destructor.
   virtual ~BaseCache() = default;
@@ -1441,6 +1453,17 @@ class BaseCache {
     auto distance = std::distance(begin(range), end(range));
     if (distance > _capacity) {
       _capacity = distance;
+    }
+  }
+
+  /// Looks up each key in the queue and re-assigns it to the proper key in the
+  /// map.
+  ///
+  /// After a copy, the reference (wrappers) in the order queue point
+  /// to the keys of the other cache's map. Thus we need to re-assign them.
+  void _reassign_references() noexcept {
+    for (auto& key_reference : _order) {
+      key_reference = std::ref(_map.find(key_reference).first);
     }
   }
 

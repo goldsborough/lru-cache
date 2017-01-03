@@ -43,8 +43,7 @@ TEST_F(MoveAwarenessTest, DoesNotMoveForInsert) {
   ASSERT_EQ(MoveAwareKey::forwarding_count, 1);
   ASSERT_EQ(MoveAwareValue::forwarding_count, 1);
 
-  // One copy for the queue and one for the map
-  ASSERT_EQ(MoveAwareKey::copy_count, 2);
+  ASSERT_EQ(MoveAwareKey::copy_count, 1);
 
   // Values only go into the map
   ASSERT_EQ(MoveAwareValue::copy_count, 1);
@@ -60,8 +59,7 @@ TEST_F(MoveAwarenessTest, ForwardsValuesWell) {
   EXPECT_GE(MoveAwareKey::forwarding_count, 1);
   EXPECT_GE(MoveAwareValue::forwarding_count, 1);
 
-  // One copy to put the key into the queue
-  EXPECT_EQ(MoveAwareKey::copy_count, 1);
+  EXPECT_EQ(MoveAwareKey::copy_count, 0);
   EXPECT_EQ(MoveAwareValue::copy_count, 0);
 
   ASSERT_EQ(cache["x"], "y");
@@ -77,8 +75,7 @@ TEST_F(MoveAwarenessTest, MovesSingleRValues) {
   EXPECT_EQ(MoveAwareKey::non_move_count, 0);
   EXPECT_EQ(MoveAwareValue::non_move_count, 0);
 
-  // One copy to place the key into the queue
-  EXPECT_EQ(MoveAwareKey::copy_count, 1);
+  EXPECT_EQ(MoveAwareKey::copy_count, 0);
   EXPECT_EQ(MoveAwareValue::copy_count, 0);
 
   ASSERT_EQ(cache["x"], "y");
@@ -96,8 +93,7 @@ TEST_F(MoveAwarenessTest, CopiesSingleLValues) {
   EXPECT_EQ(MoveAwareKey::move_count, 0);
   EXPECT_EQ(MoveAwareValue::move_count, 0);
 
-  // One copy to place the key into the queue
-  EXPECT_EQ(MoveAwareKey::copy_count, 1);
+  EXPECT_EQ(MoveAwareKey::copy_count, 0);
   EXPECT_EQ(MoveAwareValue::copy_count, 0);
 
   ASSERT_EQ(cache["x"], "y");
@@ -116,8 +112,7 @@ TEST_F(MoveAwarenessTest, MovesRValueTuples) {
   EXPECT_EQ(MoveAwareKey::non_move_count, 0);
   EXPECT_EQ(MoveAwareValue::non_move_count, 0);
 
-  // One copy to place the key into the queue
-  EXPECT_EQ(MoveAwareKey::copy_count, 1);
+  EXPECT_EQ(MoveAwareKey::copy_count, 0);
   EXPECT_EQ(MoveAwareValue::copy_count, 0);
 }
 
@@ -137,8 +132,7 @@ TEST_F(MoveAwarenessTest, MovesLValueTuples) {
   EXPECT_EQ(MoveAwareKey::move_count, 0);
   EXPECT_EQ(MoveAwareValue::move_count, 0);
 
-  // One copy to place the key into the queue
-  EXPECT_EQ(MoveAwareKey::copy_count, 1);
+  EXPECT_EQ(MoveAwareKey::copy_count, 0);
   EXPECT_EQ(MoveAwareValue::copy_count, 0);
 }
 
@@ -153,8 +147,7 @@ TEST_F(MoveAwarenessTest, MovesElementsOutOfRValueRanges) {
   EXPECT_EQ(MoveAwareKey::non_move_count, 0);
   EXPECT_EQ(MoveAwareValue::non_move_count, 0);
 
-  // One copy to place the key into the queue
-  EXPECT_EQ(MoveAwareKey::copy_count, 1);
+  EXPECT_EQ(MoveAwareKey::copy_count, 0);
   EXPECT_EQ(MoveAwareValue::copy_count, 0);
 
   ASSERT_EQ(cache["x"], "y");
