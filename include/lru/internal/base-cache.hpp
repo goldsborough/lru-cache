@@ -1321,15 +1321,11 @@ class BaseCache {
   /// \param iterator The iterator pointing to the key to move.
   /// \param new_value The updated value to move the key with.
   virtual void _move_to_front(MapIterator iterator, const Value& new_value) {
-    _order.erase(iterator->second.order);
-
-    // Insert and get the iterator (push_back returns
-    // void and emplace_back returns a reference ...)
-    auto new_order = _order.insert(_order.end(), iterator->first);
-
-    iterator->second.order = new_order;
+    // Extract the current linked-list node and insert (splice it) at the end
+    // The original iterator is not invalidated and now points to the new
+    // position (which is still the same node).
+    _order.splice(_order.end(), _order, iterator->second.order);
     iterator->second.value = new_value;
-
     _last_accessed = iterator;
   }
 
