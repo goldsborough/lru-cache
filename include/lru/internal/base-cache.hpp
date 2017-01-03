@@ -601,7 +601,6 @@ class BaseCache {
       other._order.begin(),
       other._order.end(),
       [](const auto& first, const auto& second) {
-        std::cout << first.get() << " " << second.get() << '\n';
         return first.get() == second.get();
     });
     // clang-format on
@@ -805,6 +804,10 @@ class BaseCache {
 
   /// Looks up the value for the given key.
   ///
+  /// If the key is found in the cache, it is moved to the front. Any iterators
+  /// pointing to that key are still valid, but the subsequent order of
+  /// iteration may be different from what it was before.
+  ///
   /// \complexity O(1) expected and amortized.
   /// \param key The key whose value to look for.
   /// \throws LRU::Error::KeyNotFound if the key's value may not be accessed.
@@ -826,6 +829,10 @@ class BaseCache {
   }
 
   /// Looks up the value for the given key.
+  ///
+  /// If the key is found in the cache, it is moved to the front. Any iterators
+  /// pointing to that key are still valid, but the subsequent order of
+  /// iteration may be different from what it was before.
   ///
   /// \complexity O(1) expected and amortized.
   /// \param key The key whose value to look for.
@@ -849,6 +856,10 @@ class BaseCache {
 
   /// Attempts to return an iterator to the given key in the cache.
   ///
+  /// If the key is found in the cache, it is moved to the front. Any iterators
+  /// pointing to that key are still valid, but the subsequent order of
+  /// iteration may be different from what it was before.
+  ///
   /// \complexity O(1) expected and amortized.
   /// \param key The key whose value to look for.
   /// \returns An iterator pointing to the entry with the given key, if one
@@ -856,6 +867,10 @@ class BaseCache {
   virtual UnorderedIterator find(const Key& key) = 0;
 
   /// Attempts to return a const iterator to the given key in the cache.
+  ///
+  /// If the key is found in the cache, it is moved to the front. Any iterators
+  /// pointing to that key are still valid, but the subsequent order of
+  /// iteration may be different from what it was before.
   ///
   /// \complexity O(1) expected and amortized.
   /// \param key The key whose value to look for.
@@ -874,6 +889,10 @@ class BaseCache {
   }
 
   /// Inserts the given `(key, value)` pair into the cache.
+  ///
+  /// If the cache's capacity is reached, the most recently used element will be
+  /// evicted. Any iterators pointing to that element will be invalidated.
+  /// Iterators pointing to other elements are not affected.
   ///
   /// \complexity O(1) expected and amortized.
   /// \param key The key to insert.
@@ -905,13 +924,18 @@ class BaseCache {
       return {true, {*this, result.first}};
     } else {
       _move_to_front(iterator, value);
+      _last_accessed = iterator;
       return {false, {*this, iterator}};
     }
   }
 
   /// Inserts a range of `(key, value)` pairs.
   ///
-  /// This operation has no performance benefits over
+  /// If, at any point, the cache's capacity is reached, the most recently used
+  /// element will be evicted. Any iterators pointing to that element will
+  /// be invalidated. Iterators pointing to other elements are not affected.
+  ///
+  /// Note: This operation has no performance benefits over
   /// element-wise insertion via `insert()`.
   ///
   /// \param begin An iterator for the start of the range to insert.
@@ -932,6 +956,10 @@ class BaseCache {
 
   /// Inserts a range of `(key, value)` pairs.
   ///
+  /// If, at any point, the cache's capacity is reached, the most recently used
+  /// element will be evicted. Any iterators pointing to that element will
+  /// be invalidated. Iterators pointing to other elements are not affected.
+  ///
   /// This operation has no performance benefits over
   /// element-wise insertion via `insert()`.
   ///
@@ -947,6 +975,10 @@ class BaseCache {
   }
 
   /// Moves the elements of the range into the cache.
+  ///
+  /// If, at any point, the cache's capacity is reached, the most recently used
+  /// element will be evicted. Any iterators pointing to that element will
+  /// be invalidated. Iterators pointing to other elements are not affected.
   ///
   /// \param range The range of `(key, value)` pairs to move into the cache.
   /// \returns The number of elements newly inserted (as opposed to only
@@ -964,6 +996,10 @@ class BaseCache {
   }
 
   /// Inserts a list `(key, value)` pairs.
+  ///
+  /// If the cache's capacity is reached, the most recently used element will be
+  /// evicted (one or more times). Any iterators pointing to that element will
+  /// be invalidated. Iterators pointing to other elements are not affected.
   ///
   /// This operation has no performance benefits over
   /// element-wise insertion via `insert()`.
@@ -996,6 +1032,10 @@ class BaseCache {
   ///
   /// There is a convenience overload that requires much less overhead, if both
   /// constructors expect only a single argument.
+  ///
+  /// If the cache's capacity is reached, the most recently used element will be
+  /// evicted. Any iterators pointing to that element will be invalidated.
+  /// Iterators pointing to other elements are not affected.
   ///
   /// \complexity O(1) expected and amortized.
   /// \param _ A dummy parameter to work around overload resolution.
@@ -1031,6 +1071,7 @@ class BaseCache {
     } else {
       auto value = Internal::construct_from_tuple<Value>(value_arguments);
       _move_to_front(iterator, value);
+      _last_accessed = iterator;
       return {false, {*this, iterator}};
     }
   }
@@ -1041,6 +1082,10 @@ class BaseCache {
   /// `std::piecewise_construct` and `std::forward_as_tuple` that may be used in
   /// the case that both the key and value have constructors expecting only a
   /// single argument.
+  ///
+  /// If the cache's capacity is reached, the most recently used element will be
+  /// evicted. Any iterators pointing to that element will be invalidated.
+  /// Iterators pointing to other elements are not affected.
   ///
   /// \param key_argument The argument to construct a key object with.
   /// \param value_argument The argument to construct a value object with.
@@ -1345,6 +1390,11 @@ class BaseCache {
   }
 
  protected:
+  // The ordered iterators need to perform lookups without changing
+  // the order of elements or affecting statistics.
+  template <typename, typename, typename>
+  friend class BaseOrderedIterator;
+
   using MapInsertionResult = decltype(Map().emplace());
   using LastAccessed =
       typename Internal::LastAccessed<Key, Information, KeyEqual>;
@@ -1352,14 +1402,25 @@ class BaseCache {
   /// Moves the key pointed to by the iterator to the front of the order.
   ///
   /// \param iterator The iterator pointing to the key to move.
+  virtual void _move_to_front(MapConstIterator iterator) const {
+    if (size() == 1) return;
+    // Extract the current linked-list node and insert (splice it) at the end
+    // The original iterator is not invalidated and now points to the new
+    // position (which is still the same node).
+    _order.splice(_order.end(), _order, iterator->second.order);
+  }
+
+  /// Moves the key pointed to by the iterator to the front of the order and
+  /// assigns a new value.
+  ///
+  /// \param iterator The iterator pointing to the key to move.
   /// \param new_value The updated value to move the key with.
   virtual void _move_to_front(MapIterator iterator, const Value& new_value) {
     // Extract the current linked-list node and insert (splice it) at the end
     // The original iterator is not invalidated and now points to the new
     // position (which is still the same node).
-    _order.splice(_order.end(), _order, iterator->second.order);
+    _move_to_front(iterator);
     iterator->second.value = new_value;
-    _last_accessed = iterator;
   }
 
   /// Erases the element most recently inserted into the cache.
@@ -1487,7 +1548,7 @@ class BaseCache {
   Map _map;
 
   /// The queue keeping track of the insertion order of elements.
-  Queue _order;
+  mutable Queue _order;
 
   /// The object to mutate statistics if any are registered.
   mutable StatisticsMutator<Key> _stats;

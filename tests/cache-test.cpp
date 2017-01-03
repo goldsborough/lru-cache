@@ -517,3 +517,19 @@ TEST_F(CacheTest, SizeStaysZeroWhenCapacityZero) {
   EXPECT_FALSE(result.was_inserted());
   EXPECT_EQ(result.iterator(), cache.end());
 }
+
+TEST_F(CacheTest, LookupsMoveElementsToFront) {
+  cache.capacity(2);
+  cache.insert({{"one", 1}, {"two", 2}});
+
+  // The LRU principle mandates that lookups place
+  // accessed elements to the front. So when we look at
+  // one it should move to the front.
+
+  cache.lookup("one");
+  cache.emplace("three", 3);
+
+  EXPECT_TRUE(cache.contains("one"));
+  EXPECT_FALSE(cache.contains("two"));
+  EXPECT_TRUE(cache.contains("three"));
+}

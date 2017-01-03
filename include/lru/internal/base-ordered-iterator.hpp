@@ -311,8 +311,8 @@ class BaseOrderedIterator
 
   /// Looks up the entry for a key and sets the internal entry member.
   void _lookup() {
-    auto iterator = _cache->find(*_iterator);
-    _entry.emplace(*_iterator, iterator->value());
+    auto iterator = _cache->_map.find(*_iterator);
+    _entry.emplace(iterator->first, iterator->second.value);
   }
 
  private:

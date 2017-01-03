@@ -123,6 +123,7 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   cache.emplace("two", 2);
   cache.emplace("three", 3);
 
+  // Note: find() will always return end() - 1
   UnorderedIterator unordered = cache.find("one");
 
   ASSERT_EQ(unordered.key(), "one");
@@ -135,9 +136,9 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   EXPECT_EQ(ordered.value(), 1);
 
   // Once it's ordered, the ordering shold be maintained
-  ++ordered;
-  EXPECT_EQ(ordered.key(), "two");
-  EXPECT_EQ(ordered.value(), 2);
+  --ordered;
+  EXPECT_EQ(ordered.key(), "three");
+  EXPECT_EQ(ordered.value(), 3);
 
   UnorderedConstIterator const_unordered = unordered;
   const_unordered = unordered;
@@ -145,17 +146,12 @@ TEST_F(IteratorTest, TestConversionFromUnorderedToOrdered) {
   OrderedConstIterator const_ordered(std::move(const_unordered));
   const_ordered = OrderedConstIterator(std::move(const_unordered));
 
-  EXPECT_EQ(ordered.key(), "two");
-  EXPECT_EQ(ordered.value(), 2);
-
-  --ordered;
-
   // Just making sure this compiles
-  const_ordered = ordered;
+  const_ordered = --ordered;
   const_ordered = OrderedConstIterator(unordered);
 
-  EXPECT_EQ(ordered.key(), "one");
-  EXPECT_EQ(ordered.value(), 1);
+  EXPECT_EQ(ordered.key(), "two");
+  EXPECT_EQ(ordered.value(), 2);
 }
 
 TEST_F(IteratorTest, OrdereredIteratorsAreOrdered) {
@@ -168,6 +164,45 @@ TEST_F(IteratorTest, OrdereredIteratorsAreOrdered) {
     ASSERT_EQ(iterator.value(), i);
   }
 }
+
+TEST_F(IteratorTest, OrderedIteratorsDoNotChangeTheOrderOfElements) {
+  cache.capacity(2);
+  cache.insert({{"one", 1}});
+
+  auto begin = cache.ordered_begin();
+
+  cache.emplace("two", 2);
+
+  // This here will cause a lookup, but it should not
+  // change the order of elements
+  ASSERT_EQ(begin->key(), "one");
+  ASSERT_EQ((++begin)->key(), "two");
+  ASSERT_EQ((--begin)->key(), "one");
+  cache.emplace("three", 3);
+
+  EXPECT_FALSE(cache.contains("one"));
+  EXPECT_TRUE(cache.contains("two"));
+  EXPECT_TRUE(cache.contains("three"));
+}
+
+TEST_F(IteratorTest, UnorderedIteratorsDoNotChangeTheOrderOfElements) {
+  cache.capacity(2);
+  cache.insert({{"one", 1}});
+
+  auto begin = cache.unordered_begin();
+
+  cache.emplace("two", 2);
+
+  ASSERT_EQ(begin->key(), "one");
+  cache.emplace("three", 3);
+
+  EXPECT_FALSE(cache.contains("one"));
+  EXPECT_TRUE(cache.contains("two"));
+  EXPECT_TRUE(cache.contains("three"));
+
+  ASSERT_EQ((++begin)->key(), "two");
+}
+
 
 TEST_F(IteratorTest, OrderedIteratorsThrowWhenAccessingExpiredElements) {
   TimedCache<int, int> timed_cache(0ms);
