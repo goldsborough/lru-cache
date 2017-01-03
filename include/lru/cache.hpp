@@ -153,7 +153,7 @@ class Cache
     auto iterator = _map.find(key);
     if (iterator != _map.end()) {
       _register_hit(key, iterator->second.value);
-      _move_to_front(iterator);
+      _move_to_front(iterator->second.order);
       _last_accessed = iterator;
     } else {
       _register_miss(key);
@@ -167,7 +167,7 @@ class Cache
     auto iterator = _map.find(key);
     if (iterator != _map.end()) {
       _register_hit(key, iterator->second.value);
-      _move_to_front(iterator);
+      _move_to_front(iterator->second.order);
       _last_accessed = iterator;
     } else {
       _register_miss(key);

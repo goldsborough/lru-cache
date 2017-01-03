@@ -194,6 +194,12 @@ class LastAccessed {
     return *_information;
   }
 
+  /// \returns The last accessed information.
+  auto& iterator() noexcept {
+    assert(is_valid());
+    return _information->order;
+  }
+
   /// \returns The last accessed value.
   auto& value() noexcept {
     assert(is_valid());

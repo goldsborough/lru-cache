@@ -787,19 +787,14 @@ class BaseCache {
     if (key == _last_accessed) {
       if (_last_accessed_is_ok(key)) {
         _register_hit(key, _last_accessed.value());
+        _move_to_front(_last_accessed.iterator());
         return true;
       } else {
         return false;
       }
     }
 
-    auto iterator = find(key);
-    if (iterator != end()) {
-      _last_accessed = iterator._iterator;
-      return true;
-    } else {
-      return false;
-    }
+    return find(key) != end();
   }
 
   /// Looks up the value for the given key.
@@ -817,6 +812,7 @@ class BaseCache {
     if (key == _last_accessed) {
       auto& value = _value_for_last_accessed();
       _register_hit(key, value);
+      _move_to_front(_last_accessed.iterator());
       return value;
     }
 
@@ -843,6 +839,7 @@ class BaseCache {
     if (key == _last_accessed) {
       auto& value = _value_for_last_accessed();
       _register_hit(key, value);
+      _move_to_front(_last_accessed.iterator());
       return value;
     }
 
@@ -1059,14 +1056,12 @@ class BaseCache {
         _erase_lru();
       }
 
-
       auto result = _map.emplace(std::move(key), Information(value_arguments));
       auto order = _order.emplace(_order.end(), result.first->first);
       result.first->second.order = order;
       assert(result.second);
 
       _last_accessed = result.first;
-
       return {true, {*this, result.first}};
     } else {
       auto value = Internal::construct_from_tuple<Value>(value_arguments);
@@ -1402,12 +1397,12 @@ class BaseCache {
   /// Moves the key pointed to by the iterator to the front of the order.
   ///
   /// \param iterator The iterator pointing to the key to move.
-  virtual void _move_to_front(MapConstIterator iterator) const {
+  virtual void _move_to_front(QueueIterator iterator) const {
     if (size() == 1) return;
     // Extract the current linked-list node and insert (splice it) at the end
     // The original iterator is not invalidated and now points to the new
     // position (which is still the same node).
-    _order.splice(_order.end(), _order, iterator->second.order);
+    _order.splice(_order.end(), _order, iterator);
   }
 
   /// Moves the key pointed to by the iterator to the front of the order and
@@ -1419,7 +1414,7 @@ class BaseCache {
     // Extract the current linked-list node and insert (splice it) at the end
     // The original iterator is not invalidated and now points to the new
     // position (which is still the same node).
-    _move_to_front(iterator);
+    _move_to_front(iterator->second.order);
     iterator->second.value = new_value;
   }
 
