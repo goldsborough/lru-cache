@@ -201,6 +201,7 @@ TEST(StatisticsTest, CanShareStatistics) {
 
   ASSERT_EQ(mutator1.shared(), mutator2.shared());
   ASSERT_EQ(mutator2.shared(), mutator3.shared());
+  ASSERT_EQ(&mutator2.get(), &mutator3.get());
 
   mutator1.register_hit(1);
   EXPECT_EQ(stats->total_accesses(), 1);

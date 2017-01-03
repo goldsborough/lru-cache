@@ -150,7 +150,7 @@ std::shared_ptr<Statistics<std::string>> stats2 = cache1.shared_stats();
 
 #### Monitoring specific keys
 
-One of the more interesting features of our statistics API is the ability to monitor hits and misses for a specific set of keys. Say we were writing a web server accepting HTTP requests and wanted to cache resources (I assume that's something people would do). Because our website changes in some way every hour, we'll use a timed cache with a time to live of one hour. We're also particularly interested in how many cache hits we get for `index.html`. For this, it's good to know that the empty `monitor()` call we made further up is actually a method accepting variadic arguments to forward to the constructor of an internal statistics object (the empty `monitor()` calls the default constructor). One constructor of `Statistics` takes a number of keys to monitor in particular. So calling `monitor(key1, key2, ...)` will set up monitoring for all keys, plus keep a special eye on those. We could then something like this:
+One of the more interesting features of our statistics API is the ability to monitor hits and misses for a specific set of keys. Say we were writing a web server accepting HTTP requests and wanted to cache resources (I assume that's something people would do). Because our website changes in some way every hour, we'll use a timed cache with a time-to-live of one hour. We're also particularly interested in how many cache hits we get for `index.html`. For this, it's good to know that the empty `monitor()` call we made further up is actually a method accepting variadic arguments to forward to the constructor of an internal statistics object (the empty `monitor()` calls the default constructor). One constructor of `Statistics` takes a number of keys to monitor in particular. So calling `monitor(key1, key2, ...)` will set up monitoring for those keys. We could then something like this:
 
 ```cpp
 #include <string>
@@ -183,15 +183,15 @@ struct MyWebServerHehe {
 };
 ```
 
-Later on, we can use methods like `hits_for(key)`, `misses_for(key)` or `stats_for(key)` on `cache.stats()` to find out how many hits or misses we got for our monitored resource. Note that `stats_for(key)` returns a lightweight `struct` holding hit and miss information about a particular key.
+Later on, we can use methods like `hits_for("index.html")`, `misses_for("index.html")` or `stats_for("index.html")` on `cache.stats()` to find out how many hits or misses we got for our monitored resource. Note that `stats_for(key)` returns a lightweight `struct` holding hit and miss information about a particular key.
 
 ### Callbacks
 
-Next to registering statistics, we also allow hooking in arbitrary callbacks. The three kinds of callbacks that may be registered are:
+Next to registering statistics, we also allow hook in arbitrary callbacks. The three kinds of callbacks that may be registered are:
 
-1. Hit callbacks, taking a key and value after a cache hit (`hit_callback()`).
-2. Miss callbacks, taking only a key, that was not found in a cache (`miss_callback()`).
-3. Access callbacks, taking a key and a boolean indicating a hit or a miss (`access_callback()`).
+1. Hit callbacks, taking a key and value after a cache hit (registered with `hit_callback()`).
+2. Miss callbacks, taking only a key, that was not found in a cache (registered with `miss_callback()`).
+3. Access callbacks, taking a key and a boolean indicating a hit or a miss (registered with `access_callback()`).
 
 Usage could look something like this:
 

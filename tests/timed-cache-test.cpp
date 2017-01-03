@@ -151,7 +151,7 @@ TEST(TimedCacheTest, HasExpiredReturnsTrueForContainedAndExpiredKeys) {
   EXPECT_TRUE(cache.has_expired(1));
   EXPECT_FALSE(cache.has_expired(2));
 
-  std::this_thread::sleep_for(1ms);
+  std::this_thread::sleep_for(3ms);
 
   EXPECT_TRUE(cache.has_expired(1));
   EXPECT_TRUE(cache.has_expired(2));
