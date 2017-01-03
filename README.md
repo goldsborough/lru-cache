@@ -1,6 +1,6 @@
 # lru-cache
 
-[![GitHub license](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square)](http://goldsborough.mit-license.org)
+[![GitHub license](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square)](http://goldsborough.mit-license.org) [![Build Status](https://travis-ci.org/goldsborough/lru-cache.svg?branch=master)](https://travis-ci.org/goldsborough/lru-cache)
 
 A feature complete LRU cache implementation in C++.
 
