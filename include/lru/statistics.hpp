@@ -66,8 +66,11 @@ class Statistics {
   template <typename... Keys,
             typename = std::enable_if_t<Internal::all_of_type<Key, Keys...>>>
   explicit Statistics(Keys&&... keys) : Statistics() {
-    Internal::for_each([this](auto&& key) { monitor(key); },
-                       std::forward<Keys>(keys)...);
+    // clang-format off
+    Internal::for_each([this](auto&& key) {
+      this->monitor(std::forward<decltype(key)>(key));
+    }, std::forward<Keys>(keys)...);
+    // clang-format on
   }
 
   /// Constructor.
