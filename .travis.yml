@@ -63,7 +63,7 @@ before_script:
 
 script:
   - make VERBOSE=1 -j4
-  - ./logbt.sh bin/lru-cache-tests
+  - ./logbt.sh bin/lru-cache-test
 
 notifications:
   email: false
