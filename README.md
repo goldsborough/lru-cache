@@ -6,7 +6,7 @@ A feature complete LRU cache implementation in C++.
 
 ## Description
 
-A *least recently used* (LRU) cache is a fixed size cache that behaves just like a regular lookup table, but remembers the order in which elements are accessed. Once its (user-defined) capacity is reached, it uses this information to replace the least recently used element with a newly inserted one. This is ideal for caching function return values, where fast lookup of complex computation is favorable, but a memory blowup from caching all `(input, output)` pairs is to be avoided.
+A *least recently used* (LRU) cache is a fixed size cache that behaves just like a regular lookup table, but remembers the order in which elements are accessed. Once its (user-defined) capacity is reached, it uses this information to replace the least recently used element with a newly inserted one. This is ideal for caching function return values, where fast lookup of complex computations is favorable, but a memory blowup from caching all `(input, output)` pairs is to be avoided.
 
 We provide two implementations of an LRU cache: one has only the basic functionality described above, and another can be additionally supplied with a *time to live*. This is useful, for example, when caching resources on a server, where cache entries should be invalidated automatically after a certain amount of time, because they are no longer "fresh".
 
@@ -100,10 +100,10 @@ for (const auto& pair : cache) {
 
 auto iterator = cache.begin();           // These two lines
 auto iterator = cache.unordered_begin(); // are the same
-auto iterator = cache.ordered_end();     // This is something different.
+auto iterator = cache.ordered_end();     // This is something different
 ```
 
-Unordered iterators are implemented directly over internal map iterators and thus have direct access to the key and value of a pointed-to entry.
+Unordered iterators are implemented directly over internal map iterators and thus have access to the key and value of a pointed-to entry.
 
 Ordered iterators respect the order of insertion. They differ in a few ways from unordered iterators:
 
@@ -111,7 +111,7 @@ Ordered iterators respect the order of insertion. They differ in a few ways from
 2. They provide fast access only to the `key()`. Accessing the value requires a hash table lookup the first time an iterator is dereferenced.
 3. They can be constructed from unordered iterators! This means writing something like `typename LRU::Cache<int, int>::OrderedIterator i(unordered_iterator)` will work and is fast.
 
-It is also noteworthy dereferencing an iterator will not change the order of elements in the cache.
+Dreferencing an iterator will not change the order of elements in the cache.
 
 ### Statistics
 
@@ -162,10 +162,10 @@ One of the more interesting features of our statistics API is the ability to mon
 
 using namespace std::chrono_literals;
 
-struct MyWebServerHehe {
+struct MyWebServer {
 
   // We pass 1h to let the cache know that resources are to be invalidated after one hour.
-  MyWebServerHehe() : cache(1h) {
+  MyWebServer() : cache(1h) {
     cache.monitor("index.html");
   }
 
