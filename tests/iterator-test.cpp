@@ -200,8 +200,8 @@ TEST_F(IteratorTest, UnorderedIteratorsDoNotChangeTheOrderOfElements) {
   EXPECT_TRUE(cache.contains("two"));
   EXPECT_TRUE(cache.contains("three"));
 
-  ++begin;
-  ASSERT_EQ(begin->key(), "two");
+  ASSERT_EQ(cache.back(), "two");
+  ASSERT_EQ(cache.front(), "three");
 }
 
 

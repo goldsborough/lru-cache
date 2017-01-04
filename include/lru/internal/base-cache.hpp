@@ -908,13 +908,9 @@ class BaseCache {
     // possibly pop the front if the cache has reached its capacity.
 
     if (iterator == _map.end()) {
-      if (is_full()) {
-        _erase_lru();
-      }
-
       auto result = _map.emplace(key, Information(value));
       assert(result.second);
-      auto order = _order.insert(_order.end(), result.first->first);
+      auto order = _insert_new_key(result.first->first);
       result.first->second.order = order;
 
       _last_accessed = result.first;
@@ -1052,12 +1048,8 @@ class BaseCache {
     auto iterator = _map.find(key);
 
     if (iterator == _map.end()) {
-      if (is_full()) {
-        _erase_lru();
-      }
-
       auto result = _map.emplace(std::move(key), Information(value_arguments));
-      auto order = _order.emplace(_order.end(), result.first->first);
+      auto order = _insert_new_key(result.first->first);
       result.first->second.order = order;
       assert(result.second);
 
@@ -1097,6 +1089,8 @@ class BaseCache {
   /// Erases the given key from the cache, if it is present.
   ///
   /// If the key is not present in the cache, this is a no-op.
+  /// All iterators pointing to the given key are invalidated.
+  /// Other iterators are not affected.
   ///
   /// \param key The key to erase.
   /// \returns True if the key was erased, else false.
@@ -1537,6 +1531,37 @@ class BaseCache {
     for (auto& key_reference : _order) {
       key_reference = std::ref(_map.find(key_reference)->first);
     }
+  }
+
+  /// Inserts a new key into the queue.
+  ///
+  /// If the cache is full, the LRU node is re-used.
+  /// Else a node is inserted at the order.
+  ///
+  /// \returns The resulting iterator.
+  QueueIterator _insert_new_key(const Key& key) {
+    if (_is_too_full()) {
+      _evict_lru_for(key);
+    } else {
+      _order.emplace_back(key);
+    }
+
+    return std::prev(_order.end());
+  }
+
+  /// Evicts the LRU element for the given new key.
+  ///
+  /// \param key The new key to insert into the queue.
+  void _evict_lru_for(const Key& key) {
+    _map.erase(_order.front());
+    _order.front() = std::ref(key);
+    _move_to_front(_order.begin());
+  }
+
+  /// \returns True if the cache is too full and an element must be evicted,
+  /// else false.
+  bool _is_too_full() const noexcept {
+    return size() > _capacity;
   }
 
   /// The map from keys to information objects.
