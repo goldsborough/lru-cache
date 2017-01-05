@@ -26,11 +26,11 @@
 #include <iterator>
 #include <type_traits>
 
-#include "lru/entry.hpp"
-#include "lru/internal/base-iterator.hpp"
-#include "lru/internal/definitions.hpp"
-#include "lru/internal/optional.hpp"
-#include "lru/iterator-tags.hpp"
+#include <lru/entry.hpp>
+#include <lru/internal/base-iterator.hpp>
+#include <lru/internal/definitions.hpp>
+#include <lru/internal/optional.hpp>
+#include <lru/iterator-tags.hpp>
 
 
 namespace LRU {

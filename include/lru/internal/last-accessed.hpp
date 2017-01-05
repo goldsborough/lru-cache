@@ -26,7 +26,7 @@
 #include <functional>
 #include <iterator>
 
-#include "lru/internal/utility.hpp"
+#include <lru/internal/utility.hpp>
 
 namespace LRU {
 namespace Internal {

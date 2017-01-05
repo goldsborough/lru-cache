@@ -31,11 +31,11 @@
 #include <stdexcept>
 #include <unordered_map>
 
-#include "lru/cache-tags.hpp"
-#include "lru/error.hpp"
-#include "lru/internal/base-cache.hpp"
-#include "lru/internal/information.hpp"
-#include "lru/internal/last-accessed.hpp"
+#include <lru/cache-tags.hpp>
+#include <lru/error.hpp>
+#include <lru/internal/base-cache.hpp>
+#include <lru/internal/information.hpp>
+#include <lru/internal/last-accessed.hpp>
 
 namespace LRU {
 namespace Internal {

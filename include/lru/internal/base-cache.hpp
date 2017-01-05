@@ -33,16 +33,16 @@
 #include <unordered_map>
 #include <utility>
 
-#include "lru/insertion-result.hpp"
-#include "lru/internal/base-ordered-iterator.hpp"
-#include "lru/internal/base-unordered-iterator.hpp"
-#include "lru/internal/callback-manager.hpp"
-#include "lru/internal/definitions.hpp"
-#include "lru/internal/last-accessed.hpp"
-#include "lru/internal/optional.hpp"
-#include "lru/internal/statistics-mutator.hpp"
-#include "lru/internal/utility.hpp"
-#include "lru/statistics.hpp"
+#include <lru/insertion-result.hpp>
+#include <lru/internal/base-ordered-iterator.hpp>
+#include <lru/internal/base-unordered-iterator.hpp>
+#include <lru/internal/callback-manager.hpp>
+#include <lru/internal/definitions.hpp>
+#include <lru/internal/last-accessed.hpp>
+#include <lru/internal/optional.hpp>
+#include <lru/internal/statistics-mutator.hpp>
+#include <lru/internal/utility.hpp>
+#include <lru/statistics.hpp>
 
 namespace LRU {
 namespace Internal {

@@ -27,8 +27,8 @@
 #include <memory>
 #include <utility>
 
-#include "lru/internal/optional.hpp"
-#include "lru/statistics.hpp"
+#include <lru/internal/optional.hpp>
+#include <lru/statistics.hpp>
 
 namespace LRU {
 namespace Internal {

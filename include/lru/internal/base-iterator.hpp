@@ -25,8 +25,8 @@
 #include <algorithm>
 #include <iterator>
 
-#include "lru/entry.hpp"
-#include "lru/internal/optional.hpp"
+#include <lru/entry.hpp>
+#include <lru/internal/optional.hpp>
 
 #define PUBLIC_BASE_ITERATOR_MEMBERS \
   typename super::Entry;             \

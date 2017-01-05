@@ -22,7 +22,7 @@
 #ifndef LRU_LOWERCASE_HPP
 #define LRU_LOWERCASE_HPP
 
-#include "lru/lru.hpp"
+#include <lru/lru.hpp>
 
 namespace LRU {
 using namespace Lowercase;  // NOLINT(build/namespaces)

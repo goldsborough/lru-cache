@@ -30,9 +30,9 @@
 #include <unordered_map>
 #include <utility>
 
-#include "lru/error.hpp"
-#include "lru/internal/utility.hpp"
-#include "lru/key-statistics.hpp"
+#include <lru/error.hpp>
+#include <lru/internal/utility.hpp>
+#include <lru/key-statistics.hpp>
 
 namespace LRU {
 namespace Internal {

@@ -26,8 +26,8 @@
 #include <tuple>
 #include <utility>
 
-#include "lru/internal/definitions.hpp"
-#include "lru/internal/utility.hpp"
+#include <lru/internal/definitions.hpp>
+#include <lru/internal/utility.hpp>
 
 namespace LRU {
 namespace Internal {

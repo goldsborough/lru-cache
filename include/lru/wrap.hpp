@@ -27,9 +27,9 @@
 #include <type_traits>
 #include <utility>
 
-#include "lru/cache.hpp"
-#include "lru/internal/hash.hpp"
-#include "lru/internal/utility.hpp"
+#include <lru/cache.hpp>
+#include <lru/internal/hash.hpp>
+#include <lru/internal/utility.hpp>
 
 namespace LRU {
 
