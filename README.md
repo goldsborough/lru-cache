@@ -42,7 +42,7 @@ int fibonacci(int n, Cache& cache) {
 
 int fibonacci(int n) {
   // Use a capacity of 100 (after 100 insertions, the next insertion will evict
-  // the least-recently inserted element). The default capacity is 128.
+  // the least-recently accessed element). The default capacity is 128.
   Cache cache(100);
   return fibonacci(n, cache);
 }
