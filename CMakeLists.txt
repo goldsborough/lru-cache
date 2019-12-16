@@ -3,7 +3,7 @@
 ###########################################################
 
 cmake_minimum_required(VERSION 3.2)
-project(lru-cache)
+project(lru-cache VERSION 0.1.0)
 
 add_compile_options(-g)
 
@@ -65,37 +65,43 @@ else()
 endif()
 
 
-add_library(lru INTERFACE)
-target_include_directories(lru INTERFACE
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
-        )
+add_library(${PROJECT_NAME} INTERFACE)
+
+set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+set(include_install_dir "include")
+set(config_install_dir "lib/cmake/${PROJECT_NAME}")
+
+set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
+set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
+set(targets_export_name "${PROJECT_NAME}Targets")
+set(namespace "${PROJECT_NAME}::")
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-        "${PROJECT_BINARY_DIR}/lruConfigVersion.cmake"
-        VERSION 0.1
-        COMPATIBILITY AnyNewerVersion
+        "${version_config}" COMPATIBILITY SameMajorVersion
 )
 
-install(TARGETS lru
-        EXPORT lruTargets
-        LIBRARY DESTINATION lib COMPONENT Runtime
-        ARCHIVE DESTINATION lib COMPONENT Development
-        RUNTIME DESTINATION bin COMPONENT Runtime
-        PUBLIC_HEADER DESTINATION include COMPONENT Development
-        BUNDLE DESTINATION bin COMPONENT Runtime
-        )
+configure_file("cmake/Config.cmake.in" "${project_config}" @ONLY)
 
-include(CMakePackageConfigHelpers)
-configure_package_config_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/lruConfig.cmake.in"
-        "${PROJECT_BINARY_DIR}/lruConfig.cmake"
-        INSTALL_DESTINATION lib/cmake/lru
+install(
+        TARGETS ${PROJECT_NAME}
+        EXPORT "${targets_export_name}"
+        INCLUDES DESTINATION "${include_install_dir}"
 )
 
-install(EXPORT lruTargets DESTINATION lib/cmake/lru)
-install(FILES "${PROJECT_BINARY_DIR}/lruConfigVersion.cmake"
-        "${PROJECT_BINARY_DIR}/lruConfig.cmake"
-        DESTINATION lib/cmake/lru)
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
+install(
+        FILES "single_include/catch.hpp"
+        DESTINATION "${include_install_dir}"
+)
+
+install(
+        FILES "${project_config}" "${version_config}"
+        DESTINATION "${config_install_dir}"
+)
+
+install(
+        EXPORT "${targets_export_name}"
+        NAMESPACE "${namespace}"
+        DESTINATION "${config_install_dir}"
+)
