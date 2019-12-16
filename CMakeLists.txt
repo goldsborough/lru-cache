@@ -63,3 +63,39 @@ if(BUILD_LRU_CACHE_TESTS)
 else()
   message(STATUS "Disabling tests ...")
 endif()
+
+
+add_library(lru INTERFACE)
+target_include_directories(lru INTERFACE
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+        )
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+        "${PROJECT_BINARY_DIR}/lruConfigVersion.cmake"
+        VERSION 0.1
+        COMPATIBILITY AnyNewerVersion
+)
+
+install(TARGETS lru
+        EXPORT lruTargets
+        LIBRARY DESTINATION lib COMPONENT Runtime
+        ARCHIVE DESTINATION lib COMPONENT Development
+        RUNTIME DESTINATION bin COMPONENT Runtime
+        PUBLIC_HEADER DESTINATION include COMPONENT Development
+        BUNDLE DESTINATION bin COMPONENT Runtime
+        )
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/lruConfig.cmake.in"
+        "${PROJECT_BINARY_DIR}/lruConfig.cmake"
+        INSTALL_DESTINATION lib/cmake/lru
+)
+
+install(EXPORT lruTargets DESTINATION lib/cmake/lru)
+install(FILES "${PROJECT_BINARY_DIR}/lruConfigVersion.cmake"
+        "${PROJECT_BINARY_DIR}/lruConfig.cmake"
+        DESTINATION lib/cmake/lru)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
